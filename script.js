@@ -8,6 +8,10 @@
     return;
   }
 
+  // Debug logging
+  console.log("Page:", page);
+  console.log("siteConfig:", window.siteConfig);
+
   const config = window.siteConfig || {};
 
   const getCsvUrl = () => {
