@@ -1,15 +1,15 @@
 :root {
   color-scheme: dark;
-  --bg: #071218;
-  --surface: rgba(7, 18, 24, 0.9);
-  --surface-strong: #101c27;
+  --bg: #1a0f0f;
+  --surface: rgba(26, 15, 15, 0.9);
+  --surface-strong: #2a1818;
   --border: rgba(255, 255, 255, 0.1);
-  --text: #f4f7fb;
-  --muted: #8ca3b9;
-  --accent: #4dd0b1;
-  --accent-strong: #8b9dff;
-  --warning: #ffba6a;
-  --danger: #ff7b72;
+  --text: #f5ede8;
+  --muted: #b89494;
+  --accent: #d97f8f;
+  --accent-strong: #e6a8b8;
+  --warning: #f5d194;
+  --danger: #ff8a7b;
 }
 
 * {
@@ -21,7 +21,7 @@ body {
   font-family: Inter, "Segoe UI", Arial, sans-serif;
   line-height: 1.6;
   color: var(--text);
-  background: radial-gradient(circle at top, #13253b 0%, var(--bg) 60%);
+  background: radial-gradient(circle at top, #3a1f1f 0%, var(--bg) 60%);
   min-height: 100vh;
 }
 
@@ -30,7 +30,7 @@ body {
   top: 0;
   z-index: 10;
   backdrop-filter: blur(12px);
-  background: rgba(5, 15, 22, 0.9);
+  background: rgba(20, 10, 10, 0.9);
   border-bottom: 1px solid var(--border);
 }
 
@@ -125,7 +125,7 @@ body {
   gap: 0.4rem;
   padding: 0.35rem 0.7rem;
   border-radius: 999px;
-  background: rgba(77, 208, 177, 0.12);
+  background: rgba(217, 127, 143, 0.15);
   color: var(--accent);
   font-size: 0.82rem;
   font-weight: 700;
@@ -177,14 +177,14 @@ body {
   padding: 0.8rem 1rem;
   border: 1px solid var(--border);
   border-radius: 12px;
-  background: rgba(77, 208, 177, 0.12);
+  background: rgba(217, 127, 143, 0.15);
   color: var(--text);
 }
 
 .status.error {
-  background: rgba(255, 123, 114, 0.15);
+  background: rgba(255, 138, 123, 0.15);
   color: #ffd4cf;
-  border-color: rgba(255, 123, 114, 0.3);
+  border-color: rgba(255, 138, 123, 0.3);
 }
 
 .selector-card {
