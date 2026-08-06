@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Calendar • Battle Arena Council</title>
+    <meta name="theme-color" content="#071218" />
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <header class="site-header">
+      <nav class="site-nav" aria-label="Primary navigation">
+        <a class="brand" href="index.html">Battle Arena Council</a>
+        <div class="nav-links">
+          <a href="index.html">Home</a>
+          <a href="calendar.html" class="active">Calendar</a>
+          <a href="players.html">Players</a>
+          <a href="characters.html">Characters</a>
+        </div>
+      </nav>
+    </header>
+
+    <main class="page page-stack">
+      <section class="page-intro">
+        <h1>Event calendar</h1>
+        <p>
+          Keep the match schedule visible here with your public Google Calendar
+          embed so the community can see upcoming clashes at a glance.
+        </p>
+      </section>
+
+      <div class="calendar-frame">
+        <iframe
+          src="https://calendar.google.com/calendar/embed?src=your-calendar-id%40group.calendar.google.com&ctz=America%2FNew_York"
+          width="100%"
+          height="600"
+          frameborder="0"
+          scrolling="no"
+          title="Game night calendar"
+        ></iframe>
+      </div>
+    </main>
+
+    <footer class="site-footer">
+      <p>Battle Arena Council • community-managed records for tactical play nights</p>
+    </footer>
+  </body>
+</html>

@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Characters • Battle Arena Council</title>
+    <meta name="theme-color" content="#071218" />
+    <link rel="stylesheet" href="style.css" />
+    <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+    <script src="config.js"></script>
+    <script src="script.js" defer></script>
+  </head>
+  <body data-page="characters">
+    <header class="site-header">
+      <nav class="site-nav" aria-label="Primary navigation">
+        <a class="brand" href="index.html">Battle Arena Council</a>
+        <div class="nav-links">
+          <a href="index.html">Home</a>
+          <a href="calendar.html">Calendar</a>
+          <a href="players.html">Players</a>
+          <a href="characters.html" class="active">Characters</a>
+        </div>
+      </nav>
+    </header>
+
+    <main class="page page-stack">
+      <section class="page-intro">
+        <h1>Character standings</h1>
+        <p>
+          Switch between Dice Throne and Unmatched to load the appropriate shared
+          record sheet. Click a header to sort by wins, losses, or win percentage.
+        </p>
+      </section>
+
+      <section class="selector-card">
+        <label for="game-select">Select roster</label>
+        <select id="game-select">
+          <option value="dice-throne">Dice Throne</option>
+          <option value="unmatched">Unmatched</option>
+        </select>
+      </section>
+
+      <div class="status" id="table-status" role="status">Loading character records…</div>
+      <div class="table-wrap">
+        <table class="records-table" id="records-table" aria-live="polite"></table>
+      </div>
+    </main>
+
+    <footer class="site-footer">
+      <p>Battle Arena Council • community-managed records for tactical play nights</p>
+    </footer>
+  </body>
+</html>
