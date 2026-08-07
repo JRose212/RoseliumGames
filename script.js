@@ -26,6 +26,7 @@
   };
 
   const setStatus = (message, isError = false) => {
+    statusEl.hidden = false;
     statusEl.textContent = message;
     statusEl.classList.toggle("error", isError);
   };
@@ -62,7 +63,8 @@
       }
 
       renderTable(rows);
-      setStatus(`Loaded ${rows.length} records.`);
+      setStatus("");
+      statusEl.hidden = true;
     } catch (error) {
       console.error(error);
       setStatus(`Unable to load records. ${error.message}`, true);
