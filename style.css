@@ -147,6 +147,39 @@ body {
   padding: 1.25rem;
 }
 
+.game-card--dice-throne,
+.game-card--unmatched {
+  position: relative;
+  overflow: hidden;
+}
+
+.game-card--dice-throne::before,
+.game-card--unmatched::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-size: contain;
+  background-position: center;
+  background-repeat: no-repeat;
+  opacity: 0.5;
+  z-index: 0;
+  pointer-events: none;
+}
+
+.game-card--dice-throne::before {
+  background-image: url("assets/dice-throne-logo.webp");
+}
+
+.game-card--unmatched::before {
+  background-image: url("assets/unmatched-logo.png");
+}
+
+.game-card--dice-throne > *,
+.game-card--unmatched > * {
+  position: relative;
+  z-index: 1;
+}
+
 .game-grid {
   display: grid;
   gap: 1rem;
