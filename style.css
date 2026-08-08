@@ -42,6 +42,40 @@ body[data-page="home"]::before {
   pointer-events: none;
 }
 
+body[data-page="dice-throne"] {
+  position: relative;
+}
+
+body[data-page="dice-throne"]::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background-image: url("assets/dice-throne-bg.webp");
+  background-size: cover;
+  background-position: center top;
+  background-repeat: no-repeat;
+  opacity: 0.15;
+  pointer-events: none;
+}
+
+body[data-page="unmatched"] {
+  position: relative;
+}
+
+body[data-page="unmatched"]::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background-image: url("assets/unmatched-bg.jpg");
+  background-size: 700px auto;
+  background-position: top left;
+  background-repeat: repeat;
+  opacity: 0.15;
+  pointer-events: none;
+}
+
 .site-header {
   position: sticky;
   top: 0;
