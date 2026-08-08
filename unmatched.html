@@ -33,9 +33,17 @@
         </p>
       </section>
 
+      <nav class="jump-nav card" aria-label="On this page">
+        <a href="#how-to-play">How to play</a>
+        <a href="#roster">Hero roster</a>
+        <a href="#glossary">Glossary</a>
+        <a href="#faq">FAQ</a>
+        <a href="#resources">Resources</a>
+      </nav>
+
       <section class="content-grid">
         <a class="card" href="characters.html">
-          <h2>Versus Ladder records</h2>
+          <h2>Champion Records</h2>
           <p>
             See pick rates, win rates, and games played for every
             Unmatched fighter in the current meta.
@@ -55,6 +63,1501 @@
           <p>
             Find the next session on the calendar and get your matches on
             the books.
+          </p>
+        </a>
+      </section>
+
+      <div class="section-heading" id="how-to-play">
+        <h2>How to play</h2>
+        <p>The core rules every match runs on, start to finish.</p>
+      </div>
+
+      <section class="rules-grid">
+        <article class="card">
+          <h3>1. Setup</h3>
+          <p>
+            Choose a battlefield, then place each hero and their sidekicks
+            on the matching starting spaces (any space marked with a
+            diamond number). Shuffle your hero's unique action deck and
+            draw a hand of five cards. Decide who takes the first turn —
+            the first player breaks ties on any simultaneous effects for
+            the rest of the game.
+          </p>
+        </article>
+
+        <article class="card">
+          <h3>2. Actions</h3>
+          <p>On your turn you take actions. Most turns you'll use one or more of:</p>
+          <ul>
+            <li><strong>Maneuver</strong> — draw a card and/or move a fighter up to its move value.</li>
+            <li><strong>Attack</strong> — declare a fighter and a legal target, then resolve combat.</li>
+            <li><strong>Scheme</strong> — play a scheme (purple) card for its non-combat effect.</li>
+          </ul>
+          <p>
+            You start with a hand of five and can hold up to seven; discard
+            down to the limit at the end of your turn.
+          </p>
+        </article>
+
+        <article class="card">
+          <h3>3. Movement &amp; zones</h3>
+          <p>
+            Fighters move one connected space at a time along the printed
+            lines, up to their move value — you never have to use the
+            full amount. Two spaces are <strong>adjacent</strong> when a
+            single line connects them, which is required for melee
+            attacks. A <strong>zone</strong> is a coloured region of the
+            board; ranged attacks can hit any fighter sharing a zone, not
+            just an adjacent one.
+          </p>
+        </article>
+
+        <article class="card">
+          <h3>4. Combat sequence</h3>
+          <ol>
+            <li>Declare the attack and its target.</li>
+            <li>Attacker, then defender, each play one card face down.</li>
+            <li>Reveal both cards simultaneously.</li>
+            <li>Resolve card effects in timing order, then compare values.</li>
+          </ol>
+        </article>
+
+        <article class="card rules-card--wide">
+          <h3>5. Card effect timing</h3>
+          <ol class="timing-steps">
+            <li><strong>1. Immediately</strong> Resolve text labeled "Immediately" first. Defender resolves their immediate effect, then the attacker resolves theirs. (Note: Effects like Feint cancel opponent card text here, but do not alter base printed card values).</li>
+            <li><strong>2. During Combat</strong> Resolve text labeled "During Combat" next. Defender's effect goes first, then the attacker's. Card modifications to values (like adding value to an attack or defense) happen in this step.</li>
+            <li><strong>3. Combat Math</strong> Calculate the combat result. Subtract the defense value from the attack value. Apply damage to the defender's health dial.</li>
+            <li><strong>4. After Combat</strong> Resolve text labeled "After Combat". Defender's after-combat effect resolves first, followed by the attacker's after-combat effect.</li>
+            <li><strong>5. Cleanup</strong> Place all played cards into their respective owners' discard piles.</li>
+          </ol>
+        </article>
+
+        <article class="card">
+          <h3>6. Winning</h3>
+          <p>
+            Defeat the opposing hero — reduce their health to zero — to
+            win the game. In 2v2 and Free-For-All games, check the rules
+            variant for your format, since attacking restrictions can
+            differ on the opening turn.
+          </p>
+        </article>
+      </section>
+
+      <div class="section-heading" id="roster">
+        <h2>Hero roster</h2>
+        <p>
+          All 74 heroes across every Unmatched set, grouped by release and
+          sorted roughly oldest to newest. Tap a hero to see their full
+          special ability.
+        </p>
+      </div>
+
+      <section class="hero-roster">
+        <details class="roster-set">
+          <summary class="roster-set-title">Battle of Legends, Volume One<span class="roster-set-count">4 heroes</span></summary>
+          <div class="roster-set-group">
+          <details class="hero-entry">
+            <summary>
+              <span class="hero-entry-name">King Arthur</span>
+              <span class="hero-entry-stats">
+                <span class="stat-badge stat-badge--melee">Melee</span>
+                <span class="stat-badge">HP 18</span>
+                <span class="stat-badge">Move 2</span>
+              </span>
+            </summary>
+            <p class="hero-entry-flavor">With mighty Excalibur in his mailed fist and the tricky Merlin at his back, his greatest weapon is his faith and willingness to sacrifice to see that deed is done.</p>
+            <p class="hero-entry-ability">
+            When King Arthur attacks, you may BOOST that attack, Play the BOOST card, face down, along with your attack card.<br />
+            If your opponent cancels the effects on your attack card, the BOOST is discarded without effect.
+            </p>
+          </details>
+          <details class="hero-entry">
+            <summary>
+              <span class="hero-entry-name">Medusa</span>
+              <span class="hero-entry-stats">
+                <span class="stat-badge stat-badge--range">Ranged</span>
+                <span class="stat-badge">HP 16</span>
+                <span class="stat-badge">Move 3</span>
+              </span>
+            </summary>
+            <p class="hero-entry-flavor">The Gorgon with the gaze that felled thousands. With her harpies at her side, you better have a defense in hand when she turns her eyes to you.</p>
+            <p class="hero-entry-ability">
+            At the start of your turn, you may deal 1 damage to an opposing fighter in Medusa's zone.
+            </p>
+          </details>
+          <details class="hero-entry">
+            <summary>
+              <span class="hero-entry-name">Alice</span>
+              <span class="hero-entry-stats">
+                <span class="stat-badge stat-badge--melee">Melee</span>
+                <span class="stat-badge">HP 13</span>
+                <span class="stat-badge">Move 2</span>
+              </span>
+            </summary>
+            <p class="hero-entry-flavor">Big trouble in a little package. She's been through the looking glass and came back with a vorpal blade and the Jabberwock in tow. Catch her at the wrong size, and it'll be checkmate for you.</p>
+            <p class="hero-entry-ability">
+            When you place Alice, choose whether she starts the game BIG or SMALL.<br />
+            When Alice is BIG, add 2 to the value of her attack cards.<br />
+            When Alice is SMALL, add 1 to the value of her defense cards.
+            </p>
+          </details>
+          <details class="hero-entry">
+            <summary>
+              <span class="hero-entry-name">Sinbad</span>
+              <span class="hero-entry-stats">
+                <span class="stat-badge stat-badge--melee">Melee</span>
+                <span class="stat-badge">HP 15</span>
+                <span class="stat-badge">Move 2</span>
+              </span>
+            </summary>
+            <p class="hero-entry-flavor">With every thrilling voyage, he grows in wisdom and power. Get to him and the faithful Porter quickly, before his experience makes him nigh unstoppable and your story ends too soon.</p>
+            <p class="hero-entry-ability">
+            When you maneuver, you may move fighters +1 space for each VOYAGE card in your discard pile.
+            </p>
+          </details>
+          </div>
+        </details>
+
+        <details class="roster-set">
+          <summary class="roster-set-title">Cobble &amp; Fog<span class="roster-set-count">4 heroes</span></summary>
+          <div class="roster-set-group">
+          <details class="hero-entry">
+            <summary>
+              <span class="hero-entry-name">Dracula</span>
+              <span class="hero-entry-stats">
+                <span class="stat-badge stat-badge--melee">Melee</span>
+                <span class="stat-badge">HP 13</span>
+                <span class="stat-badge">Move 2</span>
+              </span>
+            </summary>
+            <p class="hero-entry-flavor">Dare not to meet his gaze lest you do his bidding. Whilst your mind is in a fog, he and his ravening sisters will give you your baptism of blood.</p>
+            <p class="hero-entry-ability">
+            At the start of your turn, you may deal 1 damage to a fighter adjacent to Dracula. If you do, draw a card.
+            </p>
+          </details>
+          <details class="hero-entry">
+            <summary>
+              <span class="hero-entry-name">Invisible Man</span>
+              <span class="hero-entry-stats">
+                <span class="stat-badge stat-badge--melee">Melee</span>
+                <span class="stat-badge">HP 15</span>
+                <span class="stat-badge">Move 2</span>
+              </span>
+            </summary>
+            <p class="hero-entry-flavor">How can you defend what you cannot see? A glint of metal amidst the gloom, but it's too late. A surprise attack before he slips away again into rolling fog.</p>
+            <p class="hero-entry-ability">
+            At the start of the game, after you place Invisible Man, place 3 fog tokens in separate spaces in his zone. When Invisible Man is on a space with a fog token, add 1 to the value of his defense cards. Invisible Man may move between two spaces with fog tokens as if they were adjacent.
+            </p>
+          </details>
+          <details class="hero-entry">
+            <summary>
+              <span class="hero-entry-name">Jekyll &amp; Hyde</span>
+              <span class="hero-entry-stats">
+                <span class="stat-badge stat-badge--melee">Melee</span>
+                <span class="stat-badge">HP 16</span>
+                <span class="stat-badge">Move 2</span>
+              </span>
+            </summary>
+            <p class="hero-entry-flavor">Two sides of the same man - the scheming Dr. Jekyll and the force of nature Mr. Hyde. Who will be the author of your end?</p>
+            <p class="hero-entry-ability">
+            Start the game as Dr. Jekyll. At the start of your turn, you may transform into Dr. Jekyll or Mr. Hyde. While Mr. Hyde, after you maneuver, take 1 damage.
+            </p>
+          </details>
+          <details class="hero-entry">
+            <summary>
+              <span class="hero-entry-name">Sherlock Holmes</span>
+              <span class="hero-entry-stats">
+                <span class="stat-badge stat-badge--melee">Melee</span>
+                <span class="stat-badge">HP 16</span>
+                <span class="stat-badge">Move 2</span>
+              </span>
+            </summary>
+            <p class="hero-entry-flavor">The game is afoot! With the trusty Dr. Watson at his side, he'll deduce your strategy and leave you wondering how he foiled your perfect plan. In a word: Elementary.</p>
+            <p class="hero-entry-ability">
+            Effects on HOLMES and DR. WATSON cards cannot be canceled by an opponent. Effects on ANY cards can be canceled.
+            </p>
+          </details>
+          </div>
+        </details>
+
+        <details class="roster-set">
+          <summary class="roster-set-title">Bruce Lee<span class="roster-set-count">1 hero</span></summary>
+          <div class="roster-set-group">
+          <details class="hero-entry">
+            <summary>
+              <span class="hero-entry-name">Bruce Lee</span>
+              <span class="hero-entry-stats">
+                <span class="stat-badge stat-badge--melee">Melee</span>
+                <span class="stat-badge">HP 14</span>
+                <span class="stat-badge">Move 3</span>
+              </span>
+            </summary>
+            <p class="hero-entry-flavor">Artist. Movie star. Philosopher. Dragon</p>
+            <p class="hero-entry-ability">
+            At the end of your turn, you may move Bruce Lee 1 space.
+            </p>
+          </details>
+          </div>
+        </details>
+
+        <details class="roster-set">
+          <summary class="roster-set-title">Robin Hood vs Bigfoot<span class="roster-set-count">2 heroes</span></summary>
+          <div class="roster-set-group">
+          <details class="hero-entry">
+            <summary>
+              <span class="hero-entry-name">Bigfoot</span>
+              <span class="hero-entry-stats">
+                <span class="stat-badge stat-badge--melee">Melee</span>
+                <span class="stat-badge">HP 16</span>
+                <span class="stat-badge">Move 3</span>
+              </span>
+            </summary>
+            <p class="hero-entry-flavor">Mighty as a sequoia and untamable as the wind, Bigfoot comes crashing in with the darting Jackalope in tow. Quickly as you feel their power, they're gone, like a figment of the mind.</p>
+            <p class="hero-entry-ability">
+            At the end of your turn, if there are no opposing fighters in Bigfoot's zone, you may draw 1 card.
+            </p>
+          </details>
+          <details class="hero-entry">
+            <summary>
+              <span class="hero-entry-name">Robin Hood</span>
+              <span class="hero-entry-stats">
+                <span class="stat-badge stat-badge--range">Ranged</span>
+                <span class="stat-badge">HP 13</span>
+                <span class="stat-badge">Move 2</span>
+              </span>
+            </summary>
+            <p class="hero-entry-flavor">The quick-witted rogue is a tricky adversary, hard to pin down and deadly with a bow. And just when he's got your attention, the Outlaws come in to rob you blind.</p>
+            <p class="hero-entry-ability">
+            After you attack, you may move your attacking fighter up to 2 spaces.
+            </p>
+          </details>
+          </div>
+        </details>
+
+        <details class="roster-set">
+          <summary class="roster-set-title">Battle of Legends, Volume Two<span class="roster-set-count">4 heroes</span></summary>
+          <div class="roster-set-group">
+          <details class="hero-entry">
+            <summary>
+              <span class="hero-entry-name">Achilles</span>
+              <span class="hero-entry-stats">
+                <span class="stat-badge stat-badge--melee">Melee</span>
+                <span class="stat-badge">HP 18</span>
+                <span class="stat-badge">Move 2</span>
+              </span>
+            </summary>
+            <p class="hero-entry-flavor">Achilles and Patroclus, brothers in arms and blessed by Hermes, together a formidable team. When Patroclus falls, under Achilles' helm, it will surely be the day of your doom.</p>
+            <p class="hero-entry-ability">
+            When Patroclus is defeated, discard 2 random cards.<br />
+            While Patroclus is defeated:<br />
+            - Add +2 to the value of all Achilles' attacks.<br />
+            - If Achilles wins combat, draw 1 card.
+            </p>
+          </details>
+          <details class="hero-entry">
+            <summary>
+              <span class="hero-entry-name">Bloody Mary</span>
+              <span class="hero-entry-stats">
+                <span class="stat-badge stat-badge--melee">Melee</span>
+                <span class="stat-badge">HP 16</span>
+                <span class="stat-badge">Move 3</span>
+              </span>
+            </summary>
+            <p class="hero-entry-flavor">Stare into the mirror, speak three times, and beware: She's closer than she appears. What was that? A stolen memory or merely a trick of the light?</p>
+            <p class="hero-entry-ability">
+            At the start of your turn, if you have exactly 3 cards in hand, gain 1 action.
+            </p>
+          </details>
+          <details class="hero-entry">
+            <summary>
+              <span class="hero-entry-name">Sun Wukong</span>
+              <span class="hero-entry-stats">
+                <span class="stat-badge stat-badge--melee">Melee</span>
+                <span class="stat-badge">HP 17</span>
+                <span class="stat-badge">Move 2</span>
+              </span>
+            </summary>
+            <p class="hero-entry-flavor">Ox, tortoise, phoenix, sly monkey. He and his army of clones will bewilder you with their taunting laughter as much as their infinite strikes.</p>
+            <p class="hero-entry-ability">
+            At the start of your turn, you may take 1 damage to summon a Clone in an empty space adjacent to Sun Wukong.<br />
+            Do not start with any Clones on the board.
+            </p>
+          </details>
+          <details class="hero-entry">
+            <summary>
+              <span class="hero-entry-name">Yennenga</span>
+              <span class="hero-entry-stats">
+                <span class="stat-badge stat-badge--range">Ranged</span>
+                <span class="stat-badge">HP 15</span>
+                <span class="stat-badge">Move 2</span>
+              </span>
+            </summary>
+            <p class="hero-entry-flavor">Warrior-Princess, peerless hunter, leader of men, and the mother of an entire nation. With Yennenga leading the charge, her archers will divide and conquer.</p>
+            <p class="hero-entry-ability">
+            If Yennenga would take damage, you may assign any amount of that damage to one or more Archers in her zone instead. (You may not assign more damage to an Archer that their remaining health.)
+            </p>
+          </details>
+          </div>
+        </details>
+
+        <details class="roster-set">
+          <summary class="roster-set-title">Little Red Riding Hood vs. Beowulf<span class="roster-set-count">2 heroes</span></summary>
+          <div class="roster-set-group">
+          <details class="hero-entry">
+            <summary>
+              <span class="hero-entry-name">Beowulf</span>
+              <span class="hero-entry-stats">
+                <span class="stat-badge stat-badge--melee">Melee</span>
+                <span class="stat-badge">HP 17</span>
+                <span class="stat-badge">Move 2</span>
+              </span>
+            </summary>
+            <p class="hero-entry-flavor">Every blow fills the War-King with rage. Soon you will learn why he was the equal of Grendel. With his kinsman Wiglaf by his side, they are sure to win this fatal struggle.</p>
+            <p class="hero-entry-ability">
+            Beowulf starts with 1 Rage.<br />
+            When Beowulf is dealt damage, he gains 1 Rage.<br />
+            Beowulf has a maximum of 3 rage.
+            </p>
+          </details>
+          <details class="hero-entry">
+            <summary>
+              <span class="hero-entry-name">Little Red</span>
+              <span class="hero-entry-stats">
+                <span class="stat-badge stat-badge--melee">Melee</span>
+                <span class="stat-badge">HP 14</span>
+                <span class="stat-badge">Move 2</span>
+              </span>
+            </summary>
+            <p class="hero-entry-flavor">Once upon a time, Little Red Riding Hood went into the belly of the beast, and lived to tell her grim tale. With the help of her friend the Huntsman, she's ready to head back into the woods with a few terrible tricks tucked away in her basket.</p>
+            <p class="hero-entry-ability">
+            Resolve an effect on a card you play if the symbol next to the effect matches the item in your basket. At the start of the game, place LITTLE RED's BASKET in your discard pile.<br />
+            Little Red's Basket: This starts in your discard pile. It does not count as a card.
+            </p>
+          </details>
+          </div>
+        </details>
+
+        <details class="roster-set">
+          <summary class="roster-set-title">Buffy the Vampire Slayer<span class="roster-set-count">4 heroes</span></summary>
+          <div class="roster-set-group">
+          <details class="hero-entry">
+            <summary>
+              <span class="hero-entry-name">Buffy</span>
+              <span class="hero-entry-stats">
+                <span class="stat-badge stat-badge--melee">Melee</span>
+                <span class="stat-badge">HP 14</span>
+                <span class="stat-badge">Move 3</span>
+              </span>
+            </summary>
+            <p class="hero-entry-flavor">She'll hit you with Mr. Pointy or summon her Slayer's strength for a cartwheel kick. When it's time for backup, she'll take her pick between insightful Giles or reliable Xander.</p>
+            <p class="hero-entry-ability">
+            Buffy may move through spaces containing opposing fighters (including when she is moved by effects).
+            </p>
+          </details>
+          <details class="hero-entry">
+            <summary>
+              <span class="hero-entry-name">Spike</span>
+              <span class="hero-entry-stats">
+                <span class="stat-badge stat-badge--melee">Melee</span>
+                <span class="stat-badge">HP 15</span>
+                <span class="stat-badge">Move 2</span>
+              </span>
+            </summary>
+            <p class="hero-entry-flavor">A relentless hunter, seeks the shadows and calls on Drusilla's Sight to let him know just where and when to strike. Bloody hell!</p>
+            <p class="hero-entry-ability">
+            At the start of your turn, you may place a Shadow token in any space adjacent to Spike or Drusilla.
+            </p>
+          </details>
+          <details class="hero-entry">
+            <summary>
+              <span class="hero-entry-name">Willow</span>
+              <span class="hero-entry-stats">
+                <span class="stat-badge stat-badge--range">Ranged</span>
+                <span class="stat-badge">HP 14</span>
+                <span class="stat-badge">Move 2</span>
+              </span>
+            </summary>
+            <p class="hero-entry-flavor">A peerless witch, dabbles in black magic and risks her darker self, potent but dangerous. At times, only Tara can bring her back from the brink of the abyss.</p>
+            <p class="hero-entry-ability">
+            When Willow or Tara is dealt damage, Willow becomes Dark Willow.<br />
+            At the end of your turn, if Dark Willow is adjacent to Tara, she becomes Willow.
+            </p>
+          </details>
+          <details class="hero-entry">
+            <summary>
+              <span class="hero-entry-name">Angel</span>
+              <span class="hero-entry-stats">
+                <span class="stat-badge stat-badge--melee">Melee</span>
+                <span class="stat-badge">HP 16</span>
+                <span class="stat-badge">Move 2</span>
+              </span>
+            </summary>
+            <p class="hero-entry-flavor">Once the Scourge of Europe, is cursed with a soul, conflicted by his victories and taking solace in his losses. Faith is there to make sure things stay "Five by Five".</p>
+            <p class="hero-entry-ability">
+            After Angel or Faith attacks, if you lost the combat, draw 1 card.
+            </p>
+          </details>
+          </div>
+        </details>
+
+        <details class="roster-set">
+          <summary class="roster-set-title">Hell's Kitchen<span class="roster-set-count">3 heroes</span></summary>
+          <div class="roster-set-group">
+          <details class="hero-entry">
+            <summary>
+              <span class="hero-entry-name">Elektra</span>
+              <span class="hero-entry-stats">
+                <span class="stat-badge stat-badge--melee">Melee</span>
+                <span class="stat-badge">HP 7</span>
+                <span class="stat-badge">Move 2</span>
+              </span>
+            </summary>
+            <p class="hero-entry-flavor">This mystic assassin and her army of Hand ninjas attack from the shadows. Strike her down, though, and she resurrects, stronger than ever.</p>
+            <p class="hero-entry-ability">
+            The first time Elektra would be defeated, remove her and all Hand from the board. She is not defeated. At the start of your next turn, Resurrect her.<br />
+            When Elektra Resurrects: Flip your health dial. Shuffle your discard pile into your deck.<br />
+            Place Elektra and all Hand back onto the board with each fighter in a different zone.
+            </p>
+          </details>
+          <details class="hero-entry">
+            <summary>
+              <span class="hero-entry-name">Daredevil</span>
+              <span class="hero-entry-stats">
+                <span class="stat-badge stat-badge--melee">Melee</span>
+                <span class="stat-badge">HP 17</span>
+                <span class="stat-badge">Move 3</span>
+              </span>
+            </summary>
+            <p class="hero-entry-flavor">"The Man Without Fear" is at his best when he is fighting through adversity. This son of a boxer can withstand a brutal pounding and turn that pain into strength, bursting with power just when the chips are down and options are running low.</p>
+            <p class="hero-entry-ability">
+            DURING COMBAT: If you have 2 or fewer cards in your hand, you may BLIND BOOST your attack or defense.
+            </p>
+          </details>
+          <details class="hero-entry">
+            <summary>
+              <span class="hero-entry-name">Bullseye</span>
+              <span class="hero-entry-stats">
+                <span class="stat-badge stat-badge--range">Ranged</span>
+                <span class="stat-badge">HP 14</span>
+                <span class="stat-badge">Move 2</span>
+              </span>
+            </summary>
+            <p class="hero-entry-flavor">The World's Greatest Assassin delights in the mayhem and chaos his job creates, finishing every fight with a simple flick of his wrist.</p>
+            <p class="hero-entry-ability">
+            Bullseye can attack from up to 5 spaces away (ignoring zones).
+            </p>
+          </details>
+          </div>
+        </details>
+
+        <details class="roster-set">
+          <summary class="roster-set-title">For King and Country<span class="roster-set-count">3 heroes</span></summary>
+          <div class="roster-set-group">
+          <details class="hero-entry">
+            <summary>
+              <span class="hero-entry-name">Black Widow</span>
+              <span class="hero-entry-stats">
+                <span class="stat-badge stat-badge--range">Ranged</span>
+                <span class="stat-badge">HP 13</span>
+                <span class="stat-badge">Move 2</span>
+              </span>
+            </summary>
+            <p class="hero-entry-flavor">From the Moscow Protocol to the Budapest Gambit, Black Widow is mission ready. She'll have you caught in her web before you even know she's there.</p>
+            <p class="hero-entry-ability">
+            MISSION READY<br />
+            Before drawing your starting hand, add THE MOSCOW PROTOCOL card to your hand.<br />
+            Then, shuffle your deck and draw 5 cards. (Your starting hand is 6 cards instead of 5.)
+            </p>
+          </details>
+          <details class="hero-entry">
+            <summary>
+              <span class="hero-entry-name">Black Panther</span>
+              <span class="hero-entry-stats">
+                <span class="stat-badge stat-badge--melee">Melee</span>
+                <span class="stat-badge">HP 14</span>
+                <span class="stat-badge">Move 2</span>
+              </span>
+            </summary>
+            <p class="hero-entry-flavor">With his vibranium suit, the stalking panther absorbs your strikes and unleashes them back with his cat-like reflexes. "Wakanda Forever!"</p>
+            <p class="hero-entry-ability">
+            VIBRANIUM SUIT<br />
+            Whenever you BOOST, draw 1 card.<br />
+            Cards stored in your VIBRANIUM SUIT can only be used to BOOST.
+            </p>
+          </details>
+          <details class="hero-entry">
+            <summary>
+              <span class="hero-entry-name">Winter Soldier</span>
+              <span class="hero-entry-stats">
+                <span class="stat-badge stat-badge--range">Ranged</span>
+                <span class="stat-badge">HP 15</span>
+                <span class="stat-badge">Move 2</span>
+              </span>
+            </summary>
+            <p class="hero-entry-flavor">A bionic arm and marksman's eye made the boy named Bucky into a lethal fighter. When he was programmed to kill without remorse, then he became the Winter Soldier.</p>
+            <p class="hero-entry-ability">
+            BRAINWASHED<br />
+            Effects on Winter Soldier's cards cannot be canceled.
+            </p>
+          </details>
+          </div>
+        </details>
+
+        <details class="roster-set">
+          <summary class="roster-set-title">Houdini vs. The Genie<span class="roster-set-count">2 heroes</span></summary>
+          <div class="roster-set-group">
+          <details class="hero-entry">
+            <summary>
+              <span class="hero-entry-name">Harry Houdini</span>
+              <span class="hero-entry-stats">
+                <span class="stat-badge stat-badge--melee">Melee</span>
+                <span class="stat-badge">HP 14</span>
+                <span class="stat-badge">Move 2</span>
+              </span>
+            </summary>
+            <p class="hero-entry-flavor">With the help of the beautiful Bess, he'll set the stage. Then it's a bit of misdirection and some sleight of hand.</p>
+            <p class="hero-entry-ability">
+            ESCAPE ARTIST<br />
+            When you take the maneuver action and BOOST, you may place Houdini in any space instead of moving. (Bess moves as normal.)
+            </p>
+          </details>
+          <details class="hero-entry">
+            <summary>
+              <span class="hero-entry-name">The Genie</span>
+              <span class="hero-entry-stats">
+                <span class="stat-badge stat-badge--range">Ranged</span>
+                <span class="stat-badge">HP 16</span>
+                <span class="stat-badge">Move 3</span>
+              </span>
+            </summary>
+            <p class="hero-entry-flavor">Freed from the lamp and simmering with imprisoned wrath. This is no mere parlor trick.</p>
+            <p class="hero-entry-ability">
+            INFINITE POWER<br />
+            At the start of your turn, you may discard 1 card to gain 1 action.
+            </p>
+          </details>
+          </div>
+        </details>
+
+        <details class="roster-set">
+          <summary class="roster-set-title">Adventures: Tales to Amaze<span class="roster-set-count">4 heroes</span></summary>
+          <div class="roster-set-group">
+          <details class="hero-entry">
+            <summary>
+              <span class="hero-entry-name">Nikola Tesla</span>
+              <span class="hero-entry-stats">
+                <span class="stat-badge stat-badge--range">Ranged</span>
+                <span class="stat-badge">HP 14</span>
+                <span class="stat-badge">Move 2</span>
+              </span>
+            </summary>
+            <p class="hero-entry-flavor">His coils crackle with the power of electricity.</p>
+            <p class="hero-entry-ability">
+            ELECTRICAL OVERFLOW<br />
+            Start the game with 1 coil charged.<br />
+            At the end of your turn, charge 1 coil.<br />
+            At the start of your turn, if both coils are charged, deal 1 damage to each opposing fighter adjacent to Tesla and move them up to 1 space.
+            </p>
+          </details>
+          <details class="hero-entry">
+            <summary>
+              <span class="hero-entry-name">Dr. Jill Trent</span>
+              <span class="hero-entry-stats">
+                <span class="stat-badge stat-badge--melee">Melee</span>
+                <span class="stat-badge">HP 13</span>
+                <span class="stat-badge">Move 2</span>
+              </span>
+            </summary>
+            <p class="hero-entry-flavor">The science sleuth is the master of gadgetology.</p>
+            <p class="hero-entry-ability">
+            GADGETOLOGY<br />
+            At the start of your turn, activate one of your gadgets. Whenever Jill Trent attacks, resolve the active gadget's effect.<br />
+            Hypnoray Blaster — DURING COMBAT: If your card's printed value is lower than your opponent's, reveal the top card of your opponent's deck and increase your attack by its BOOST value.<br />
+            Ultrabiotic Tonic — AFTER COMBAT: If your card's printed value is higher, Jill Trent recovers 1 health.
+            </p>
+          </details>
+          <details class="hero-entry">
+            <summary>
+              <span class="hero-entry-name">Golden Bat</span>
+              <span class="hero-entry-stats">
+                <span class="stat-badge stat-badge--melee">Melee</span>
+                <span class="stat-badge">HP 18</span>
+                <span class="stat-badge">Move 3</span>
+              </span>
+            </summary>
+            <p class="hero-entry-flavor">The World's First Superhero arrives just in time.</p>
+            <p class="hero-entry-ability">
+            THE FIRST SUPERHERO<br />
+            If you haven't taken a Maneuver action this turn, add +2 to the value of Golden Bat's attacks.
+            </p>
+          </details>
+          <details class="hero-entry">
+            <summary>
+              <span class="hero-entry-name">Annie Christmas</span>
+              <span class="hero-entry-stats">
+                <span class="stat-badge stat-badge--melee">Melee</span>
+                <span class="stat-badge">HP 14</span>
+                <span class="stat-badge">Move 2</span>
+              </span>
+            </summary>
+            <p class="hero-entry-flavor">Seven feet tall and strong as the Mighty Mississippi.</p>
+            <p class="hero-entry-ability">
+            NECKLACE OF PEARLS<br />
+            Add +2 to the value of Annie's attacks if she has less health than the defender.
+            </p>
+          </details>
+          </div>
+        </details>
+
+        <details class="roster-set">
+          <summary class="roster-set-title">Sun's Origin<span class="roster-set-count">2 heroes</span></summary>
+          <div class="roster-set-group">
+          <details class="hero-entry">
+            <summary>
+              <span class="hero-entry-name">Oda Nobunaga</span>
+              <span class="hero-entry-stats">
+                <span class="stat-badge stat-badge--melee">Melee</span>
+                <span class="stat-badge">HP 13</span>
+                <span class="stat-badge">Move 2</span>
+              </span>
+            </summary>
+            <p class="hero-entry-flavor">The leader of the Oda clan used strategy, patience, and brilliant battle maneuvers to conquer the other daimyos of the Sengoku period.</p>
+            <p class="hero-entry-ability">
+            MASTER STRATEGIST<br />
+            Other friendly fighters in Oda Nobunaga's zone add +1 to the value of their played combat cards. (Oda Nobunaga does not benefit from this ability.)
+            </p>
+          </details>
+          <details class="hero-entry">
+            <summary>
+              <span class="hero-entry-name">Tomoe Gozen</span>
+              <span class="hero-entry-stats">
+                <span class="stat-badge stat-badge--range">Ranged</span>
+                <span class="stat-badge">HP 14</span>
+                <span class="stat-badge">Move 2</span>
+              </span>
+            </summary>
+            <p class="hero-entry-flavor">The legendary onna-musha refused to retreat in the face of impossible odds and cut down all who stood in her way.</p>
+            <p class="hero-entry-ability">
+            ATTACK OF OPPORTUNITY<br />
+            When an opposing hero leaves Tomoe Gozen's zone, deal 1 damage to that hero.
+            </p>
+          </details>
+          </div>
+        </details>
+
+        <details class="roster-set">
+          <summary class="roster-set-title">Jurassic Park - Ingen vs. Raptors<span class="roster-set-count">2 heroes</span></summary>
+          <div class="roster-set-group">
+          <details class="hero-entry">
+            <summary>
+              <span class="hero-entry-name">Raptors</span>
+              <span class="hero-entry-stats">
+                <span class="stat-badge stat-badge--melee">Melee</span>
+                <span class="stat-badge">HP 7</span>
+                <span class="stat-badge">Move 3</span>
+              </span>
+            </summary>
+            <p class="hero-entry-flavor">"...that's when the attack comes. Not from the front, but from the side, from the other two raptors you didn't even know were there."</p>
+            <p class="hero-entry-ability">
+            Raptors add 1 to the value of their attack cards for each of your other Raptors adjacent to the defender.
+            </p>
+          </details>
+          <details class="hero-entry">
+            <summary>
+              <span class="hero-entry-name">Robert Muldoon</span>
+              <span class="hero-entry-stats">
+                <span class="stat-badge stat-badge--range">Ranged</span>
+                <span class="stat-badge">HP 14</span>
+                <span class="stat-badge">Move 3</span>
+              </span>
+            </summary>
+            <p class="hero-entry-flavor">The InGen workers are crack shots. Their leader, Robert Muldoon, has "hunted most things that can hunt you."</p>
+            <p class="hero-entry-ability">
+            At the start of your turn, you may place a trap. Whenever one of your traps is returned to the box, draw a card. Muldoon starts with 8 traps.
+            </p>
+          </details>
+          </div>
+        </details>
+
+        <details class="roster-set">
+          <summary class="roster-set-title">Deadpool<span class="roster-set-count">1 hero</span></summary>
+          <div class="roster-set-group">
+          <details class="hero-entry">
+            <summary>
+              <span class="hero-entry-name">Deadpool</span>
+              <span class="hero-entry-stats">
+                <span class="stat-badge stat-badge--melee">Melee</span>
+                <span class="stat-badge">HP 10</span>
+                <span class="stat-badge">Move 2</span>
+              </span>
+            </summary>
+            <p class="hero-entry-flavor">Hero (not). Bovinophobe. Secretly Wolverine. Blood type: cherry.</p>
+            <p class="hero-entry-ability">
+            After you attack, Deadpool recovers 1 health.<br />
+            Also, if your opponent's real name is Logan, all your attacks are +5.
+            </p>
+          </details>
+          </div>
+        </details>
+
+        <details class="roster-set">
+          <summary class="roster-set-title">Teen Spirit<span class="roster-set-count">3 heroes</span></summary>
+          <div class="roster-set-group">
+          <details class="hero-entry">
+            <summary>
+              <span class="hero-entry-name">Cloak &amp; Dagger</span>
+              <span class="hero-entry-stats">
+                <span class="stat-badge stat-badge--melee">Melee</span>
+                <span class="stat-badge">HP 8</span>
+                <span class="stat-badge">Move 2</span>
+              </span>
+            </summary>
+            <p class="hero-entry-flavor">Living light and living shadow, fighting together in perfect balance, they will send you into the void.</p>
+            <p class="hero-entry-ability">
+            UMBRA — After you attack, if Cloak dealt at least 2 combat damage, your opponent discards 1 card.<br />
+            REFRACTION — After you attack, if Dagger dealt at least 2 combat damage, gain 1 action.
+            </p>
+          </details>
+          <details class="hero-entry">
+            <summary>
+              <span class="hero-entry-name">Squirrel Girl</span>
+              <span class="hero-entry-stats">
+                <span class="stat-badge stat-badge--melee">Melee</span>
+                <span class="stat-badge">HP 13</span>
+                <span class="stat-badge">Move 2</span>
+              </span>
+            </summary>
+            <p class="hero-entry-flavor">With a horde of squirrels at her side it's time to eat nuts and kick butts!</p>
+            <p class="hero-entry-ability">
+            GO NUTS!<br />
+            At the start of your turn, summon a squirrel in a space adjacent to Squirrel Girl. Squirrels are small fighters; you don't start with any on the board.
+            </p>
+          </details>
+          <details class="hero-entry">
+            <summary>
+              <span class="hero-entry-name">Ms. Marvel</span>
+              <span class="hero-entry-stats">
+                <span class="stat-badge stat-badge--melee">Melee</span>
+                <span class="stat-badge">HP 14</span>
+                <span class="stat-badge">Move 2</span>
+              </span>
+            </summary>
+            <p class="hero-entry-flavor">Kamala Khan idolized Super Heroes growing up, not knowing one day she'd join her role models in shielding society from evil.</p>
+            <p class="hero-entry-ability">
+            STRETCHY<br />
+            At the start of your turn, you may move Ms. Marvel 1 space. She can attack from up to 2 spaces away (ignoring zones).
+            </p>
+          </details>
+          </div>
+        </details>
+
+        <details class="roster-set">
+          <summary class="roster-set-title">Brains and Brawn<span class="roster-set-count">3 heroes</span></summary>
+          <div class="roster-set-group">
+          <details class="hero-entry">
+            <summary>
+              <span class="hero-entry-name">Doctor Strange</span>
+              <span class="hero-entry-stats">
+                <span class="stat-badge stat-badge--range">Ranged</span>
+                <span class="stat-badge">HP 14</span>
+                <span class="stat-badge">Move 2</span>
+              </span>
+            </summary>
+            <p class="hero-entry-flavor">The Master of Kamar-Taj, with the trusty Wong by his side, wields mighty spells to defeat his foes.</p>
+            <p class="hero-entry-ability">
+            DARK PACT<br />
+            After each combat, if Doctor Strange played a card, you may deal 1 damage to him. If you do, put that card on the bottom of your deck and draw 1 card.
+            </p>
+          </details>
+          <details class="hero-entry">
+            <summary>
+              <span class="hero-entry-name">Spider-Man</span>
+              <span class="hero-entry-stats">
+                <span class="stat-badge stat-badge--melee">Melee</span>
+                <span class="stat-badge">HP 15</span>
+                <span class="stat-badge">Move 3</span>
+              </span>
+            </summary>
+            <p class="hero-entry-flavor">Your friendly neighborhood wall crawler, swinging into action. With great power comes great responsibility.</p>
+            <p class="hero-entry-ability">
+            SPIDEY-SENSE<br />
+            When an opponent attacks Spider-Man, before you play a defense card, they must tell you the printed value of their card.
+            </p>
+          </details>
+          <details class="hero-entry">
+            <summary>
+              <span class="hero-entry-name">She-Hulk</span>
+              <span class="hero-entry-stats">
+                <span class="stat-badge stat-badge--melee">Melee</span>
+                <span class="stat-badge">HP 20</span>
+                <span class="stat-badge">Move 2</span>
+              </span>
+            </summary>
+            <p class="hero-entry-flavor">An Omega-Level Threat, whether she's unleashing a nerve cluster strike or throwing the book at you — literally.</p>
+            <p class="hero-entry-ability">
+            JUST THROW SOMETHING<br />
+            At the start of your turn, you may discard a card to deal damage equal to its BOOST value to a fighter in your zone.
+            </p>
+          </details>
+          </div>
+        </details>
+
+        <details class="roster-set">
+          <summary class="roster-set-title">Redemption Row<span class="roster-set-count">3 heroes</span></summary>
+          <div class="roster-set-group">
+          <details class="hero-entry">
+            <summary>
+              <span class="hero-entry-name">Ghost Rider</span>
+              <span class="hero-entry-stats">
+                <span class="stat-badge stat-badge--melee">Melee</span>
+                <span class="stat-badge">HP 17</span>
+                <span class="stat-badge">Move 2</span>
+              </span>
+            </summary>
+            <p class="hero-entry-flavor">Fire up your Hell Cycle and ready your Penance Stare, for the Spirit of Vengeance rides tonight.</p>
+            <p class="hero-entry-ability">
+            Ghost Rider starts the game with 5 Hellfire. When you maneuver you may spend 1 Hellfire to increase his move value to 4 and move through opposing fighters, dealing 1 damage to each fighter he moved through.
+            </p>
+          </details>
+          <details class="hero-entry">
+            <summary>
+              <span class="hero-entry-name">Luke Cage</span>
+              <span class="hero-entry-stats">
+                <span class="stat-badge stat-badge--melee">Melee</span>
+                <span class="stat-badge">HP 13</span>
+                <span class="stat-badge">Move 2</span>
+              </span>
+            </summary>
+            <p class="hero-entry-flavor">Get ready to see some real power, man. This hero for hire, with the Daughter of the Dragon by his side, is out to get paid.</p>
+            <p class="hero-entry-ability">
+            Luke Cage takes 2 less combat damage from attacks.
+            </p>
+          </details>
+          <details class="hero-entry">
+            <summary>
+              <span class="hero-entry-name">Moon Knight</span>
+              <span class="hero-entry-stats">
+                <span class="stat-badge stat-badge--melee">Melee</span>
+                <span class="stat-badge">HP 16</span>
+                <span class="stat-badge">Move 3</span>
+              </span>
+            </summary>
+            <p class="hero-entry-flavor">A masked vigilante, a ruthless investigator, and an Egyptian god — "we're all in this together."</p>
+            <p class="hero-entry-ability">
+            Moon Knight moves up to 2 spaces at the start of your turn. Khonshu adds +2 to attack values and ignores non-combat damage. Mr. Knight adds +1 to all defense values. At the end of your turn, cycle identities: Moon Knight → Khonshu → Mr. Knight.
+            </p>
+          </details>
+          </div>
+        </details>
+
+        <details class="roster-set">
+          <summary class="roster-set-title">Slings and Arrows<span class="roster-set-count">4 heroes</span></summary>
+          <div class="roster-set-group">
+          <details class="hero-entry">
+            <summary>
+              <span class="hero-entry-name">Hamlet</span>
+              <span class="hero-entry-stats">
+                <span class="stat-badge stat-badge--melee">Melee</span>
+                <span class="stat-badge">HP 15</span>
+                <span class="stat-badge">Move 2</span>
+              </span>
+            </summary>
+            <p class="hero-entry-flavor">To Be, and draw cards, or Not To Be, and empower thine attacks — that is the question.</p>
+            <p class="hero-entry-ability">
+            THE QUESTION<br />
+            At the start of your turn, choose TO BE or NOT TO BE. NOT TO BE deals 2 damage to one of your fighters but adds +2 to Hamlet's attacks; TO BE draws 1 additional card when you maneuver.
+            </p>
+          </details>
+          <details class="hero-entry">
+            <summary>
+              <span class="hero-entry-name">Shakespeare</span>
+              <span class="hero-entry-stats">
+                <span class="stat-badge stat-badge--melee">Melee</span>
+                <span class="stat-badge">HP 13</span>
+                <span class="stat-badge">Move 2</span>
+              </span>
+            </summary>
+            <p class="hero-entry-flavor">The Immortal Bard of Avon puts quill to quire, crafting lines that cut as deep as any blade.</p>
+            <p class="hero-entry-ability">
+            IAMBIC PENTAMETER<br />
+            After you attack or defend, add your card to your line. When your line hits 10 or more syllables, discard it — exactly 10 resolves the last card's completion effect.
+            </p>
+          </details>
+          <details class="hero-entry">
+            <summary>
+              <span class="hero-entry-name">The Wayward Sisters</span>
+              <span class="hero-entry-stats">
+                <span class="stat-badge stat-badge--melee">Melee</span>
+                <span class="stat-badge">HP 6</span>
+                <span class="stat-badge">Move 2</span>
+              </span>
+            </summary>
+            <p class="hero-entry-flavor">Lizard's leg, wool of bat, fillet of a fenny snake. Brew a charm of powerful trouble.</p>
+            <p class="hero-entry-ability">
+            BUBBLING BREW<br />
+            Your cards go into your cauldron instead of your discard pile. After you attack, cast one spell you have the ingredients for, then discard your cauldron.
+            </p>
+          </details>
+          <details class="hero-entry">
+            <summary>
+              <span class="hero-entry-name">Titania</span>
+              <span class="hero-entry-stats">
+                <span class="stat-badge stat-badge--range">Ranged</span>
+                <span class="stat-badge">HP 12</span>
+                <span class="stat-badge">Move 2</span>
+              </span>
+            </summary>
+            <p class="hero-entry-flavor">Fairy Magic: if you do not have a face-up glamour at the start of your turn, flip the top card of your glamour deck face-up.</p>
+            <p class="hero-entry-ability">
+            FAIRY MAGIC<br />
+            If you do not have a face-up glamour at the start of your turn, flip the top card of your glamour deck face-up. Its effect is ongoing while it remains face-up.
+            </p>
+          </details>
+          </div>
+        </details>
+
+        <details class="roster-set">
+          <summary class="roster-set-title">Jurassic Park - Sattler vs. T-Rex<span class="roster-set-count">2 heroes</span></summary>
+          <div class="roster-set-group">
+          <details class="hero-entry">
+            <summary>
+              <span class="hero-entry-name">T. Rex</span>
+              <span class="hero-entry-stats">
+                <span class="stat-badge stat-badge--melee">Melee</span>
+                <span class="stat-badge">HP 27</span>
+                <span class="stat-badge">Move 1</span>
+              </span>
+            </summary>
+            <p class="hero-entry-flavor">From a time when dinosaurs ruled the Earth. Watch out! She's closer than she appears.</p>
+            <p class="hero-entry-ability">
+            T. Rex is a large fighter with an extended base occupying two spaces, and can attack up to 2 spaces away, even over occupied spaces. She ignores one-way arrows and secret passages. At the end of your turn, draw a card.
+            </p>
+          </details>
+          <details class="hero-entry">
+            <summary>
+              <span class="hero-entry-name">Dr. Sattler</span>
+              <span class="hero-entry-stats">
+                <span class="stat-badge stat-badge--melee">Melee</span>
+                <span class="stat-badge">HP 13</span>
+                <span class="stat-badge">Move 2</span>
+              </span>
+            </summary>
+            <p class="hero-entry-flavor">Underestimate these brilliant scientists at your peril. Your opponent never had control — that's the illusion.</p>
+            <p class="hero-entry-ability">
+            Whenever Dr. Sattler or Dr. Malcolm moves to a new space, place an insight token there (5 in supply; tokens can stack and have no effect on their own, but other cards interact with them).
+            </p>
+          </details>
+          </div>
+        </details>
+
+        <details class="roster-set">
+          <summary class="roster-set-title">The Witcher - Steel &amp; Silver<span class="roster-set-count">3 heroes</span></summary>
+          <div class="roster-set-group">
+          <details class="hero-entry">
+            <summary>
+              <span class="hero-entry-name">Geralt of Rivia</span>
+              <span class="hero-entry-stats">
+                <span class="stat-badge stat-badge--melee">Melee</span>
+                <span class="stat-badge">HP 16</span>
+                <span class="stat-badge">Move 2</span>
+              </span>
+            </summary>
+            <p class="hero-entry-flavor">The White Wolf is one of the most revered witchers. Many of his deeds have been immortalized by Dandelion.</p>
+            <p class="hero-entry-ability">
+            ALWAYS PREPARED<br />
+            At the start of the game, choose your gear: select a POTION, ARMOR, and SWORD, and shuffle 2 copies of each into your deck.
+            </p>
+          </details>
+          <details class="hero-entry">
+            <summary>
+              <span class="hero-entry-name">Ciri</span>
+              <span class="hero-entry-stats">
+                <span class="stat-badge stat-badge--melee">Melee</span>
+                <span class="stat-badge">HP 15</span>
+                <span class="stat-badge">Move 2</span>
+              </span>
+            </summary>
+            <p class="hero-entry-flavor">The Child of the Elder Blood and The Lady of Space and Time. Ihuarraquax will help her master her abilities.</p>
+            <p class="hero-entry-ability">
+            UNCONTAINABLE POWER<br />
+            Effects on Ciri's cards cannot be canceled.
+            </p>
+          </details>
+          <details class="hero-entry">
+            <summary>
+              <span class="hero-entry-name">Ancient Leshen</span>
+              <span class="hero-entry-stats">
+                <span class="stat-badge stat-badge--range">Ranged</span>
+                <span class="stat-badge">HP 13</span>
+                <span class="stat-badge">Move 1</span>
+              </span>
+            </summary>
+            <p class="hero-entry-flavor">Primeval guardian of the forest and its inhabitants.</p>
+            <p class="hero-entry-ability">
+            HEART OF THE FOREST<br />
+            Add +3 to the value of the Leshen's attacks if it already attacked this turn. Your Wolves have a move value of 3.
+            </p>
+          </details>
+          </div>
+        </details>
+
+        <details class="roster-set">
+          <summary class="roster-set-title">The Witcher - Realms Fall<span class="roster-set-count">3 heroes</span></summary>
+          <div class="roster-set-group">
+          <details class="hero-entry">
+            <summary>
+              <span class="hero-entry-name">Philippa</span>
+              <span class="hero-entry-stats">
+                <span class="stat-badge stat-badge--range">Ranged</span>
+                <span class="stat-badge">HP 12</span>
+                <span class="stat-badge">Move 2</span>
+              </span>
+            </summary>
+            <p class="hero-entry-flavor">Equal parts sorceress and schemer, Philippa has a spell for every setback and a hand in every plot.</p>
+            <p class="hero-entry-ability">
+            TWO STEPS AHEAD<br />
+            At the end of your turn, you may draw until you have a hand of 4 cards.
+            </p>
+          </details>
+          <details class="hero-entry">
+            <summary>
+              <span class="hero-entry-name">Eredin</span>
+              <span class="hero-entry-stats">
+                <span class="stat-badge stat-badge--melee">Melee</span>
+                <span class="stat-badge">HP 14</span>
+                <span class="stat-badge">Move 2</span>
+              </span>
+            </summary>
+            <p class="hero-entry-flavor">King of the Wild Hunt, Eredin is ruthless. His Red Riders would gladly give their lives for their leader.</p>
+            <p class="hero-entry-ability">
+            KING OF THE WILD HUNT<br />
+            While all of your Red Riders are defeated, Eredin is ENRAGED: add +1 to the value of your combat cards, and your move value is 3.
+            </p>
+          </details>
+          <details class="hero-entry">
+            <summary>
+              <span class="hero-entry-name">Yennefer &amp; Triss</span>
+              <span class="hero-entry-stats">
+                <span class="stat-badge stat-badge--range">Ranged</span>
+                <span class="stat-badge">HP 14</span>
+                <span class="stat-badge">Move 2</span>
+              </span>
+            </summary>
+            <p class="hero-entry-flavor">Powerful sorceresses with a complicated history, Yennefer and Triss make a loyal and adaptable duo.</p>
+            <p class="hero-entry-ability">
+            Choose Yennefer or Triss at the start of the game. Yennefer may BOOST her attacks with an uncancelable IMMEDIATELY effect. After Triss plays a scheme, deal 2 damage to a fighter adjacent to her.
+            </p>
+          </details>
+          </div>
+        </details>
+
+        <details class="roster-set">
+          <summary class="roster-set-title">Battle of Legends, Volume Three<span class="roster-set-count">4 heroes</span></summary>
+          <div class="roster-set-group">
+          <details class="hero-entry">
+            <summary>
+              <span class="hero-entry-name">Blackbeard</span>
+              <span class="hero-entry-stats">
+                <span class="stat-badge stat-badge--range">Ranged</span>
+                <span class="stat-badge">HP 13</span>
+                <span class="stat-badge">Move 2</span>
+              </span>
+            </summary>
+            <p class="hero-entry-flavor">Avast! Your only hope to defeat the Scourge of the Seven Seas and his salty sea dogs is to pay him his doubloons!</p>
+            <p class="hero-entry-ability">
+            BLACKBEARD'S DOUBLOONS<br />
+            Doubloons not held by Blackbeard sit in the Treasury. He pays a doubloon to the Treasury when he takes combat damage, and may pay one at the start of his turn for an extra action. Many of his card effects can be bought off by an opponent paying a ransom.
+            </p>
+          </details>
+          <details class="hero-entry">
+            <summary>
+              <span class="hero-entry-name">Chupacabra</span>
+              <span class="hero-entry-stats">
+                <span class="stat-badge stat-badge--melee">Melee</span>
+                <span class="stat-badge">HP 14</span>
+                <span class="stat-badge">Move 3</span>
+              </span>
+            </summary>
+            <p class="hero-entry-flavor">The predatory Latin American cryptid stalks the hunting grounds. Shhh — did you hear something? There's blood in the air.</p>
+            <p class="hero-entry-ability">
+            THE HUNGER<br />
+            After you attack, you may draw a card.
+            </p>
+          </details>
+          <details class="hero-entry">
+            <summary>
+              <span class="hero-entry-name">Pandora</span>
+              <span class="hero-entry-stats">
+                <span class="stat-badge stat-badge--melee">Melee</span>
+                <span class="stat-badge">HP 14</span>
+                <span class="stat-badge">Move 2</span>
+              </span>
+            </summary>
+            <p class="hero-entry-flavor">With the gifts of the gods bestowed upon her, she opens the legendary box of miseries. Is it hope or folly?</p>
+            <p class="hero-entry-ability">
+            PANDORA'S BOX<br />
+            At the start of your turn, open Pandora's Box: reveal and resolve MISERY cards one at a time until you stop or reveal 3+ total feathers, then take 1 damage per revealed MISERY. Shuffle them back at end of turn.
+            </p>
+          </details>
+          <details class="hero-entry">
+            <summary>
+              <span class="hero-entry-name">Loki</span>
+              <span class="hero-entry-stats">
+                <span class="stat-badge stat-badge--melee">Melee</span>
+                <span class="stat-badge">HP 16</span>
+                <span class="stat-badge">Move 2</span>
+              </span>
+            </summary>
+            <p class="hero-entry-flavor">Meddlesome shape-shifter, underhanded mischief-maker, god of chaos. "I'm giving out cards. Hope you enjoy them," he says with a wink and a grin.</p>
+            <p class="hero-entry-ability">
+            MISCHIEF-MONGER<br />
+            After you play a TRICK, put it into your opponent's hand instead of your discard pile. If they discard a TRICK, return it to your hand or deck. Add +1 to your move value for each TRICK in your opponent's hand.
+            </p>
+          </details>
+          </div>
+        </details>
+
+        <details class="roster-set">
+          <summary class="roster-set-title">Adventures: Teenage Mutant Ninja Turtles<span class="roster-set-count">4 heroes</span></summary>
+          <div class="roster-set-group">
+          <details class="hero-entry">
+            <summary>
+              <span class="hero-entry-name">Leonardo</span>
+              <span class="hero-entry-stats">
+                <span class="stat-badge stat-badge--melee">Melee</span>
+                <span class="stat-badge">HP 16</span>
+                <span class="stat-badge">Move 2</span>
+              </span>
+            </summary>
+            <p class="hero-entry-flavor">The leader — he puts the pieces into place!</p>
+            <p class="hero-entry-ability">
+            TEAM TACTICS<br />
+            At the start of your turn, move any fighter up to 1 space.
+            </p>
+          </details>
+          <details class="hero-entry">
+            <summary>
+              <span class="hero-entry-name">Donatello</span>
+              <span class="hero-entry-stats">
+                <span class="stat-badge stat-badge--melee">Melee</span>
+                <span class="stat-badge">HP 14</span>
+                <span class="stat-badge">Move 2</span>
+              </span>
+            </summary>
+            <p class="hero-entry-flavor">His wicked cool gadgets will save the day!</p>
+            <p class="hero-entry-ability">
+            INVENTIVE<br />
+            When you maneuver, you may draw 2 cards instead of 1 (put one on the bottom of your deck). Played inventions tuck under this card and apply for the rest of the game.
+            </p>
+          </details>
+          <details class="hero-entry">
+            <summary>
+              <span class="hero-entry-name">Michelangelo</span>
+              <span class="hero-entry-stats">
+                <span class="stat-badge stat-badge--melee">Melee</span>
+                <span class="stat-badge">HP 14</span>
+                <span class="stat-badge">Move 3</span>
+              </span>
+            </summary>
+            <p class="hero-entry-ability">
+            PIZZA PARTY<br />
+            After you attack or scheme, draw 1 card. Your starting and maximum hand size is 3.
+            </p>
+          </details>
+          <details class="hero-entry">
+            <summary>
+              <span class="hero-entry-name">Raphael</span>
+              <span class="hero-entry-stats">
+                <span class="stat-badge stat-badge--melee">Melee</span>
+                <span class="stat-badge">HP 17</span>
+                <span class="stat-badge">Move 2</span>
+              </span>
+            </summary>
+            <p class="hero-entry-ability">
+            ANGER ISSUES<br />
+            On each of your turns, the first time you lose combat, gain 1 action.
+            </p>
+          </details>
+          </div>
+        </details>
+
+        <details class="roster-set">
+          <summary class="roster-set-title">TMNT: Shredder vs Krang<span class="roster-set-count">2 heroes</span></summary>
+          <div class="roster-set-group">
+          <details class="hero-entry">
+            <summary>
+              <span class="hero-entry-name">Shredder</span>
+              <span class="hero-entry-stats">
+                <span class="stat-badge stat-badge--melee">Melee</span>
+                <span class="stat-badge">HP 15</span>
+                <span class="stat-badge">Move 3</span>
+              </span>
+            </summary>
+            <p class="hero-entry-flavor">The ruthless leader of the Foot Clan and the Turtles' greatest enemy — cold, calculating, and driven by a desire for power and revenge.</p>
+            <p class="hero-entry-ability">
+            MASTER OF THE CLAN<br />
+            At the start of your turn, deploy a Foot soldier adjacent to a friendly fighter. You may attack opposing fighters adjacent to Foot soldiers.
+            </p>
+          </details>
+          <details class="hero-entry">
+            <summary>
+              <span class="hero-entry-name">Krang</span>
+              <span class="hero-entry-stats">
+                <span class="stat-badge stat-badge--melee">Melee</span>
+                <span class="stat-badge">HP 16</span>
+                <span class="stat-badge">Move 1</span>
+              </span>
+            </summary>
+            <p class="hero-entry-flavor">A brilliant but cruel alien warlord from Dimension X, often working with Shredder to conquer Earth.</p>
+            <p class="hero-entry-ability">
+            DOOOOOM!<br />
+            Krang has 3 doomsday machines, starting with one active. After rolling the Dice of Ultimate Destruction, deactivate a machine to reroll. Add +1 to move value per active machine.
+            </p>
+          </details>
+          </div>
+        </details>
+
+        <details class="roster-set">
+          <summary class="roster-set-title">Muhammad Ali vs Bruce Lee<span class="roster-set-count">1 hero</span></summary>
+          <div class="roster-set-group">
+          <details class="hero-entry">
+            <summary>
+              <span class="hero-entry-name">Muhammad Ali</span>
+              <span class="hero-entry-stats">
+                <span class="stat-badge stat-badge--melee">Melee</span>
+                <span class="stat-badge">HP 16</span>
+                <span class="stat-badge">Move 3</span>
+              </span>
+            </summary>
+            <p class="hero-entry-ability">
+            Begin the game on Float Like a Butterfly. After you attack and win, change stances.<br />
+            FLOAT LIKE A BUTTERFLY — attack from 2 spaces away.<br />
+            STING LIKE A BEE — add +2 to your attacks.
+            </p>
+          </details>
+          </div>
+        </details>
+
+        <details class="roster-set">
+          <summary class="roster-set-title">Stars and Stripes<span class="roster-set-count">4 heroes</span></summary>
+          <div class="roster-set-group">
+          <details class="hero-entry">
+            <summary>
+              <span class="hero-entry-name">John Henry</span>
+              <span class="hero-entry-stats">
+                <span class="stat-badge stat-badge--melee">Melee</span>
+                <span class="stat-badge">HP 17</span>
+                <span class="stat-badge">Move 2</span>
+              </span>
+            </summary>
+            <p class="hero-entry-flavor">The steel-driving man lays track faster than a steam-powered drill.</p>
+            <p class="hero-entry-ability">
+            STEEL-DRIVING MAN<br />
+            You have 10 track tokens. At the start of your turn, summon one in John Henry's zone. When you move him, don't count spaces with track tokens.
+            </p>
+          </details>
+          <details class="hero-entry">
+            <summary>
+              <span class="hero-entry-name">Rosie The Riveter</span>
+              <span class="hero-entry-stats">
+                <span class="stat-badge stat-badge--melee">Melee</span>
+                <span class="stat-badge">HP 15</span>
+                <span class="stat-badge">Move 2</span>
+              </span>
+            </summary>
+            <p class="hero-entry-flavor">Freedom XK-II is online! Engaging cavity magnetron! We can do it!</p>
+            <p class="hero-entry-ability">
+            FREEDOM XK-II MECH SUIT<br />
+            You have 4 upgrade tokens, starting inactive. Activate one at the start of your turn; if all 4 are active at the end of your turn, deactivate all of them.
+            </p>
+          </details>
+          <details class="hero-entry">
+            <summary>
+              <span class="hero-entry-name">Wyatt Earp</span>
+              <span class="hero-entry-stats">
+                <span class="stat-badge stat-badge--range">Ranged</span>
+                <span class="stat-badge">HP 15</span>
+                <span class="stat-badge">Move 2</span>
+              </span>
+            </summary>
+            <p class="hero-entry-flavor">He's a marshal and an outlaw, and when he fans the hammer, the bullets start flying. Justice is served.</p>
+            <p class="hero-entry-ability">
+            SHOWDOWN<br />
+            After you attack and win combat, choose one (not the same one twice per turn): draw 1 card, gain 1 free action to attack, or move your fighter up to 1 space.
+            </p>
+          </details>
+          <details class="hero-entry">
+            <summary>
+              <span class="hero-entry-name">George Washington</span>
+              <span class="hero-entry-stats">
+                <span class="stat-badge stat-badge--melee">Melee</span>
+                <span class="stat-badge">HP 14</span>
+                <span class="stat-badge">Move 2</span>
+              </span>
+            </summary>
+            <p class="hero-entry-flavor">With his network of Culper spies, you'll never be sure what Agent 711 is up to. Is this the big attack, or is it all just a ruse?</p>
+            <p class="hero-entry-ability">
+            ESPIONAGE<br />
+            You start with 4 ruse tokens. When you attack, you may place one on the card; before defending, your opponent may discard a random card to remove it.
+            </p>
+          </details>
+          </div>
+        </details>
+      </section>
+
+      <div class="section-heading" id="glossary">
+        <h2>Glossary</h2>
+        <p>Key terms used across hero cards and rulings.</p>
+      </div>
+
+      <dl class="glossary-grid card">
+        <div class="glossary-term"><dt>Adjacent</dt><dd>Two spaces connected by a single line. Melee attacks require the attacker and target to be adjacent.</dd></div>
+        <div class="glossary-term"><dt>After combat</dt><dd>An AFTER COMBAT effect resolves once damage from the combat has been dealt.</dd></div>
+        <div class="glossary-term"><dt>Attack</dt><dd>An action that pits an attack value against a defense value to deal damage. Can be melee or ranged.</dd></div>
+        <div class="glossary-term"><dt>Boost</dt><dd>Playing a card face down to add its boost number (top-left) to an attack, or to power a BOOST effect.</dd></div>
+        <div class="glossary-term"><dt>Card type</dt><dd>Each card is an attack, a defense, a versatile (either), or a scheme (non-combat) card.</dd></div>
+        <div class="glossary-term"><dt>Character card</dt><dd>The card identifying a hero — lists their move value, starting health, and special ability.</dd></div>
+        <div class="glossary-term"><dt>Combat</dt><dd>The exchange after an attack: both players play a card face down, reveal, resolve effects by timing, then compare values.</dd></div>
+        <div class="glossary-term"><dt>Damage</dt><dd>A successful attack deals damage equal to its value, reducing the target's health.</dd></div>
+        <div class="glossary-term"><dt>Defeated</dt><dd>A fighter at zero health is removed from play. Defeat your opponent's hero to win.</dd></div>
+        <div class="glossary-term"><dt>Draw</dt><dd>Take the top card of your action deck into your hand.</dd></div>
+        <div class="glossary-term"><dt>During combat</dt><dd>Resolves after immediate effects and before attack and defense values are compared.</dd></div>
+        <div class="glossary-term"><dt>Errata</dt><dd>Official corrections from Restoration Games that override printed card text. Errata beats card text, which beats general rules.</dd></div>
+        <div class="glossary-term"><dt>Exhausted deck</dt><dd>A deck with no cards left. You do not reshuffle — you simply cannot draw until an effect lets you.</dd></div>
+        <div class="glossary-term"><dt>Fighter</dt><dd>Any miniature or token you control on the battlefield — your hero plus any sidekicks.</dd></div>
+        <div class="glossary-term"><dt>First player</dt><dd>The player who takes the first turn, chosen during setup. Breaks ties on simultaneous effects.</dd></div>
+        <div class="glossary-term"><dt>Hand</dt><dd>The cards a player holds. Start with five, hold up to seven, discard down at end of turn.</dd></div>
+        <div class="glossary-term"><dt>Health</dt><dd>A fighter's life total, tracked on a health dial. At zero health the fighter is defeated.</dd></div>
+        <div class="glossary-term"><dt>Hero</dt><dd>Your primary fighter, with a character card, special ability, and unique deck. Lose if defeated.</dd></div>
+        <div class="glossary-term"><dt>Immediately</dt><dd>Resolves the moment combat cards are revealed, before the other timing windows.</dd></div>
+        <div class="glossary-term"><dt>Maneuver</dt><dd>Draw a card and move one of your fighters up to its move value — you may do either or both.</dd></div>
+        <div class="glossary-term"><dt>Melee attack</dt><dd>An attack that may only target an adjacent fighter.</dd></div>
+        <div class="glossary-term"><dt>Move value</dt><dd>The number on a hero card showing the maximum spaces that fighter may maneuver in one turn.</dd></div>
+        <div class="glossary-term"><dt>One-way connection</dt><dd>A board connection that may be crossed in one direction only.</dd></div>
+        <div class="glossary-term"><dt>Ongoing effect</dt><dd>A static effect that stays in play and applies continuously until it leaves.</dd></div>
+        <div class="glossary-term"><dt>Passage</dt><dd>A special board connection (such as a door or teleport) linking spaces that aren't otherwise adjacent.</dd></div>
+        <div class="glossary-term"><dt>Placed</dt><dd>A fighter set directly into a space by an effect. Placing ignores normal movement rules.</dd></div>
+        <div class="glossary-term"><dt>Push</dt><dd>Forced movement of a fighter caused by an opponent's effect. It still follows the printed lines.</dd></div>
+        <div class="glossary-term"><dt>Ranged attack</dt><dd>An attack that may target any fighter in the same zone, not just an adjacent one.</dd></div>
+        <div class="glossary-term"><dt>Scheme</dt><dd>Play a scheme (purple) card from your hand to resolve its non-combat effect.</dd></div>
+        <div class="glossary-term"><dt>Sidekick</dt><dd>A secondary fighter represented by a token. Can be defeated without ending the game.</dd></div>
+        <div class="glossary-term"><dt>Space</dt><dd>A single position on the battlefield. Fighters move between connected spaces along printed lines.</dd></div>
+        <div class="glossary-term"><dt>Special ability</dt><dd>The unique rule printed on a hero's character card. Always in effect unless stated otherwise.</dd></div>
+        <div class="glossary-term"><dt>Timing</dt><dd>The order simultaneous effects resolve in: errata, then card text, then general rules.</dd></div>
+        <div class="glossary-term"><dt>Value</dt><dd>The combat number on a card or fighter. Attack value is compared against defense value.</dd></div>
+        <div class="glossary-term"><dt>Versatile</dt><dd>A card that may be played as either an attack or a defense.</dd></div>
+        <div class="glossary-term"><dt>Zone</dt><dd>A coloured region of the battlefield. Ranged attacks and many effects care which zone a fighter is in.</dd></div>
+      </dl>
+
+      <div class="section-heading" id="faq">
+        <h2>Frequently asked questions</h2>
+        <p>Common rulings that come up during a match.</p>
+      </div>
+
+      <h3 class="faq-category-title">General rules</h3>
+      <div class="faq-list">
+        <details class="faq-entry">
+          <summary>Can I attack my own sidekicks, or attack my heroes with my own sidekicks?</summary>
+          <p>No — you can never attack a friendly fighter.</p>
+        </details>
+        <details class="faq-entry">
+          <summary>Do you win combat against an attack card with a value of 0?</summary>
+          <p>Yes. You win combat as long as you don't take damage.</p>
+        </details>
+        <details class="faq-entry">
+          <summary>If a defeated fighter is returned to the board, what health do they come back at?</summary>
+          <p>Full health, unless the effect says otherwise.</p>
+        </details>
+        <details class="faq-entry">
+          <summary>Must card effects be resolved in the order printed?</summary>
+          <p>Generally yes — but when a card offers multiple options to choose from, the player may choose the order.</p>
+        </details>
+        <details class="faq-entry">
+          <summary>What's the difference between "Move" and "Place"?</summary>
+          <p>"Move" must respect the normal rules of movement (following lines, one space at a time). "Place" does not — it ignores those rules entirely.</p>
+        </details>
+        <details class="faq-entry">
+          <summary>If I gain an action, can I choose not to use it?</summary>
+          <p>No. Actions cannot be skipped once gained.</p>
+        </details>
+        <details class="faq-entry">
+          <summary>Does "up to X spaces" include the option of moving 0 spaces?</summary>
+          <p>Yes.</p>
+        </details>
+        <details class="faq-entry">
+          <summary>What's the difference between combat damage and effect damage?</summary>
+          <p>Combat damage comes from comparing the attack card's value against the defense card's value (including any modifiers). Effect damage covers every other source.</p>
+        </details>
+      </div>
+
+      <h3 class="faq-category-title">Timing &amp; rule changes</h3>
+      <div class="faq-list">
+        <details class="faq-entry">
+          <summary>When does the game actually check for a winner?</summary>
+          <p>Fighters are still defeated under the normal rules, but the game only checks whether there's a winner once AFTER COMBAT effects have finished resolving — not the instant the second-to-last hero falls. If both heroes are defeated at the same time, the active player wins.</p>
+        </details>
+        <details class="faq-entry">
+          <summary>What happens if a player has no fighters left on the board?</summary>
+          <p>They become Dormant: they don't take actions, draw, or discard on their turn, their fighters can't take damage, and they can't be chosen as an opponent or targeted by "all opponents" effects.</p>
+        </details>
+        <details class="faq-entry">
+          <summary>Does "ignore the value" change a card's printed value?</summary>
+          <p>No — it only disregards the value for combat damage purposes. The printed value is unchanged for any other effect that references it.</p>
+        </details>
+      </div>
+
+      <h3 class="faq-category-title">Maps &amp; terrain</h3>
+      <div class="faq-list">
+        <details class="faq-entry">
+          <summary>Are secret passage spaces considered adjacent?</summary>
+          <p>No. You can move through a secret passage as if the spaces were adjacent, but they are not adjacent for the purposes of combat — no melee attacks across a passage.</p>
+        </details>
+        <details class="faq-entry">
+          <summary>Can the High Ground attack bonus stack?</summary>
+          <p>No — you only get the bonus once, no matter how many High Ground spaces are involved.</p>
+        </details>
+        <details class="faq-entry">
+          <summary>Does High Ground apply to ranged attacks too, or only melee?</summary>
+          <p>It only affects adjacent spaces in the direction the arrow points, regardless of attack type.</p>
+        </details>
+      </div>
+
+      <p class="source-note">
+        These rulings are a curated sample. For the complete, sourced FAQ hub and the full glossary with hover
+        definitions, see
+        <a href="https://www.the-unmatched.club/rules" target="_blank" rel="noopener noreferrer">The Unmatched Club rules hub ↗</a>.
+      </p>
+
+      <div class="section-heading" id="resources">
+        <h2>Resources &amp; tools</h2>
+        <p>Fan-built tools worth bookmarking if you're diving deeper into Unmatched.</p>
+      </div>
+
+      <section class="content-grid">
+        <a class="card" href="https://unmatched.cards/umdb/cards" target="_blank" rel="noopener noreferrer">
+          <h2>UMDB Card Database</h2>
+          <p>
+            Browse every card ever printed for the game — filter by hero, set,
+            attack type, and artist. Handy for looking up an exact card's
+            wording mid-argument.
+          </p>
+        </a>
+
+        <a class="card" href="https://surpy.be/" target="_blank" rel="noopener noreferrer">
+          <h2>Surpy — Stats Tracker</h2>
+          <p>
+            Log your matches, track win rates by hero, and see your head-to-head
+            matchup history build up over a season.
+          </p>
+        </a>
+
+        <a class="card" href="https://www.the-unmatched.club/" target="_blank" rel="noopener noreferrer">
+          <h2>The Unmatched Club</h2>
+          <p>
+            The rules hub this page's How to Play, glossary, and FAQ sections
+            are sourced from — full hero-by-hero rulings and a searchable
+            glossary.
           </p>
         </a>
       </section>
