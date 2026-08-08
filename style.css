@@ -604,6 +604,51 @@ details[open].roster-set > .roster-set-title::after {
   white-space: nowrap;
 }
 
+/* Complexity die colors approximated from the official 1-6 pip indicator */
+.roster-set--complexity-1 { --die-color: #5fa8a0; }
+.roster-set--complexity-2 { --die-color: #a3a24a; }
+.roster-set--complexity-3 { --die-color: #b8493f; }
+.roster-set--complexity-4 { --die-color: #c9722f; }
+.roster-set--complexity-5 { --die-color: #f0952b; }
+.roster-set--complexity-6 { --die-color: #8f2c2c; }
+
+.roster-set--complexity-1,
+.roster-set--complexity-2,
+.roster-set--complexity-3,
+.roster-set--complexity-4,
+.roster-set--complexity-5,
+.roster-set--complexity-6 {
+  border-left: 4px solid var(--die-color);
+}
+
+.roster-set--complexity-1 > .roster-set-title,
+.roster-set--complexity-2 > .roster-set-title,
+.roster-set--complexity-3 > .roster-set-title,
+.roster-set--complexity-4 > .roster-set-title,
+.roster-set--complexity-5 > .roster-set-title,
+.roster-set--complexity-6 > .roster-set-title {
+  color: var(--die-color);
+}
+
+.roster-set--complexity-1 .roster-set-count,
+.roster-set--complexity-2 .roster-set-count,
+.roster-set--complexity-3 .roster-set-count,
+.roster-set--complexity-4 .roster-set-count,
+.roster-set--complexity-5 .roster-set-count,
+.roster-set--complexity-6 .roster-set-count {
+  color: var(--die-color);
+  background: color-mix(in srgb, var(--die-color) 20%, transparent);
+}
+
+.roster-set--complexity-1 > .roster-set-title::after,
+.roster-set--complexity-2 > .roster-set-title::after,
+.roster-set--complexity-3 > .roster-set-title::after,
+.roster-set--complexity-4 > .roster-set-title::after,
+.roster-set--complexity-5 > .roster-set-title::after,
+.roster-set--complexity-6 > .roster-set-title::after {
+  color: var(--die-color);
+}
+
 .roster-set-group {
   display: grid;
   gap: 0.6rem;
