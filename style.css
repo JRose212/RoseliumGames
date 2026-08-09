@@ -16,6 +16,10 @@
   box-sizing: border-box;
 }
 
+html {
+  overflow-y: scroll;
+}
+
 body {
   margin: 0;
   font-family: Inter, "Segoe UI", Arial, sans-serif;
@@ -31,7 +35,7 @@ body[data-page="home"] {
 
 body[data-page="home"]::before {
   content: "";
-  position: absolute;
+  position: fixed;
   inset: 0;
   z-index: -1;
   background-image: url("assets/rose-arena-bg.png");
@@ -48,7 +52,7 @@ body[data-page="dice-throne"] {
 
 body[data-page="dice-throne"]::before {
   content: "";
-  position: absolute;
+  position: fixed;
   inset: 0;
   z-index: -1;
   background-image: url("assets/dice-throne-bg.webp");
@@ -65,7 +69,7 @@ body[data-page="unmatched"] {
 
 body[data-page="unmatched"]::before {
   content: "";
-  position: absolute;
+  position: fixed;
   inset: 0;
   z-index: -1;
   background-image: url("assets/unmatched-bg.jpg");
