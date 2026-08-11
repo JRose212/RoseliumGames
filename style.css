@@ -383,11 +383,57 @@ a.card:focus-visible {
   text-transform: uppercase;
 }
 
-.calendar-frame iframe {
-  width: 100%;
-  min-height: 640px;
-  border: 0;
-  border-radius: 12px;
+.next-event-card {
+  padding: 1.5rem;
+  display: grid;
+  gap: 0.5rem;
+  border-color: var(--accent);
+}
+
+.next-event-card h2 {
+  margin: 0;
+  font-size: clamp(1.3rem, 2.4vw, 1.8rem);
+}
+
+.next-event-card p {
+  margin: 0;
+  color: var(--accent-strong);
+  font-weight: 600;
+}
+
+.agenda-items {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+}
+
+.agenda-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.9rem 1.25rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.agenda-item:last-child {
+  border-bottom: none;
+}
+
+.agenda-item-date {
+  color: var(--muted);
+  font-size: 0.85rem;
+  white-space: nowrap;
+}
+
+.agenda-item-name {
+  font-weight: 600;
+  text-align: right;
+}
+
+.calendar-frame .status {
+  margin: 1rem 1.25rem;
 }
 
 .status {

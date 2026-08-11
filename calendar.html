@@ -6,8 +6,10 @@
     <title>Calendar • Roselium Games</title>
     <meta name="theme-color" content="#1a0f0f" />
     <link rel="stylesheet" href="style.css" />
+    <script src="config.js"></script>
+    <script src="calendar.js" defer></script>
   </head>
-  <body>
+  <body data-page="calendar">
     <div class="sticky-top">
       <div class="season-banner">
         Season one week one, Sunday October 4th 2pm to 6:30pm @ The Battle
@@ -33,16 +35,14 @@
         <h1>Event calendar</h1>
       </section>
 
-      <div class="calendar-frame">
-        <iframe
-          src="https://calendar.google.com/calendar/embed?src=jermaine%40rosegrowthandwellness.com&ctz=America%2FNew_York"
-          style="border: 0"
-          width="100%"
-          height="600"
-          frameborder="0"
-          scrolling="no"
-          title="Game night calendar"
-        ></iframe>
+      <section class="card next-event-card" id="next-event-card">
+        <span class="eyebrow">Next Up</span>
+        <h2 id="next-event-name">Loading…</h2>
+        <p id="next-event-date"></p>
+      </section>
+
+      <div class="calendar-frame" id="agenda-list">
+        <p class="status">Loading events…</p>
       </div>
     </main>
 
