@@ -80,6 +80,17 @@ body[data-page="unmatched"]::before {
   pointer-events: none;
 }
 
+.season-banner {
+  padding: 0.6rem 1.5rem;
+  text-align: center;
+  font-weight: 600;
+  font-size: 0.9rem;
+  letter-spacing: 0.02em;
+  color: var(--bg);
+  background: var(--accent-strong);
+  border-bottom: 1px solid var(--border);
+}
+
 .site-header {
   position: sticky;
   top: 0;
