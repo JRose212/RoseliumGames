@@ -108,6 +108,16 @@
     return detail;
   };
 
+  // heightM/weightKg are stored metric (that's what PokeAPI returns), but
+  // displayed in feet/inches and pounds.
+  const formatImperial = (heightM, weightKg) => {
+    const totalInches = Math.round(heightM * 39.3701);
+    const feet = Math.floor(totalInches / 12);
+    const inches = totalInches % 12;
+    const lbs = (weightKg * 2.20462).toFixed(1);
+    return `${feet}'${inches}" · ${lbs} lbs`;
+  };
+
   const detailObserver = new IntersectionObserver(
     (entries) => {
       entries.forEach((entry) => {
@@ -134,7 +144,7 @@
       }
       const dimensionsEl = card.querySelector(".poke-card-dimensions");
       if (dimensionsEl) {
-        dimensionsEl.textContent = `${detail.heightM.toFixed(1)} m · ${detail.weightKg.toFixed(1)} kg`;
+        dimensionsEl.textContent = formatImperial(detail.heightM, detail.weightKg);
       }
     } catch (error) {
       // Leave placeholder card; a reload will retry.
