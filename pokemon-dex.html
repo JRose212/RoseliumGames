@@ -15,8 +15,11 @@
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
     <script src="pokemon-dex.js" defer></script>
+    <script src="pokemon-chat.js" defer></script>
   </head>
   <body data-page="pokemon-dex">
+  <div class="app-shell">
+  <div class="app-content">
     <div class="sticky-top">
       <div class="season-banner">
         Learn to Play: Sun Sept 6, Oct 4 &amp; Oct 11, 1pm to 5:30pm @ The
@@ -88,5 +91,23 @@
     <footer class="site-footer">
       <p>Roselium Games • community-managed records for tactical play nights</p>
     </footer>
+  </div>
+
+  <aside class="chat-sidebar" id="chat-sidebar">
+    <div class="chat-header">
+      <h2>League Chat</h2>
+      <button type="button" class="chat-close-btn" id="chat-close-btn" aria-label="Close chat">✕</button>
+    </div>
+    <div class="chat-messages" id="chat-messages">
+      <p class="status">Loading chat…</p>
+    </div>
+    <form class="chat-input-row" id="chat-form">
+      <input type="text" id="chat-input" placeholder="Sign in to chat…" maxlength="500" disabled />
+      <button type="submit" class="btn" id="chat-send-btn" disabled>Send</button>
+    </form>
+    <p class="status" id="chat-status" hidden></p>
+  </aside>
+  </div>
+  <button type="button" class="chat-toggle-btn" id="chat-toggle-btn" aria-label="Open chat">💬</button>
   </body>
 </html>

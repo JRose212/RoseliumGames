@@ -105,5 +105,14 @@ service cloud.firestore {
       allow create, update: if isAdmin();
       allow delete: if false;
     }
+
+    // League chat. Anyone signed in can read/post; only the admin can
+    // delete (moderation) - nobody can edit a sent message.
+    match /chatMessages/{messageId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn() && request.resource.data.uid == request.auth.uid;
+      allow update: if false;
+      allow delete: if isAdmin();
+    }
   }
 }
