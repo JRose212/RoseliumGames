@@ -619,11 +619,6 @@ body[data-page^="pokemon-"] .jump-nav a {
   margin: 0 0 0.5rem;
 }
 
-.roster-kicker {
-  margin-top: 1.5rem;
-  max-width: 50%;
-}
-
 .roster-list {
   list-style: none;
   margin: 0;
@@ -697,9 +692,5 @@ body[data-page^="pokemon-"] .jump-nav a {
 @media (max-width: 640px) {
   .roster-columns {
     grid-template-columns: 1fr;
-  }
-
-  .roster-kicker {
-    max-width: 100%;
   }
 }

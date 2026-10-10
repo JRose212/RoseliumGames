@@ -126,6 +126,7 @@
         const offenseRows = groups.offense.map((p) => renderRow(p, slots, isMine)).join("");
         const defenseRows = groups.defense.map((p) => renderRow(p, slots, isMine)).join("");
         const kickerRows = groups.specialTeams.map((p) => renderRow(p, slots, isMine)).join("");
+        const benchRows = (groups.bench || []).map((p) => renderRow(p, slots, isMine)).join("");
         return `<section class="card">
                   <h2>${escapeHtml(team.teamName || "Unnamed Team")}</h2>
                   <div class="roster-columns">
@@ -138,9 +139,15 @@
                       <ul class="roster-list">${defenseRows}</ul>
                     </div>
                   </div>
-                  <div class="roster-kicker">
-                    <h3 class="roster-column-heading">Kicker</h3>
-                    <ul class="roster-list">${kickerRows}</ul>
+                  <div class="roster-columns" style="margin-top: 1.5rem;">
+                    <div class="roster-column">
+                      <h3 class="roster-column-heading">Kicker</h3>
+                      <ul class="roster-list">${kickerRows}</ul>
+                    </div>
+                    <div class="roster-column">
+                      <h3 class="roster-column-heading">Bench</h3>
+                      <ul class="roster-list">${benchRows}</ul>
+                    </div>
                   </div>
                 </section>`;
       })

@@ -22,15 +22,19 @@ window.siteConfig = {
     "QB", "RB", "FB", "WR1", "WR2", "TE", "LT", "RT", "LG", "RG", "C",
     "DE", "DT", "NT", "ILB1", "ILB2", "OLB1", "OLB2", "CB1", "CB2", "FS", "SS",
     "K",
+    "BENCH1", "BENCH2", "BENCH3",
   ],
 
   // Same slots as pokemonPositions, grouped for the roster page's
   // offense/defense list layout. Keep in sync with pokemonPositions above
-  // if the position list ever changes.
+  // if the position list ever changes. Bench slots have no position
+  // restriction, same as every other slot - they're just filled/displayed
+  // last.
   positionGroups: {
     offense: ["QB", "RB", "FB", "WR1", "WR2", "TE", "LT", "RT", "LG", "RG", "C"],
     defense: ["DE", "DT", "NT", "ILB1", "ILB2", "OLB1", "OLB2", "CB1", "CB2", "FS", "SS"],
     specialTeams: ["K"],
+    bench: ["BENCH1", "BENCH2", "BENCH3"],
   },
 
   pokeApiBaseUrl: "https://pokeapi.co/api/v2",
