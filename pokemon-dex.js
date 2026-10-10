@@ -99,20 +99,36 @@
   if (config.firebaseConfig && config.firebaseConfig.apiKey !== "YOUR_FIREBASE_API_KEY") {
     try {
       firebase.initializeApp(config.firebaseConfig);
-      firebase.firestore().collection("draftedPokemon").onSnapshot(
-        (snapshot) => {
-          draftedMap = new Map();
-          snapshot.forEach((doc) => {
-            const data = doc.data();
-            draftedMap.set(Number(doc.id), data);
-          });
-          applyDraftedOverlay();
-        },
-        () => {
-          // Signed-out visitors can't read this collection per the security
-          // rules - the dex still works fine without the "drafted by" overlay.
+      const db = firebase.firestore();
+      let unsubscribeDrafted = null;
+
+      // Wait for auth to actually resolve before subscribing - a listener
+      // that starts too early (before a saved login rehydrates) gets a
+      // permission error and never retries, even after sign-in completes.
+      firebase.auth().onAuthStateChanged((user) => {
+        if (unsubscribeDrafted) {
+          unsubscribeDrafted();
+          unsubscribeDrafted = null;
         }
-      );
+        if (!user) {
+          draftedMap = new Map();
+          applyDraftedOverlay();
+          return;
+        }
+        unsubscribeDrafted = db.collection("draftedPokemon").onSnapshot(
+          (snapshot) => {
+            draftedMap = new Map();
+            snapshot.forEach((doc) => {
+              const data = doc.data();
+              draftedMap.set(Number(doc.id), data);
+            });
+            applyDraftedOverlay();
+          },
+          () => {
+            // Non-fatal - the dex still works fine without the overlay.
+          }
+        );
+      });
     } catch (error) {
       // Firebase not configured or unreachable - the dex still works without the overlay.
     }

@@ -339,52 +339,82 @@
   }
 
   // --- Live listeners ---
+  //
+  // These all require being signed in per the security rules. A listener
+  // that errors out (e.g. because it started before auth had resolved)
+  // doesn't retry on its own, so they're only (re)started once we actually
+  // know the sign-in state, and torn down/restarted whenever it changes.
 
-  db.collection("teams").onSnapshot(
-    (snapshot) => {
-      teamsByUid = new Map(snapshot.docs.map((doc) => [doc.id, doc.data()]));
-      renderTurnTracker();
-      applyPickableState();
-    },
-    () => {}
-  );
+  let unsubscribeTeams = null;
+  let unsubscribeDrafted = null;
+  let unsubscribePicks = null;
+  let unsubscribeDraftState = null;
 
-  db.collection("draftedPokemon").onSnapshot(
-    (snapshot) => {
-      draftedMap = new Map();
-      snapshot.forEach((doc) => draftedMap.set(Number(doc.id), doc.data()));
-      applyPickableState();
-    },
-    () => {}
-  );
-
-  db.collection("draftPicks")
-    .orderBy("pickNumber")
-    .onSnapshot(
-      (snapshot) => renderPickHistory(snapshot.docs.map((doc) => doc.data())),
-      () => {}
+  const subscribeDraftRoom = () => {
+    [unsubscribeTeams, unsubscribeDrafted, unsubscribePicks, unsubscribeDraftState].forEach(
+      (unsubscribe) => unsubscribe && unsubscribe()
     );
+    unsubscribeTeams = unsubscribeDrafted = unsubscribePicks = unsubscribeDraftState = null;
 
-  db.collection("draftState")
-    .doc("current")
-    .onSnapshot(
-      (doc) => {
-        draftState = doc.exists ? doc.data() : null;
-        const active = draftState && draftState.status !== "pending";
-        searchCardEl.hidden = !active;
-        gridEl.hidden = !active;
+    if (!currentUser) {
+      teamsByUid = new Map();
+      draftedMap = new Map();
+      draftState = null;
+      renderTurnTracker();
+      renderPickHistory([]);
+      return;
+    }
+
+    unsubscribeTeams = db.collection("teams").onSnapshot(
+      (snapshot) => {
+        teamsByUid = new Map(snapshot.docs.map((doc) => [doc.id, doc.data()]));
         renderTurnTracker();
         applyPickableState();
       },
-      (error) => {
-        turnNameEl.textContent = "Unable to load draft status";
-        turnMetaEl.textContent = error.message;
-      }
+      () => {}
     );
+
+    unsubscribeDrafted = db.collection("draftedPokemon").onSnapshot(
+      (snapshot) => {
+        draftedMap = new Map();
+        snapshot.forEach((doc) => draftedMap.set(Number(doc.id), doc.data()));
+        applyPickableState();
+      },
+      () => {}
+    );
+
+    unsubscribePicks = db
+      .collection("draftPicks")
+      .orderBy("pickNumber")
+      .onSnapshot(
+        (snapshot) => renderPickHistory(snapshot.docs.map((doc) => doc.data())),
+        () => {}
+      );
+
+    unsubscribeDraftState = db
+      .collection("draftState")
+      .doc("current")
+      .onSnapshot(
+        (doc) => {
+          draftState = doc.exists ? doc.data() : null;
+          const active = draftState && draftState.status !== "pending";
+          searchCardEl.hidden = !active;
+          gridEl.hidden = !active;
+          renderTurnTracker();
+          applyPickableState();
+        },
+        (error) => {
+          turnNameEl.textContent = "Unable to load draft status";
+          turnMetaEl.textContent = error.message;
+        }
+      );
+  };
 
   auth.onAuthStateChanged(async (user) => {
     currentUser = user;
     renderTurnTracker();
+    subscribeDraftRoom();
+
     if (!user) {
       searchCardEl.hidden = true;
       gridEl.hidden = true;

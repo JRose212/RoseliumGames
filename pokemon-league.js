@@ -93,28 +93,53 @@
   };
 
   const renderSignedIn = (user) => {
+    const draftPending = !latestDraftState || latestDraftState.status === "pending";
     authPanelEl.innerHTML = `
       <div class="auth-identity">
         <div>
           <p class="auth-identity-name">${escapeHtml(user.displayName || user.email)}</p>
           <p>Signed in as ${escapeHtml(user.email)}</p>
         </div>
-        <button type="button" class="btn btn-secondary" id="auth-signout-btn">Sign Out</button>
+        <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+          <button type="button" class="btn btn-secondary" id="leave-league-btn" ${draftPending ? "" : "disabled"}>Leave League</button>
+          <button type="button" class="btn btn-secondary" id="auth-signout-btn">Sign Out</button>
+        </div>
       </div>
+      ${draftPending ? "" : `<p class="status">Leaving isn't available once the draft has started.</p>`}
+      <p class="status" id="leave-league-message" hidden></p>
     `;
     document.getElementById("auth-signout-btn").addEventListener("click", () => auth.signOut());
+    document.getElementById("leave-league-btn").addEventListener("click", () => leaveLeague(user));
   };
 
-  auth.onAuthStateChanged((user) => {
-    if (user) {
-      renderSignedIn(user);
-    } else {
-      renderSignedOut();
+  async function leaveLeague(user) {
+    const messageEl = document.getElementById("leave-league-message");
+    const showMessage = (text, isError) => {
+      if (!messageEl) return;
+      messageEl.hidden = false;
+      messageEl.textContent = text;
+      messageEl.className = `status${isError ? " error" : ""}`;
+    };
+
+    const confirmed = window.confirm(
+      "Leave the league? This permanently deletes your team, your profile, and your login. This can't be undone."
+    );
+    if (!confirmed) return;
+
+    try {
+      await db.collection("teams").doc(user.uid).delete();
+      await db.collection("users").doc(user.uid).delete();
+      await user.delete();
+    } catch (error) {
+      showMessage(error.message, true);
     }
-  });
+  }
 
   // League status: manager list + draft status + Start Draft gate.
   let latestTeams = [];
+  let latestDraftState = null;
+  let unsubscribeTeams = null;
+  let unsubscribeDraftState = null;
 
   const renderManagerList = () => {
     if (!latestTeams.length) {
@@ -130,21 +155,6 @@
       )
       .join("");
   };
-
-  db.collection("teams")
-    .orderBy("createdAt")
-    .onSnapshot(
-      (snapshot) => {
-        latestTeams = snapshot.docs.map((doc) => ({ uid: doc.id, ...doc.data() }));
-        renderManagerList();
-        renderStartDraftArea();
-      },
-      (error) => {
-        managerListEl.innerHTML = `<li class="manager-item status error">Unable to load managers: ${escapeHtml(error.message)}</li>`;
-      }
-    );
-
-  let latestDraftState = null;
 
   const renderStartDraftArea = () => {
     if (!latestDraftState) return;
@@ -173,28 +183,75 @@
     document.getElementById("start-draft-btn").addEventListener("click", startDraft);
   };
 
-  db.collection("draftState")
-    .doc("current")
-    .onSnapshot(
-      (doc) => {
-        latestDraftState = doc.exists ? doc.data() : null;
-        if (!latestDraftState) {
-          statusSummaryEl.textContent = "Draft state has not been set up yet.";
-          return;
+  // Firestore listeners that error out (e.g. because auth hadn't resolved
+  // yet) don't retry on their own, so these are torn down and restarted
+  // every time the sign-in state actually changes rather than started once
+  // unconditionally at page load.
+  const subscribeLeagueStatus = () => {
+    if (unsubscribeTeams) {
+      unsubscribeTeams();
+      unsubscribeTeams = null;
+    }
+    if (unsubscribeDraftState) {
+      unsubscribeDraftState();
+      unsubscribeDraftState = null;
+    }
+
+    if (!auth.currentUser) {
+      managerListEl.innerHTML = `<li class="manager-item">Sign in to see who's joined.</li>`;
+      statusSummaryEl.textContent = "Sign in to see league status.";
+      startDraftAreaEl.innerHTML = "";
+      return;
+    }
+
+    unsubscribeTeams = db
+      .collection("teams")
+      .orderBy("createdAt")
+      .onSnapshot(
+        (snapshot) => {
+          latestTeams = snapshot.docs.map((doc) => ({ uid: doc.id, ...doc.data() }));
+          renderManagerList();
+          renderStartDraftArea();
+        },
+        (error) => {
+          managerListEl.innerHTML = `<li class="manager-item status error">Unable to load managers: ${escapeHtml(error.message)}</li>`;
         }
-        if (latestDraftState.status === "pending") {
-          statusSummaryEl.textContent = "Signups are open. The draft hasn't started yet.";
-        } else if (latestDraftState.status === "drafting") {
-          statusSummaryEl.textContent = `Draft in progress — pick ${latestDraftState.currentPickIndex + 1} of ${latestDraftState.pickOrder.length}.`;
-        } else if (latestDraftState.status === "complete") {
-          statusSummaryEl.textContent = "The draft is complete.";
+      );
+
+    unsubscribeDraftState = db
+      .collection("draftState")
+      .doc("current")
+      .onSnapshot(
+        (doc) => {
+          latestDraftState = doc.exists ? doc.data() : null;
+          if (!latestDraftState) {
+            statusSummaryEl.textContent = "Draft state has not been set up yet.";
+            return;
+          }
+          if (latestDraftState.status === "pending") {
+            statusSummaryEl.textContent = "Signups are open. The draft hasn't started yet.";
+          } else if (latestDraftState.status === "drafting") {
+            statusSummaryEl.textContent = `Draft in progress — pick ${latestDraftState.currentPickIndex + 1} of ${latestDraftState.pickOrder.length}.`;
+          } else if (latestDraftState.status === "complete") {
+            statusSummaryEl.textContent = "The draft is complete.";
+          }
+          renderStartDraftArea();
+          if (auth.currentUser) renderSignedIn(auth.currentUser);
+        },
+        (error) => {
+          statusSummaryEl.textContent = `Unable to load draft status: ${error.message}`;
         }
-        renderStartDraftArea();
-      },
-      (error) => {
-        statusSummaryEl.textContent = `Unable to load draft status: ${error.message}`;
-      }
-    );
+      );
+  };
+
+  auth.onAuthStateChanged((user) => {
+    if (user) {
+      renderSignedIn(user);
+    } else {
+      renderSignedOut();
+    }
+    subscribeLeagueStatus();
+  });
 
   const buildSnakePickOrder = (uids, positions) => {
     const order = [];
