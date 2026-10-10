@@ -80,12 +80,17 @@ service cloud.firestore {
     }
 
     // Create-only-if-absent is what guarantees no Pokemon is drafted twice.
+    // Delete is allowed so a manager can drop a Pokemon from their own
+    // roster and return it to the pool (the roster-remove "x" button) -
+    // only the uid that owns the pick (or the admin) can do it, and the
+    // matching teams/{uid} slot update is a separate, equally-guarded write.
     match /draftedPokemon/{pokemonId} {
       allow read: if isSignedIn();
       allow create: if isSignedIn() && (
         request.resource.data.uid == request.auth.uid || isOverdueAutodraftFor(request.resource.data.uid)
       );
-      allow update, delete: if false;
+      allow update: if false;
+      allow delete: if isSignedIn() && (request.auth.uid == resource.data.uid || isAdmin());
     }
 
     // Season-level schedule state. Admin-managed; everyone can read it.

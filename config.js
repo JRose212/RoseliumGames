@@ -19,17 +19,17 @@ window.siteConfig = {
   // One slot per roster position. Easy to edit if the league's position
   // list changes - nothing else in the app hardcodes these names.
   pokemonPositions: [
-    "QB", "RB", "WR1", "WR2", "TE",
-    "LT", "LG", "C", "RG", "RT",
-    "DL1", "DL2", "LB", "CB", "S", "K",
+    "QB", "RB", "FB", "WR1", "WR2", "TE", "LT", "RT", "LG", "RG", "C",
+    "DE", "DT", "NT", "ILB1", "ILB2", "OLB1", "OLB2", "CB1", "CB2", "FS", "SS",
+    "K",
   ],
 
-  // Same 16 slots as pokemonPositions, grouped for the roster page's
+  // Same slots as pokemonPositions, grouped for the roster page's
   // offense/defense list layout. Keep in sync with pokemonPositions above
   // if the position list ever changes.
   positionGroups: {
-    offense: ["QB", "RB", "WR1", "WR2", "TE", "LT", "LG", "C", "RG", "RT"],
-    defense: ["DL1", "DL2", "LB", "CB", "S"],
+    offense: ["QB", "RB", "FB", "WR1", "WR2", "TE", "LT", "RT", "LG", "RG", "C"],
+    defense: ["DE", "DT", "NT", "ILB1", "ILB2", "OLB1", "OLB2", "CB1", "CB2", "FS", "SS"],
     specialTeams: ["K"],
   },
 

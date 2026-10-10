@@ -82,6 +82,9 @@
   let myTeam = null;
   let draftedMap = new Map();
   let currentWeek = null;
+  let draftState = null;
+
+  const draftIsComplete = () => Boolean(draftState && draftState.status === "complete");
 
   const renderRow = (position, slots, isMine) => {
     const pick = slots[position];
@@ -91,9 +94,12 @@
       middle = `<span class="roster-row-filled">
           <img class="roster-row-sprite" src="${spriteUrl(pick.pokemonId)}" alt="${escapeHtml(pick.pokemonName)}" loading="lazy" />
           ${escapeHtml(pick.pokemonName)}
-        </span>`;
-    } else if (isMine) {
+        </span>
+        ${isMine ? `<button type="button" class="roster-remove-btn" data-slot="${escapeHtml(position)}" data-id="${pick.pokemonId}" data-name="${escapeHtml(pick.pokemonName)}" title="Remove from roster">✕</button>` : ""}`;
+    } else if (isMine && draftIsComplete()) {
       middle = `<button type="button" class="btn btn-secondary fa-open-btn" data-slot="${escapeHtml(position)}">Sign Free Agent</button>`;
+    } else if (isMine) {
+      middle = `<span class="roster-row-empty">— empty — (free agency opens after the draft)</span>`;
     } else {
       middle = `<span class="roster-row-empty">— empty —</span>`;
     }
@@ -143,7 +149,33 @@
     listEl.querySelectorAll(".fa-open-btn").forEach((btn) => {
       btn.addEventListener("click", () => openFreeAgentPicker(btn.dataset.slot));
     });
+    listEl.querySelectorAll(".roster-remove-btn").forEach((btn) => {
+      btn.addEventListener("click", () =>
+        removeFromRoster(btn.dataset.slot, Number(btn.dataset.id), btn.dataset.name)
+      );
+    });
   };
+
+  async function removeFromRoster(slot, pokemonId, pokemonName) {
+    if (!currentUser) return;
+    const confirmed = window.confirm(`Remove ${pokemonName} from your roster and return it to the free agent pool?`);
+    if (!confirmed) return;
+
+    const teamRef = db.collection("teams").doc(currentUser.uid);
+    const draftedRef = db.collection("draftedPokemon").doc(String(pokemonId));
+
+    try {
+      await db.runTransaction(async (tx) => {
+        const teamSnap = await tx.get(teamRef);
+        const team = teamSnap.data();
+        if (!team || !team.slots || !team.slots[slot]) throw new Error("That slot is already empty.");
+        tx.delete(draftedRef);
+        tx.update(teamRef, { [`slots.${slot}`]: null });
+      });
+    } catch (error) {
+      window.alert(`Unable to remove: ${error.message}`);
+    }
+  }
 
   // --- Free agent picker modal ---
 
@@ -248,11 +280,14 @@
   let unsubscribeTeams = null;
   let unsubscribeDrafted = null;
   let unsubscribeSeason = null;
+  let unsubscribeDraftState = null;
   let latestTeams = [];
 
   const subscribe = () => {
-    [unsubscribeTeams, unsubscribeDrafted, unsubscribeSeason].forEach((unsubscribe) => unsubscribe && unsubscribe());
-    unsubscribeTeams = unsubscribeDrafted = unsubscribeSeason = null;
+    [unsubscribeTeams, unsubscribeDrafted, unsubscribeSeason, unsubscribeDraftState].forEach(
+      (unsubscribe) => unsubscribe && unsubscribe()
+    );
+    unsubscribeTeams = unsubscribeDrafted = unsubscribeSeason = unsubscribeDraftState = null;
 
     if (!currentUser) {
       listEl.innerHTML = "";
@@ -295,6 +330,17 @@
       .onSnapshot(
         (doc) => {
           currentWeek = doc.exists ? doc.data().currentWeek ?? null : null;
+          renderTeams(latestTeams);
+        },
+        () => {}
+      );
+
+    unsubscribeDraftState = db
+      .collection("draftState")
+      .doc("current")
+      .onSnapshot(
+        (doc) => {
+          draftState = doc.exists ? doc.data() : null;
           renderTeams(latestTeams);
         },
         () => {}
