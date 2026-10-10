@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Fantasy League • Roselium Games</title>
+    <meta name="theme-color" content="#1a0f0f" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="style.css" />
+    <link rel="stylesheet" href="pokemon.css" />
+    <script src="config.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+    <script src="pokemon-league.js" defer></script>
+  </head>
+  <body data-page="pokemon-league">
+    <div class="sticky-top">
+      <div class="season-banner">
+        Learn to Play: Sun Sept 6, Oct 4 &amp; Oct 11, 1pm to 5:30pm @ The
+        Battle Standard East Windsor
+      </div>
+      <header class="site-header">
+      <nav class="site-nav" aria-label="Primary navigation">
+        <div class="brand-group">
+          <a class="brand" href="index.html">Roselium Games</a>
+          <a class="pokemon-nav-badge active" href="pokemon-league.html"><span class="pokemon-nav-badge-icon" aria-hidden="true"></span>Fantasy Pokéball</a>
+        </div>
+        <div class="nav-links">
+          <a href="index.html">Home</a>
+          <a href="unmatched.html">Unmatched</a>
+          <a href="dice-throne.html">Dice Throne</a>
+          <a href="players.html">Leaderboards</a>
+          <a href="characters.html">Champion Records</a>
+          <a href="calendar.html">Calendar</a>
+        </div>
+      </nav>
+      </header>
+    </div>
+
+    <main class="page page-stack">
+      <section class="page-intro">
+        <span class="eyebrow">Roselium Fantasy League</span>
+        <h1>Pokémon Fantasy Football</h1>
+        <p>
+          An 8-manager (and growing) fantasy league with a twist: instead of
+          NFL players, you draft Pokémon onto a 16-slot roster covering every
+          position — offense, defense, and kicker. Weekly matchups are
+          simulated outside this site; this is where the league signs up,
+          drafts, and tracks rosters.
+        </p>
+      </section>
+
+      <nav class="jump-nav card" aria-label="Fantasy league navigation">
+        <a href="pokemon-league.html" class="active">League Home</a>
+        <a href="pokemon-dex.html">Pokédex</a>
+        <a href="pokemon-teams.html">Rosters</a>
+        <a href="pokemon-draft.html">Draft Room</a>
+      </nav>
+
+      <section class="card auth-panel" id="auth-panel">
+        <p class="status">Loading account…</p>
+      </section>
+
+      <section class="card" id="league-status-card">
+        <h2>League status</h2>
+        <p id="league-status-summary" class="status">Loading league status…</p>
+        <div id="start-draft-area"></div>
+        <ul class="manager-list" id="manager-list"></ul>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <p>Roselium Games • community-managed records for tactical play nights</p>
+    </footer>
+  </body>
+</html>

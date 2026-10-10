@@ -127,6 +127,83 @@ body[data-page="unmatched"]::before {
   letter-spacing: 0.03em;
 }
 
+.brand-group {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.pokemon-nav-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.4rem 0.85rem;
+  border-radius: 999px;
+  background: #2451d6;
+  border: 2px solid #ffcb05;
+  color: #ffcb05;
+  font-family: "Press Start 2P", "Segoe UI", Arial, sans-serif;
+  font-size: 0.62rem;
+  line-height: 1;
+  letter-spacing: 0.02em;
+  text-decoration: none;
+  text-shadow: 1px 1px 0 #152f73;
+  box-shadow: 0 4px 14px rgba(36, 81, 214, 0.45);
+  white-space: nowrap;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.pokemon-nav-badge:hover {
+  transform: translateY(-1px) scale(1.04);
+  box-shadow: 0 8px 20px rgba(36, 81, 214, 0.6);
+}
+
+.pokemon-nav-badge.active {
+  background: #ffcb05;
+  color: #152f73;
+  text-shadow: none;
+  border-color: #2451d6;
+}
+
+.pokemon-nav-badge-icon {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  background: linear-gradient(
+    to bottom,
+    #ee1515 0%,
+    #ee1515 46%,
+    #1a0f0f 46%,
+    #1a0f0f 54%,
+    #fff 54%,
+    #fff 100%
+  );
+  border: 1px solid #1a0f0f;
+  position: relative;
+}
+
+.pokemon-nav-badge-icon::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 4px;
+  height: 4px;
+  background: #fff;
+  border: 1px solid #1a0f0f;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+}
+
+@media (max-width: 640px) {
+  .brand-group {
+    width: 100%;
+    justify-content: space-between;
+  }
+}
+
 .nav-links {
   display: flex;
   flex-wrap: wrap;
