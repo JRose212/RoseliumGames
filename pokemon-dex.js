@@ -3,6 +3,7 @@
   const statusEl = document.getElementById("dex-status");
   const gridEl = document.getElementById("dex-grid");
   const searchEl = document.getElementById("dex-search");
+  const typeFilterEl = document.getElementById("dex-type-filter");
 
   if (!gridEl) return;
 
@@ -69,9 +70,29 @@
       name: payload.name,
       sprite: payload.sprites?.front_default || "",
       types: (payload.types || []).map((t) => t.type.name),
+      heightM: payload.height / 10,
+      weightKg: payload.weight / 10,
     };
     writeCache(cacheKey, detail);
     return detail;
+  };
+
+  const fetchTypeMemberIds = async (typeName) => {
+    const cacheKey = `pokedex:type:${typeName}:v1`;
+    const cached = readCache(cacheKey, listTtl);
+    if (cached) return new Set(cached);
+
+    const response = await fetch(`${apiBase}/type/${typeName}`, { cache: "no-store" });
+    if (!response.ok) throw new Error(`Unable to load type "${typeName}" (${response.status})`);
+    const payload = await response.json();
+    const ids = payload.pokemon
+      .map((entry) => {
+        const match = entry.pokemon.url.match(/\/pokemon\/(\d+)\/?$/);
+        return match ? Number(match[1]) : null;
+      })
+      .filter(Boolean);
+    writeCache(cacheKey, ids);
+    return new Set(ids);
   };
 
   let draftedMap = new Map();
@@ -160,6 +181,10 @@
           .map((type) => `<span class="type-badge type-badge--${escapeHtml(type)}">${escapeHtml(type)}</span>`)
           .join("");
       }
+      const dimensionsEl = card.querySelector(".poke-card-dimensions");
+      if (dimensionsEl) {
+        dimensionsEl.textContent = `${detail.heightM.toFixed(1)} m · ${detail.weightKg.toFixed(1)} kg`;
+      }
     } catch (error) {
       // Leave the placeholder card as-is on failure; scrolling away/back retries nothing,
       // but a page reload will attempt the fetch again.
@@ -175,6 +200,7 @@
             <img class="poke-sprite" alt="${escapeHtml(entry.name)}" loading="lazy" />
             <span class="poke-card-name">${escapeHtml(entry.name)}</span>
             <div class="poke-card-types"></div>
+            <span class="poke-card-dimensions"></span>
           </article>
         `
       )
@@ -185,10 +211,14 @@
 
   let fullList = [];
   let searchDebounce = null;
+  let activeTypeIds = null; // null = no type filter active
 
   const applySearch = () => {
     const query = searchEl.value.trim().toLowerCase();
-    const filtered = query ? fullList.filter((entry) => entry.name.includes(query)) : fullList;
+    let filtered = query ? fullList.filter((entry) => entry.name.includes(query)) : fullList;
+    if (activeTypeIds) {
+      filtered = filtered.filter((entry) => activeTypeIds.has(entry.id));
+    }
     statusEl.hidden = true;
     renderGrid(filtered.slice(0, 500));
     if (filtered.length > 500) {
@@ -201,6 +231,26 @@
   searchEl.addEventListener("input", () => {
     clearTimeout(searchDebounce);
     searchDebounce = setTimeout(applySearch, 150);
+  });
+
+  typeFilterEl.addEventListener("change", async () => {
+    const typeName = typeFilterEl.value;
+    if (!typeName) {
+      activeTypeIds = null;
+      applySearch();
+      return;
+    }
+    try {
+      statusEl.hidden = false;
+      statusEl.className = "status";
+      statusEl.textContent = `Loading ${typeName} type…`;
+      activeTypeIds = await fetchTypeMemberIds(typeName);
+      applySearch();
+    } catch (error) {
+      statusEl.hidden = false;
+      statusEl.className = "status error";
+      statusEl.textContent = `Unable to load that type. ${error.message}`;
+    }
   });
 
   (async () => {

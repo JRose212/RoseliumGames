@@ -5,8 +5,32 @@ service cloud.firestore {
       return request.auth != null;
     }
 
+    // TODO: replace with the real admin uid (Firebase Console > Authentication
+    // > Users > your row > User UID). Rules can't read config.js, so this
+    // has to be a literal string here, kept in sync by hand with config.js's
+    // adminUid (which only controls client-side UI, not enforcement).
+    function isAdmin() {
+      return request.auth.uid == "x9IEoSPGiDfg2xeYpLIX34Muqmh2";
+    }
+
+    function draftState() {
+      return get(/databases/$(database)/documents/draftState/current).data;
+    }
+
     function draftNotStarted() {
-      return get(/databases/$(database)/documents/draftState/current).data.status == "pending";
+      return draftState().status == "pending";
+    }
+
+    // True only during the exact window where it's legitimately needed:
+    // targetUid is on the clock, drafting is underway, and their pick's
+    // deadline has already passed. This is what lets another manager
+    // trigger an absent manager's autodraft without making private data
+    // (predraftRankings) or another person's docs (teams/draftedPokemon/
+    // draftPicks) generally readable/writable by anyone else.
+    function isOverdueAutodraftFor(targetUid) {
+      let state = draftState();
+      return state.status == "drafting" && state.currentUid == targetUid
+             && request.time > state.pickDeadlineAt;
     }
 
     match /users/{uid} {
@@ -19,8 +43,18 @@ service cloud.firestore {
       allow read: if isSignedIn();
       allow create: if isSignedIn() && request.auth.uid == uid
                      && request.resource.data.ownerUid == uid;
-      allow update: if isSignedIn() && request.auth.uid == uid;
+      allow update: if isSignedIn() && (
+        request.auth.uid == uid || isOverdueAutodraftFor(uid) || isAdmin()
+      );
       allow delete: if isSignedIn() && request.auth.uid == uid && draftNotStarted();
+    }
+
+    // Private draft preferences. Only the owner can read this - except in
+    // the narrow overdue-autodraft window, so a missed live pick can still
+    // be filled from the absent manager's own ranking.
+    match /predraftRankings/{uid} {
+      allow read: if isSignedIn() && (request.auth.uid == uid || isOverdueAutodraftFor(uid));
+      allow write: if isSignedIn() && request.auth.uid == uid;
     }
 
     // Singleton doc. Hand-created once in the Firebase Console with
@@ -30,7 +64,8 @@ service cloud.firestore {
       allow create: if false;
       allow update: if isSignedIn() && (
         (resource.data.status == "pending" && request.resource.data.status == "drafting") ||
-        (resource.data.status == "drafting" && resource.data.currentUid == request.auth.uid)
+        (resource.data.status == "drafting" && resource.data.currentUid == request.auth.uid) ||
+        (resource.data.status == "drafting" && request.time > resource.data.pickDeadlineAt)
       );
       allow delete: if false;
     }
@@ -38,15 +73,32 @@ service cloud.firestore {
     // Append-only pick history.
     match /draftPicks/{pickId} {
       allow read: if isSignedIn();
-      allow create: if isSignedIn() && request.resource.data.uid == request.auth.uid;
+      allow create: if isSignedIn() && (
+        request.resource.data.uid == request.auth.uid || isOverdueAutodraftFor(request.resource.data.uid)
+      );
       allow update, delete: if false;
     }
 
     // Create-only-if-absent is what guarantees no Pokemon is drafted twice.
     match /draftedPokemon/{pokemonId} {
       allow read: if isSignedIn();
-      allow create: if isSignedIn() && request.resource.data.uid == request.auth.uid;
+      allow create: if isSignedIn() && (
+        request.resource.data.uid == request.auth.uid || isOverdueAutodraftFor(request.resource.data.uid)
+      );
       allow update, delete: if false;
+    }
+
+    // Season-level schedule state. Admin-managed; everyone can read it.
+    match /seasonState/current {
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
+    }
+
+    // The weekly schedule and results. Admin declares results; everyone reads.
+    match /matchups/{matchupId} {
+      allow read: if isSignedIn();
+      allow create, update: if isAdmin();
+      allow delete: if false;
     }
   }
 }

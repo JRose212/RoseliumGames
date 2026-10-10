@@ -24,8 +24,24 @@ window.siteConfig = {
     "DL1", "DL2", "LB", "CB", "S", "K",
   ],
 
+  // Same 16 slots as pokemonPositions, grouped for the roster page's
+  // offense/defense list layout. Keep in sync with pokemonPositions above
+  // if the position list ever changes.
+  positionGroups: {
+    offense: ["QB", "RB", "WR1", "WR2", "TE", "LT", "LG", "C", "RG", "RT"],
+    defense: ["DL1", "DL2", "LB", "CB", "S"],
+    specialTeams: ["K"],
+  },
+
   pokeApiBaseUrl: "https://pokeapi.co/api/v2",
   pokemonListCacheTtlMs: 30 * 24 * 60 * 60 * 1000, // 30 days
   pokemonDetailCacheTtlMs: 90 * 24 * 60 * 60 * 1000, // 90 days
   minManagersToStartDraft: 8,
+
+  // Client-side only - just controls whether admin buttons/screens are
+  // shown. The real enforcement is isAdmin() in firestore.rules, which
+  // has to hardcode this same uid separately since rules can't read this file.
+  adminUid: "x9IEoSPGiDfg2xeYpLIX34Muqmh2",
+  autodraftTimeoutMs: 2 * 60 * 1000, // 2 minutes - live draft night
+  regularSeasonWeeks: 13,
 };

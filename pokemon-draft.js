@@ -3,6 +3,8 @@
   const turnNameEl = document.getElementById("turn-tracker-name");
   const turnMetaEl = document.getElementById("turn-tracker-meta");
   const turnTrackerEl = document.getElementById("turn-tracker");
+  const turnCountdownEl = document.getElementById("turn-tracker-countdown");
+  const autodraftAreaEl = document.getElementById("autodraft-area");
   const historyCardEl = document.getElementById("pick-history-card");
   const historyListEl = document.getElementById("pick-history-list");
   const searchCardEl = document.getElementById("picker-search-card");
@@ -14,6 +16,11 @@
   const modalGridEl = document.getElementById("slot-picker-grid");
   const modalMessageEl = document.getElementById("slot-picker-message");
   const modalCancelEl = document.getElementById("slot-picker-cancel");
+  const rankingsCardEl = document.getElementById("rankings-card");
+  const rankingsListEl = document.getElementById("rankings-list");
+  const rankingsSearchEl = document.getElementById("rankings-search");
+  const rankingsStatusEl = document.getElementById("rankings-status");
+  const rankingsGridEl = document.getElementById("rankings-grid");
 
   if (!gridEl) return;
 
@@ -128,11 +135,18 @@
 
   // --- League state ---
 
+  const MAX_RANKINGS = 30;
   let fullList = [];
   let draftState = null;
   let teamsByUid = new Map();
   let draftedMap = new Map();
   let currentUser = null;
+  let myRankings = [];
+
+  const nameForId = (id) => fullList.find((entry) => entry.id === id)?.name || `#${id}`;
+
+  const newDeadline = () =>
+    firebase.firestore.Timestamp.fromMillis(Date.now() + (config.autodraftTimeoutMs || 2 * 60 * 1000));
 
   const myTurn = () => draftState && draftState.status === "drafting" && currentUser && draftState.currentUid === currentUser.uid;
 
@@ -167,13 +181,171 @@
     historyListEl.innerHTML = picks
       .slice()
       .reverse()
-      .map(
-        (pick) => `<li class="agenda-item"><div class="agenda-item-main"><span class="agenda-item-date">Pick ${pick.pickNumber} · ${escapeHtml(
-          pick.slot
-        )}</span><span class="agenda-item-name">${escapeHtml(pick.pokemonName)} — ${escapeHtml(pick.teamName)}</span></div></li>`
-      )
+      .map((pick) => {
+        const label = pick.pokemonId
+          ? `${escapeHtml(pick.pokemonName)} — ${escapeHtml(pick.teamName)}${pick.autodrafted ? " (autodraft)" : ""}`
+          : `Skipped — ${escapeHtml(pick.teamName)} (missed pick deadline)`;
+        return `<li class="agenda-item"><div class="agenda-item-main"><span class="agenda-item-date">Pick ${pick.pickNumber} · ${escapeHtml(
+          pick.slot || "—"
+        )}</span><span class="agenda-item-name">${label}</span></div></li>`;
+      })
       .join("");
   };
+
+  // --- Turn countdown + autodraft trigger ---
+
+  const renderCountdown = () => {
+    if (!draftState || draftState.status !== "drafting" || !draftState.pickDeadlineAt) {
+      turnCountdownEl.hidden = true;
+      autodraftAreaEl.innerHTML = "";
+      return;
+    }
+    const deadlineMillis = draftState.pickDeadlineAt.toMillis();
+    const remainingMs = deadlineMillis - Date.now();
+    turnCountdownEl.hidden = false;
+
+    if (remainingMs > 0) {
+      const seconds = Math.ceil(remainingMs / 1000);
+      turnCountdownEl.textContent = `Time left: ${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, "0")}`;
+      autodraftAreaEl.innerHTML = "";
+      return;
+    }
+
+    const onTheClockName = teamsByUid.get(draftState.currentUid)?.teamName || "this manager";
+    turnCountdownEl.textContent = "Pick deadline passed.";
+    if (!document.getElementById("autodraft-btn")) {
+      autodraftAreaEl.innerHTML = `<button type="button" class="btn autodraft-btn" id="autodraft-btn">Autodraft for ${escapeHtml(
+        onTheClockName
+      )}</button><p class="status" id="autodraft-message" hidden></p>`;
+      document.getElementById("autodraft-btn").addEventListener("click", autodraftPick);
+    }
+  };
+
+  setInterval(renderCountdown, 1000);
+
+  // --- Pre-draft rankings ---
+
+  const renderRankingsList = () => {
+    if (!myRankings.length) {
+      rankingsListEl.innerHTML = `<li class="status">No Pokémon ranked yet.</li>`;
+      return;
+    }
+    rankingsListEl.innerHTML = myRankings
+      .map(
+        (id, index) => `
+          <li class="ranking-item">
+            <span class="ranking-item-rank">${index + 1}</span>
+            <span class="ranking-item-name">${escapeHtml(nameForId(id))}</span>
+            <div class="ranking-item-actions">
+              <button type="button" data-action="up" data-id="${id}" ${index === 0 ? "disabled" : ""}>▲</button>
+              <button type="button" data-action="down" data-id="${id}" ${index === myRankings.length - 1 ? "disabled" : ""}>▼</button>
+              <button type="button" data-action="remove" data-id="${id}">✕</button>
+            </div>
+          </li>
+        `
+      )
+      .join("");
+    rankingsListEl.querySelectorAll("button").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const id = Number(btn.dataset.id);
+        const index = myRankings.indexOf(id);
+        if (index === -1) return;
+        if (btn.dataset.action === "remove") {
+          myRankings.splice(index, 1);
+        } else if (btn.dataset.action === "up" && index > 0) {
+          [myRankings[index - 1], myRankings[index]] = [myRankings[index], myRankings[index - 1]];
+        } else if (btn.dataset.action === "down" && index < myRankings.length - 1) {
+          [myRankings[index + 1], myRankings[index]] = [myRankings[index], myRankings[index + 1]];
+        }
+        saveRankings();
+      });
+    });
+  };
+
+  const showRankingsStatus = (text, isError) => {
+    rankingsStatusEl.hidden = false;
+    rankingsStatusEl.className = `status${isError ? " error" : ""}`;
+    rankingsStatusEl.textContent = text;
+  };
+
+  async function saveRankings() {
+    if (!currentUser) return;
+    try {
+      await db.collection("predraftRankings").doc(currentUser.uid).set({
+        uid: currentUser.uid,
+        pokemonIds: myRankings,
+      });
+    } catch (error) {
+      showRankingsStatus(error.message, true);
+    }
+  }
+
+  const applyRankingPickableState = () => {
+    rankingsGridEl.querySelectorAll(".poke-card").forEach((card) => {
+      const id = Number(card.dataset.id);
+      const rankIndex = myRankings.indexOf(id);
+      const ribbonEl = card.querySelector(".poke-card-drafted-by");
+      if (rankIndex !== -1) {
+        card.classList.add("poke-card--drafted");
+        if (!ribbonEl) {
+          const ribbon = document.createElement("p");
+          ribbon.className = "poke-card-drafted-by";
+          card.appendChild(ribbon);
+        }
+        card.querySelector(".poke-card-drafted-by").textContent = `Ranked #${rankIndex + 1}`;
+      } else {
+        card.classList.remove("poke-card--drafted");
+        if (ribbonEl) ribbonEl.remove();
+      }
+    });
+  };
+
+  const renderRankingsGrid = (entries) => {
+    rankingsGridEl.innerHTML = entries
+      .map(
+        (entry) => `
+          <article class="card poke-card poke-card--pickable" data-id="${entry.id}" data-name="${escapeHtml(entry.name)}">
+            <span class="poke-card-number">#${String(entry.id).padStart(4, "0")}</span>
+            <img class="poke-sprite" alt="${escapeHtml(entry.name)}" loading="lazy" />
+            <span class="poke-card-name">${escapeHtml(entry.name)}</span>
+            <div class="poke-card-types"></div>
+          </article>
+        `
+      )
+      .join("");
+    rankingsGridEl.querySelectorAll(".poke-card").forEach((card) => {
+      detailObserver.observe(card);
+      card.addEventListener("click", () => {
+        const id = Number(card.dataset.id);
+        if (myRankings.includes(id)) return;
+        if (myRankings.length >= MAX_RANKINGS) {
+          showRankingsStatus(`You can only rank up to ${MAX_RANKINGS} Pokémon.`, true);
+          return;
+        }
+        myRankings.push(id);
+        renderRankingsList();
+        applyRankingPickableState();
+        saveRankings();
+      });
+    });
+    applyRankingPickableState();
+  };
+
+  let rankingsSearchDebounce = null;
+  const applyRankingsSearch = () => {
+    const query = rankingsSearchEl.value.trim().toLowerCase();
+    if (!query) {
+      rankingsGridEl.innerHTML = "";
+      return;
+    }
+    const filtered = fullList.filter((entry) => entry.name.includes(query));
+    renderRankingsGrid(filtered.slice(0, 200));
+  };
+
+  rankingsSearchEl.addEventListener("input", () => {
+    clearTimeout(rankingsSearchDebounce);
+    rankingsSearchDebounce = setTimeout(applyRankingsSearch, 150);
+  });
 
   const applyPickableState = () => {
     gridEl.querySelectorAll(".poke-card").forEach((card) => {
@@ -330,9 +502,116 @@
           currentRound: nextRound,
           status: nextUid ? "drafting" : "complete",
           completedAt: nextUid ? null : firebase.firestore.FieldValue.serverTimestamp(),
+          pickDeadlineAt: nextUid ? newDeadline() : null,
         });
       });
       closeSlotPicker();
+    } catch (error) {
+      showError(error.message);
+    }
+  }
+
+  // --- Autodraft: triggered by any signed-in manager once the current
+  // pick's deadline has passed. Fills the absent manager's highest-ranked
+  // still-undrafted Pokemon into their first empty slot; if their ranking
+  // is empty or exhausted, skips the pick entirely (slot stays blank until
+  // they fill it later via free agency on the Rosters page). ---
+
+  async function autodraftPick() {
+    const messageEl = document.getElementById("autodraft-message");
+    const showError = (text) => {
+      if (!messageEl) return;
+      messageEl.hidden = false;
+      messageEl.className = "status error";
+      messageEl.textContent = text;
+    };
+
+    const stateRef = db.collection("draftState").doc("current");
+
+    try {
+      await db.runTransaction(async (tx) => {
+        const stateSnap = await tx.get(stateRef);
+        const state = stateSnap.data();
+        if (!state || state.status !== "drafting") throw new Error("The draft isn't active right now.");
+        if (Date.now() <= state.pickDeadlineAt.toMillis()) throw new Error("The deadline hasn't passed yet.");
+
+        const targetUid = state.currentUid;
+        const teamRef = db.collection("teams").doc(targetUid);
+        const rankingRef = db.collection("predraftRankings").doc(targetUid);
+        const [teamSnap, rankingSnap] = await Promise.all([tx.get(teamRef), tx.get(rankingRef)]);
+
+        const team = teamSnap.data();
+        if (!team || !team.slots) throw new Error("Team not found.");
+        const openSlot = positions.find((position) => !team.slots[position]);
+
+        const rankedIds = (rankingSnap.exists && rankingSnap.data().pokemonIds) || [];
+        let chosenId = null;
+        for (const id of rankedIds) {
+          const draftedSnap = await tx.get(db.collection("draftedPokemon").doc(String(id)));
+          if (!draftedSnap.exists) {
+            chosenId = id;
+            break;
+          }
+        }
+
+        const pickNumber = state.currentPickIndex + 1;
+        const nextIndex = state.currentPickIndex + 1;
+        const nextUid = nextIndex < state.pickOrder.length ? state.pickOrder[nextIndex] : null;
+        const nextRound = Math.floor(nextIndex / state.participants.length) + 1;
+
+        if (chosenId !== null && openSlot) {
+          const pokemonName = nameForId(chosenId);
+          const draftedRef = db.collection("draftedPokemon").doc(String(chosenId));
+
+          tx.set(draftedRef, {
+            pokemonId: chosenId,
+            pokemonName,
+            uid: targetUid,
+            teamName: team.teamName,
+            slot: openSlot,
+            pickNumber,
+            pickedAt: firebase.firestore.FieldValue.serverTimestamp(),
+          });
+          tx.update(teamRef, { [`slots.${openSlot}`]: { pokemonId: chosenId, pokemonName, pickNumber } });
+          tx.set(db.collection("draftPicks").doc(String(pickNumber).padStart(4, "0")), {
+            pickNumber,
+            round: state.currentRound,
+            uid: targetUid,
+            teamName: team.teamName,
+            pokemonId: chosenId,
+            pokemonName,
+            slot: openSlot,
+            autodrafted: true,
+            triggeredBy: currentUser.uid,
+            pickedAt: firebase.firestore.FieldValue.serverTimestamp(),
+          });
+        } else {
+          // Nothing usable left on their list (or no open slot, which
+          // shouldn't happen while drafting) - skip this pick entirely.
+          tx.set(db.collection("draftPicks").doc(String(pickNumber).padStart(4, "0")), {
+            pickNumber,
+            round: state.currentRound,
+            uid: targetUid,
+            teamName: team.teamName,
+            pokemonId: null,
+            pokemonName: null,
+            slot: null,
+            autodrafted: true,
+            skipped: true,
+            triggeredBy: currentUser.uid,
+            pickedAt: firebase.firestore.FieldValue.serverTimestamp(),
+          });
+        }
+
+        tx.update(stateRef, {
+          currentPickIndex: nextIndex,
+          currentUid: nextUid,
+          currentRound: nextRound,
+          status: nextUid ? "drafting" : "complete",
+          completedAt: nextUid ? null : firebase.firestore.FieldValue.serverTimestamp(),
+          pickDeadlineAt: nextUid ? newDeadline() : null,
+        });
+      });
     } catch (error) {
       showError(error.message);
     }
@@ -349,21 +628,35 @@
   let unsubscribeDrafted = null;
   let unsubscribePicks = null;
   let unsubscribeDraftState = null;
+  let unsubscribeMyRankings = null;
 
   const subscribeDraftRoom = () => {
-    [unsubscribeTeams, unsubscribeDrafted, unsubscribePicks, unsubscribeDraftState].forEach(
+    [unsubscribeTeams, unsubscribeDrafted, unsubscribePicks, unsubscribeDraftState, unsubscribeMyRankings].forEach(
       (unsubscribe) => unsubscribe && unsubscribe()
     );
-    unsubscribeTeams = unsubscribeDrafted = unsubscribePicks = unsubscribeDraftState = null;
+    unsubscribeTeams = unsubscribeDrafted = unsubscribePicks = unsubscribeDraftState = unsubscribeMyRankings = null;
 
     if (!currentUser) {
       teamsByUid = new Map();
       draftedMap = new Map();
       draftState = null;
+      myRankings = [];
       renderTurnTracker();
       renderPickHistory([]);
       return;
     }
+
+    unsubscribeMyRankings = db
+      .collection("predraftRankings")
+      .doc(currentUser.uid)
+      .onSnapshot(
+        (doc) => {
+          myRankings = (doc.exists && doc.data().pokemonIds) || [];
+          renderRankingsList();
+          applyRankingPickableState();
+        },
+        () => {}
+      );
 
     unsubscribeTeams = db.collection("teams").onSnapshot(
       (snapshot) => {
@@ -414,6 +707,7 @@
     currentUser = user;
     renderTurnTracker();
     subscribeDraftRoom();
+    rankingsCardEl.hidden = !user;
 
     if (!user) {
       searchCardEl.hidden = true;
@@ -429,6 +723,7 @@
       try {
         fullList = await fetchList();
         applySearch();
+        renderRankingsList();
       } catch (error) {
         pickerStatusEl.hidden = false;
         pickerStatusEl.className = "status error";
@@ -436,6 +731,7 @@
       }
     } else {
       applyPickableState();
+      renderRankingsList();
     }
   });
 })();

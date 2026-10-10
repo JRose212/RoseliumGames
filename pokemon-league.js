@@ -94,6 +94,7 @@
 
   const renderSignedIn = (user) => {
     const draftPending = !latestDraftState || latestDraftState.status === "pending";
+    const teamName = myTeam?.teamName || "";
     authPanelEl.innerHTML = `
       <div class="auth-identity">
         <div>
@@ -105,12 +106,40 @@
           <button type="button" class="btn btn-secondary" id="auth-signout-btn">Sign Out</button>
         </div>
       </div>
+      <form class="auth-form" id="team-name-form" style="margin-top: 1rem;">
+        <label for="team-name-input">Team name</label>
+        <input type="text" id="team-name-input" value="${escapeHtml(teamName)}" maxlength="40" required />
+        <button type="button" class="btn btn-secondary" id="team-name-save-btn">Save Team Name</button>
+      </form>
+      <p class="status" id="team-name-message" hidden></p>
       ${draftPending ? "" : `<p class="status">Leaving isn't available once the draft has started.</p>`}
       <p class="status" id="leave-league-message" hidden></p>
     `;
     document.getElementById("auth-signout-btn").addEventListener("click", () => auth.signOut());
     document.getElementById("leave-league-btn").addEventListener("click", () => leaveLeague(user));
+    document.getElementById("team-name-save-btn").addEventListener("click", () => saveTeamName(user));
   };
+
+  async function saveTeamName(user) {
+    const messageEl = document.getElementById("team-name-message");
+    const showMessage = (text, isError) => {
+      if (!messageEl) return;
+      messageEl.hidden = false;
+      messageEl.textContent = text;
+      messageEl.className = `status${isError ? " error" : ""}`;
+    };
+    const newName = document.getElementById("team-name-input").value.trim();
+    if (!newName) {
+      showMessage("Team name can't be empty.", true);
+      return;
+    }
+    try {
+      await db.collection("teams").doc(user.uid).update({ teamName: newName });
+      showMessage("Team name saved.", false);
+    } catch (error) {
+      showMessage(error.message, true);
+    }
+  }
 
   async function leaveLeague(user) {
     const messageEl = document.getElementById("leave-league-message");
@@ -138,8 +167,10 @@
   // League status: manager list + draft status + Start Draft gate.
   let latestTeams = [];
   let latestDraftState = null;
+  let myTeam = null;
   let unsubscribeTeams = null;
   let unsubscribeDraftState = null;
+  let unsubscribeMyTeam = null;
 
   const renderManagerList = () => {
     if (!latestTeams.length) {
@@ -196,13 +227,29 @@
       unsubscribeDraftState();
       unsubscribeDraftState = null;
     }
+    if (unsubscribeMyTeam) {
+      unsubscribeMyTeam();
+      unsubscribeMyTeam = null;
+    }
 
     if (!auth.currentUser) {
       managerListEl.innerHTML = `<li class="manager-item">Sign in to see who's joined.</li>`;
       statusSummaryEl.textContent = "Sign in to see league status.";
       startDraftAreaEl.innerHTML = "";
+      myTeam = null;
       return;
     }
+
+    unsubscribeMyTeam = db
+      .collection("teams")
+      .doc(auth.currentUser.uid)
+      .onSnapshot(
+        (doc) => {
+          myTeam = doc.exists ? doc.data() : null;
+          if (auth.currentUser) renderSignedIn(auth.currentUser);
+        },
+        () => {}
+      );
 
     unsubscribeTeams = db
       .collection("teams")
@@ -291,6 +338,9 @@
           currentPickIndex: 0,
           currentUid: pickOrder[0],
           currentRound: 1,
+          pickDeadlineAt: firebase.firestore.Timestamp.fromMillis(
+            Date.now() + (config.autodraftTimeoutMs || 2 * 60 * 1000)
+          ),
           startedAt: firebase.firestore.FieldValue.serverTimestamp(),
           startedBy: auth.currentUser.uid,
         });

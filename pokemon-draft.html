@@ -51,12 +51,30 @@
         <a href="pokemon-dex.html">Pokédex</a>
         <a href="pokemon-teams.html">Rosters</a>
         <a href="pokemon-draft.html" class="active">Draft Room</a>
+        <a href="pokemon-schedule.html">Schedule</a>
       </nav>
 
       <section class="card next-event-card draft-turn-tracker" id="turn-tracker">
         <span class="eyebrow">Draft Status</span>
         <h2 id="turn-tracker-name">Loading…</h2>
         <p id="turn-tracker-meta" class="draft-turn-tracker-meta"></p>
+        <p id="turn-tracker-countdown" class="draft-turn-tracker-meta" hidden></p>
+        <div id="autodraft-area"></div>
+      </section>
+
+      <section class="card" id="rankings-card" hidden>
+        <h2>My pre-draft rankings</h2>
+        <p>
+          Privately rank up to 30 Pokémon, best first. Nobody else can see this
+          list. If you miss a pick, autodraft works down this list for you.
+        </p>
+        <ol class="pick-history-order" id="rankings-list"></ol>
+        <div class="selector-card dex-search-bar" style="margin-top: 1rem;">
+          <label for="rankings-search">Add to rankings</label>
+          <input type="search" id="rankings-search" placeholder="Pokémon name…" />
+        </div>
+        <p class="status" id="rankings-status" hidden></p>
+        <div class="poke-grid" id="rankings-grid"></div>
       </section>
 
       <section class="card" id="pick-history-card" hidden>

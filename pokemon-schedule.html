@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Schedule • Roselium Games</title>
+    <meta name="theme-color" content="#1a0f0f" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="style.css" />
+    <link rel="stylesheet" href="pokemon.css" />
+    <script src="config.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+    <script src="pokemon-schedule.js" defer></script>
+  </head>
+  <body data-page="pokemon-schedule">
+    <div class="sticky-top">
+      <div class="season-banner">
+        Learn to Play: Sun Sept 6, Oct 4 &amp; Oct 11, 1pm to 5:30pm @ The
+        Battle Standard East Windsor
+      </div>
+      <header class="site-header">
+      <nav class="site-nav" aria-label="Primary navigation">
+        <div class="brand-group">
+          <a class="brand" href="index.html">Roselium Games</a>
+          <a class="pokemon-nav-badge active" href="pokemon-league.html"><span class="pokemon-nav-badge-icon" aria-hidden="true"></span>Fantasy Pokéball</a>
+        </div>
+        <div class="nav-links">
+          <a href="index.html">Home</a>
+          <a href="unmatched.html">Unmatched</a>
+          <a href="dice-throne.html">Dice Throne</a>
+          <a href="players.html">Leaderboards</a>
+          <a href="characters.html">Champion Records</a>
+          <a href="calendar.html">Calendar</a>
+        </div>
+      </nav>
+      </header>
+    </div>
+
+    <main class="page page-stack">
+      <section class="page-intro">
+        <h1>Season schedule</h1>
+        <p>13 regular-season weeks, then an 8-team single-elimination bracket ending in the PokéBowl.</p>
+      </section>
+
+      <nav class="jump-nav card" aria-label="Fantasy league navigation">
+        <a href="pokemon-league.html">League Home</a>
+        <a href="pokemon-dex.html">Pokédex</a>
+        <a href="pokemon-teams.html">Rosters</a>
+        <a href="pokemon-draft.html">Draft Room</a>
+        <a href="pokemon-schedule.html" class="active">Schedule</a>
+      </nav>
+
+      <p class="status" id="schedule-status">Loading…</p>
+
+      <section class="card" id="generate-schedule-card" hidden>
+        <h2>Generate the schedule</h2>
+        <p>Pick the first Thursday of the season. This runs once, after the draft is complete.</p>
+        <form class="auth-form" id="generate-schedule-form">
+          <label for="season-start-date">Season start date (a Thursday)</label>
+          <input type="date" id="season-start-date" required />
+          <button type="button" class="btn" id="generate-schedule-btn">Generate Schedule</button>
+        </form>
+        <p class="status" id="generate-schedule-message" hidden></p>
+      </section>
+
+      <section class="card" id="standings-card" hidden>
+        <h2>Standings</h2>
+        <div class="table-wrap">
+          <table class="standings-table">
+            <thead>
+              <tr>
+                <th>Team</th>
+                <th>W</th>
+                <th>L</th>
+                <th>Pts For</th>
+                <th>Pts Against</th>
+                <th>Diff</th>
+              </tr>
+            </thead>
+            <tbody id="standings-body"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="card" id="playoff-admin-card" hidden>
+        <h2>Playoffs</h2>
+        <div id="playoff-admin-area"></div>
+      </section>
+
+      <section class="card" id="bracket-card" hidden>
+        <h2>Bracket</h2>
+        <div id="bracket-area"></div>
+      </section>
+
+      <section id="schedule-weeks"></section>
+    </main>
+
+    <div class="slot-picker-modal" id="result-modal" hidden>
+      <div class="card slot-picker-panel" style="max-width: 640px;">
+        <h2>Declare result — <span id="result-modal-title"></span></h2>
+        <form class="auth-form" id="result-form">
+          <label for="result-home-score" id="result-home-label">Home score</label>
+          <input type="number" id="result-home-score" min="0" required />
+          <label for="result-away-score" id="result-away-label">Away score</label>
+          <input type="number" id="result-away-score" min="0" required />
+          <label for="result-summary">Game summary</label>
+          <textarea id="result-summary" rows="3" style="padding:0.6rem 0.8rem;border-radius:2px;border:1px solid var(--border);background:var(--surface-strong);color:var(--text);font:inherit;"></textarea>
+        </form>
+        <div id="result-injury-area"></div>
+        <p class="status" id="result-message" hidden></p>
+        <div style="display:flex; gap:0.5rem; margin-top: 1rem;">
+          <button type="button" class="btn" id="result-submit-btn">Save Result</button>
+          <button type="button" class="btn btn-secondary" id="result-cancel-btn">Cancel</button>
+        </div>
+      </div>
+    </div>
+
+    <footer class="site-footer">
+      <p>Roselium Games • community-managed records for tactical play nights</p>
+    </footer>
+  </body>
+</html>

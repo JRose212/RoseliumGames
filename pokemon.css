@@ -206,6 +206,21 @@ body[data-page^="pokemon-"] .jump-nav a {
   font: inherit;
 }
 
+.dex-search-bar select {
+  padding: 0.6rem 0.9rem;
+  border-radius: 2px;
+  border: 1px solid var(--border);
+  background: var(--surface-strong);
+  color: var(--text);
+  font: inherit;
+}
+
+.poke-card-dimensions {
+  display: block;
+  color: var(--muted);
+  font-size: 0.72rem;
+}
+
 .poke-grid {
   display: grid;
   gap: 0.75rem;
@@ -432,5 +447,241 @@ body[data-page^="pokemon-"] .jump-nav a {
 @media (max-width: 640px) {
   .slot-picker-grid {
     grid-template-columns: 1fr;
+  }
+}
+
+/* Pre-draft rankings list */
+
+.pick-history-order {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.4rem;
+}
+
+.ranking-item {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--border);
+  background: rgba(199, 211, 222, 0.05);
+}
+
+.ranking-item-rank {
+  font-weight: 700;
+  color: var(--accent-strong);
+  min-width: 1.6rem;
+}
+
+.ranking-item-name {
+  flex: 1;
+  font-weight: 700;
+  text-transform: uppercase;
+  font-size: 0.85rem;
+}
+
+.ranking-item-actions {
+  display: flex;
+  gap: 0.3rem;
+}
+
+.ranking-item-actions button {
+  padding: 0.25rem 0.5rem;
+  border-radius: 2px;
+  border: 1px solid var(--border);
+  background: rgba(199, 211, 222, 0.08);
+  color: var(--text);
+  cursor: pointer;
+  font-size: 0.75rem;
+}
+
+.ranking-item-actions button:hover:not(:disabled) {
+  border-color: var(--accent);
+}
+
+.ranking-item-actions button:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+/* Standings + schedule (pokemon-schedule.html) */
+
+.standings-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.standings-table th,
+.standings-table td {
+  border-bottom: 1px solid var(--border);
+  padding: 0.6rem 0.75rem;
+  text-align: left;
+}
+
+.standings-table th {
+  color: var(--accent-strong);
+  text-transform: uppercase;
+  font-size: 0.75rem;
+  letter-spacing: 0.05em;
+}
+
+.matchup-week-heading {
+  margin: 1.5rem 0 0.6rem;
+  color: var(--accent-strong);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-size: 0.95rem;
+}
+
+.matchup-week-heading:first-of-type {
+  margin-top: 0;
+}
+
+.matchup-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+  padding: 1rem 1.25rem;
+}
+
+.matchup-day {
+  color: var(--muted);
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  min-width: 90px;
+}
+
+.matchup-teams {
+  flex: 1;
+  font-weight: 700;
+  text-transform: uppercase;
+  font-size: 0.9rem;
+}
+
+.matchup-teams .winner {
+  color: var(--accent-strong);
+}
+
+.matchup-score {
+  color: var(--muted);
+  font-weight: 700;
+}
+
+.injury-checklist {
+  display: grid;
+  gap: 0.3rem;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  margin-top: 0.5rem;
+}
+
+.injury-checklist label {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.8rem;
+  text-transform: capitalize;
+}
+
+.out-badge {
+  color: var(--danger);
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.bracket-round {
+  display: grid;
+  gap: 0.75rem;
+  margin-top: 1rem;
+}
+
+/* Roster list layout (pokemon-teams.html) - offense/defense columns
+   instead of a grid of blocky cards, with kicker below. */
+
+.roster-columns {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2rem;
+  margin-top: 1rem;
+}
+
+.roster-column-heading {
+  color: var(--accent-strong);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 0.85rem;
+  margin: 0 0 0.5rem;
+}
+
+.roster-kicker {
+  margin-top: 1.5rem;
+  max-width: 50%;
+}
+
+.roster-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+}
+
+.roster-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.6rem 0;
+  border-bottom: 1px solid var(--border);
+  flex-wrap: wrap;
+}
+
+.roster-row:last-child {
+  border-bottom: none;
+}
+
+.roster-row-position {
+  min-width: 46px;
+  font-weight: 700;
+  color: var(--accent);
+  font-size: 0.78rem;
+  text-transform: uppercase;
+}
+
+.roster-row-filled {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex: 1;
+  font-weight: 700;
+  text-transform: uppercase;
+  font-size: 0.82rem;
+}
+
+.roster-row-sprite {
+  width: 32px;
+  height: 32px;
+  object-fit: contain;
+  image-rendering: pixelated;
+  flex-shrink: 0;
+}
+
+.roster-row-empty {
+  flex: 1;
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+@media (max-width: 640px) {
+  .roster-columns {
+    grid-template-columns: 1fr;
+  }
+
+  .roster-kicker {
+    max-width: 100%;
   }
 }
