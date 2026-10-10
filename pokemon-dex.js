@@ -58,7 +58,9 @@
   };
 
   const fetchDetail = async (id) => {
-    const cacheKey = `pokedex:detail:${id}:v1`;
+    // v2: added heightM/weightKg - bumped so caches from before that existed
+    // (missing those fields, served for up to 90 days otherwise) get refetched.
+    const cacheKey = `pokedex:detail:${id}:v2`;
     const cached = readCache(cacheKey, detailTtl);
     if (cached) return cached;
 

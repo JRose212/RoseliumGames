@@ -88,7 +88,9 @@
   };
 
   const fetchDetail = async (id) => {
-    const cacheKey = `pokedex:detail:${id}:v1`;
+    // v2: added heightM/weightKg - must match the cache key version used by
+    // pokemon-dex.js, since both pages share the same localStorage origin.
+    const cacheKey = `pokedex:detail:${id}:v2`;
     const cached = readCache(cacheKey, detailTtl);
     if (cached) return cached;
     const response = await fetch(`${apiBase}/pokemon/${id}`, { cache: "no-store" });
@@ -99,6 +101,8 @@
       name: payload.name,
       sprite: payload.sprites?.front_default || "",
       types: (payload.types || []).map((t) => t.type.name),
+      heightM: payload.height / 10,
+      weightKg: payload.weight / 10,
     };
     writeCache(cacheKey, detail);
     return detail;
@@ -127,6 +131,10 @@
         typesEl.innerHTML = detail.types
           .map((type) => `<span class="type-badge type-badge--${escapeHtml(type)}">${escapeHtml(type)}</span>`)
           .join("");
+      }
+      const dimensionsEl = card.querySelector(".poke-card-dimensions");
+      if (dimensionsEl) {
+        dimensionsEl.textContent = `${detail.heightM.toFixed(1)} m · ${detail.weightKg.toFixed(1)} kg`;
       }
     } catch (error) {
       // Leave placeholder card; a reload will retry.
@@ -309,6 +317,7 @@
             <img class="poke-sprite" alt="${escapeHtml(entry.name)}" loading="lazy" />
             <span class="poke-card-name">${escapeHtml(entry.name)}</span>
             <div class="poke-card-types"></div>
+            <span class="poke-card-dimensions"></span>
           </article>
         `
       )
@@ -378,6 +387,7 @@
             <img class="poke-sprite" alt="${escapeHtml(entry.name)}" loading="lazy" />
             <span class="poke-card-name">${escapeHtml(entry.name)}</span>
             <div class="poke-card-types"></div>
+            <span class="poke-card-dimensions"></span>
           </article>
         `
       )
