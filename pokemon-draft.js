@@ -5,10 +5,6 @@
   const turnTrackerEl = document.getElementById("turn-tracker");
   const turnCountdownEl = document.getElementById("turn-tracker-countdown");
   const autodraftAreaEl = document.getElementById("autodraft-area");
-  const historyListEl = document.getElementById("pick-history-list");
-  const pickHistorySidebarEl = document.getElementById("pick-history-sidebar");
-  const pickHistoryToggleBtn = document.getElementById("pick-history-toggle-btn");
-  const pickHistoryCloseBtn = document.getElementById("pick-history-close-btn");
   const searchCardEl = document.getElementById("picker-search-card");
   const searchEl = document.getElementById("picker-search");
   const pickerStatusEl = document.getElementById("picker-status");
@@ -210,15 +206,17 @@
 
   const playTick = () => beep(1000, 70, 0.12);
 
-  // --- Pick history sidebar toggle (page-specific, unlike the shared chat
-  // sidebar which pokemon-chat.js handles) ---
-
-  if (pickHistoryToggleBtn && pickHistorySidebarEl) {
-    pickHistoryToggleBtn.addEventListener("click", () => pickHistorySidebarEl.classList.add("open"));
-  }
-  if (pickHistoryCloseBtn && pickHistorySidebarEl) {
-    pickHistoryCloseBtn.addEventListener("click", () => pickHistorySidebarEl.classList.remove("open"));
-  }
+  // Pick/autodraft/skip events are posted into the shared league chat
+  // (pokemon-chat.js renders them as italic system messages) instead of a
+  // dedicated pick-history UI on this page.
+  const postSystemMessage = (tx, text) => {
+    tx.set(db.collection("chatMessages").doc(), {
+      uid: currentUser.uid,
+      system: true,
+      text,
+      createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+    });
+  };
 
   const renderTurnTracker = () => {
     turnTrackerEl.classList.toggle("draft-turn-tracker--mine", Boolean(myTurn()));
@@ -245,25 +243,6 @@
     const onTheClockName = teamsByUid.get(draftState.currentUid)?.teamName || "Unknown manager";
     turnNameEl.textContent = myTurn() ? "You're on the clock!" : `On the clock: ${onTheClockName}`;
     turnMetaEl.textContent = `Round ${draftState.currentRound} · Pick ${pickNumber} of ${total}`;
-  };
-
-  const renderPickHistory = (picks) => {
-    if (!picks.length) {
-      historyListEl.innerHTML = `<li class="status">No picks yet.</li>`;
-      return;
-    }
-    historyListEl.innerHTML = picks
-      .slice()
-      .reverse()
-      .map((pick) => {
-        const label = pick.pokemonId
-          ? `${escapeHtml(pick.pokemonName)} — ${escapeHtml(pick.teamName)}${pick.autodrafted ? " (autodraft)" : ""}`
-          : `Skipped — ${escapeHtml(pick.teamName)} (missed pick deadline)`;
-        return `<li class="agenda-item"><div class="agenda-item-main"><span class="agenda-item-date">Pick ${pick.pickNumber} · ${escapeHtml(
-          pick.slot || "—"
-        )}</span><span class="agenda-item-name">${label}</span></div></li>`;
-      })
-      .join("");
   };
 
   // --- Turn countdown + autodraft trigger ---
@@ -657,6 +636,8 @@
           pickedAt: firebase.firestore.FieldValue.serverTimestamp(),
         });
 
+        postSystemMessage(tx, `${team.teamName} drafted ${pokemonName} (${slot})`);
+
         tx.update(stateRef, {
           currentPickIndex: nextIndex,
           currentUid: nextUid,
@@ -746,6 +727,7 @@
             triggeredBy: currentUser.uid,
             pickedAt: firebase.firestore.FieldValue.serverTimestamp(),
           });
+          postSystemMessage(tx, `${team.teamName} drafted ${pokemonName} (${openSlot}) — autodraft`);
         } else {
           // Nothing usable left on their list (or no open slot, which
           // shouldn't happen while drafting) - skip this pick entirely.
@@ -762,6 +744,7 @@
             triggeredBy: currentUser.uid,
             pickedAt: firebase.firestore.FieldValue.serverTimestamp(),
           });
+          postSystemMessage(tx, `${team.teamName}'s pick was skipped (missed deadline)`);
         }
 
         tx.update(stateRef, {
@@ -787,17 +770,16 @@
 
   let unsubscribeTeams = null;
   let unsubscribeDrafted = null;
-  let unsubscribePicks = null;
   let unsubscribeDraftState = null;
   let lastCurrentUid = undefined;
   let lastDeadlineMillis = undefined;
   let unsubscribeMyRankings = null;
 
   const subscribeDraftRoom = () => {
-    [unsubscribeTeams, unsubscribeDrafted, unsubscribePicks, unsubscribeDraftState, unsubscribeMyRankings].forEach(
+    [unsubscribeTeams, unsubscribeDrafted, unsubscribeDraftState, unsubscribeMyRankings].forEach(
       (unsubscribe) => unsubscribe && unsubscribe()
     );
-    unsubscribeTeams = unsubscribeDrafted = unsubscribePicks = unsubscribeDraftState = unsubscribeMyRankings = null;
+    unsubscribeTeams = unsubscribeDrafted = unsubscribeDraftState = unsubscribeMyRankings = null;
 
     if (!currentUser) {
       teamsByUid = new Map();
@@ -805,7 +787,6 @@
       draftState = null;
       myRankings = [];
       renderTurnTracker();
-      renderPickHistory([]);
       return;
     }
 
@@ -839,14 +820,6 @@
       },
       () => {}
     );
-
-    unsubscribePicks = db
-      .collection("draftPicks")
-      .orderBy("pickNumber")
-      .onSnapshot(
-        (snapshot) => renderPickHistory(snapshot.docs.map((doc) => doc.data())),
-        () => {}
-      );
 
     unsubscribeDraftState = db
       .collection("draftState")

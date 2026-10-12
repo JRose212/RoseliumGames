@@ -58,8 +58,17 @@
       return;
     }
     messagesEl.innerHTML = messages
-      .map(
-        (m) => `
+      .map((m) => {
+        if (m.system) {
+          return `
+            <div class="chat-message chat-message--system">
+              <p class="chat-message-text">${escapeHtml(m.text)}</p>
+              <span class="chat-message-time">${formatTime(m.createdAt)}</span>
+              ${isAdmin() ? `<button type="button" class="chat-delete-btn" data-id="${m.id}" title="Delete message">✕</button>` : ""}
+            </div>
+          `;
+        }
+        return `
           <div class="chat-message">
             <div class="chat-message-meta">
               <span class="chat-message-name">${escapeHtml(m.displayName || "Unknown")}</span>
@@ -68,8 +77,8 @@
             </div>
             <p class="chat-message-text">${escapeHtml(m.text)}</p>
           </div>
-        `
-      )
+        `;
+      })
       .join("");
     messagesEl.querySelectorAll(".chat-delete-btn").forEach((btn) => {
       btn.addEventListener("click", () => deleteMessage(btn.dataset.id));

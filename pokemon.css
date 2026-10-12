@@ -795,6 +795,20 @@ body[data-page^="pokemon-"] .app-content {
   word-break: break-word;
 }
 
+/* Pick/autodraft/skip events, posted into the same chat feed as regular
+   messages - same text size, just italic and muted so they read as a
+   log line rather than something someone typed. */
+.chat-message--system .chat-message-text {
+  font-style: italic;
+  color: var(--muted);
+  margin-top: 0;
+}
+
+.chat-message--system .chat-message-time {
+  display: block;
+  margin-top: 0.2rem;
+}
+
 .chat-input-row {
   display: flex;
   gap: 0.5rem;
@@ -856,35 +870,6 @@ body[data-page^="pokemon-"] .app-content {
     font-size: 1.4rem;
     cursor: pointer;
     box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4);
-  }
-}
-
-/* Pick history sidebar (pokemon-draft.html only) - shares .chat-sidebar's
-   base layout/responsive behavior, narrower, and sits between the main
-   content and the chat sidebar. */
-
-.pick-history-sidebar {
-  width: 260px;
-}
-
-.pick-history-sidebar .agenda-item {
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-  padding: 0.75rem 1.25rem;
-}
-
-.pick-history-sidebar .agenda-item-main {
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 0.2rem;
-}
-
-.pick-history-sidebar .agenda-item-name {
-  text-align: left;
-}
-
-@media (max-width: 900px) {
-  .pick-history-toggle-btn {
-    right: 6.5rem;
   }
 }
 
