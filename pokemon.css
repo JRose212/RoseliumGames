@@ -1159,9 +1159,16 @@ body[data-page^="pokemon-"] .app-content {
 }
 
 .training-btn-sprite {
-  width: 48px;
-  height: 48px;
+  width: 24px;
+  height: 24px;
   object-fit: contain;
+  image-rendering: pixelated;
+  animation: training-sprite-bounce 1.1s ease-in-out infinite;
+}
+
+@keyframes training-sprite-bounce {
+  0%, 100% { transform: translateY(-2px); }
+  50% { transform: translateY(2px); }
 }
 
 .training-btn-check {
