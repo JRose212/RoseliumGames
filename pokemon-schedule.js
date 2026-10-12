@@ -361,6 +361,75 @@
     return date.toDate().toLocaleDateString("en-US", { month: "short", day: "numeric" });
   };
 
+  // --- Admin export: both teams' rosters + training for one matchup, in a
+  // single CSV, for feeding into an external results tool. ---
+
+  const countByType = (typeKeys) => {
+    const counts = new Map();
+    typeKeys.forEach((key) => counts.set(key, (counts.get(key) || 0) + 1));
+    return counts;
+  };
+
+  const csvField = (value) => {
+    const str = String(value ?? "");
+    return /[",\n]/.test(str) ? `"${str.replace(/"/g, '""')}"` : str;
+  };
+  const csvRow = (values) => values.map(csvField).join(",") + "\r\n";
+
+  const trainingTypeList = config.trainingTypes || [];
+
+  const teamCsvSection = (uid, label, currentMatchup) => {
+    const team = teamsByUid.get(uid) || {};
+    const training = team.training || {};
+    const seasonCounts = countByType(trainingLog.filter((log) => log.uid === uid).flatMap((log) => log.types || []));
+    const sinceLastCounts = countByType(trainingSinceLastGame(uid, currentMatchup));
+
+    let csv = "";
+    csv += csvRow([`${label} Team`, team.teamName || "Unnamed Team"]);
+    csv += csvRow(["Training Streak (days)", training.currentStreak || 0]);
+    csv += csvRow(["Bonus Sessions Banked", training.bonusSessionsAvailable || 0]);
+    csv += "\r\n";
+
+    csv += csvRow(["Training Since Last Game", "Count"]);
+    trainingTypeList.forEach((type) => (csv += csvRow([type.label, sinceLastCounts.get(type.key) || 0])));
+    csv += "\r\n";
+
+    csv += csvRow(["Training Totals (Season)", "Count"]);
+    trainingTypeList.forEach((type) => (csv += csvRow([type.label, seasonCounts.get(type.key) || 0])));
+    csv += "\r\n";
+
+    csv += csvRow(["Roster Position", "Pokemon ID", "Pokemon Name"]);
+    (config.pokemonPositions || []).forEach((position) => {
+      const pick = (team.slots || {})[position];
+      csv += csvRow([position, pick ? pick.pokemonId : "", pick ? pick.pokemonName : ""]);
+    });
+    return csv;
+  };
+
+  const exportMatchupCsv = (matchup) => {
+    let csv = "";
+    csv += csvRow(["Matchup", `Week ${matchup.week} - ${dayLabel[matchup.day] || matchup.day}, ${formatMatchupDate(matchup.date)}`]);
+    csv += csvRow(["Home Team", teamName(matchup.homeUid)]);
+    csv += csvRow(["Away Team", teamName(matchup.awayUid)]);
+    csv += "\r\n";
+    csv += teamCsvSection(matchup.homeUid, "Home", matchup);
+    csv += "\r\n";
+    csv += teamCsvSection(matchup.awayUid, "Away", matchup);
+
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    const safeName = `week${matchup.week}-${teamName(matchup.homeUid)}-vs-${teamName(matchup.awayUid)}`
+      .replace(/[^a-z0-9]+/gi, "-")
+      .toLowerCase();
+    link.download = `${safeName}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
+  };
+
   const renderWeeks = () => {
     if (!matchups.length) {
       weeksEl.innerHTML = "";
@@ -391,11 +460,15 @@
                 : m.status === "final" && isAdmin()
                 ? `<button type="button" class="btn btn-secondary result-open-btn" data-id="${m.id}">Edit Result</button>`
                 : "";
+            const exportBtn = isAdmin()
+              ? `<button type="button" class="btn btn-secondary export-matchup-btn" data-id="${m.id}">Export</button>`
+              : "";
             return `<div class="card matchup-card">
                       <span class="matchup-day">${dayLabel[m.day] || m.day}, ${formatMatchupDate(m.date)}</span>
                       <span class="matchup-teams">${matchupLabel(m)}</span>
                       <span class="matchup-score">${scoreText}</span>
                       ${declareBtn}
+                      ${exportBtn}
                     </div>`;
           })
           .join("");
@@ -405,6 +478,12 @@
 
     weeksEl.querySelectorAll(".result-open-btn").forEach((btn) => {
       btn.addEventListener("click", () => openResultModal(btn.dataset.id));
+    });
+    weeksEl.querySelectorAll(".export-matchup-btn").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const matchup = matchups.find((m) => m.id === btn.dataset.id);
+        if (matchup) exportMatchupCsv(matchup);
+      });
     });
   };
 
@@ -661,12 +740,20 @@
               (m) => `<div class="card matchup-card">
                 <span class="matchup-teams">${matchupLabel(m)}</span>
                 <span class="matchup-score">${m.status === "final" ? `${m.homeScore} – ${m.awayScore}` : "TBD"}</span>
+                ${isAdmin() ? `<button type="button" class="btn btn-secondary export-matchup-btn" data-id="${m.id}">Export</button>` : ""}
               </div>`
             )
             .join("")}
         </div>`;
       })
       .join("");
+
+    bracketAreaEl.querySelectorAll(".export-matchup-btn").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const matchup = matchups.find((m) => m.id === btn.dataset.id);
+        if (matchup) exportMatchupCsv(matchup);
+      });
+    });
   };
 
   // --- Live listeners ---
