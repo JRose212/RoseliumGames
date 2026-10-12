@@ -708,6 +708,23 @@
     const stateRef = db.collection("draftState").doc("current");
 
     try {
+      // predraftRankings is read here, outside the transaction, rather
+      // than via tx.get() inside it below. A manager's own ranking
+      // changing mid-autodraft is an acceptable race (unlike the
+      // uniqueness check further down, which does stay inside the
+      // transaction) - and reading it outside avoids it ever becoming a
+      // read-only "verify" entry in the transaction's commit, which
+      // forces Firestore to re-validate that read's permission at commit
+      // time via a separate, much less-exercised code path. That's the
+      // most likely explanation for the intermittent permission-denied
+      // failures seen here.
+      const preStateSnap = await stateRef.get();
+      const preState = preStateSnap.data();
+      if (!preState || preState.status !== "drafting") throw new Error("The draft isn't active right now.");
+      const preTargetUid = preState.currentUid;
+      const preRankingSnap = await db.collection("predraftRankings").doc(preTargetUid).get();
+      const preRankedIds = (preRankingSnap.exists && preRankingSnap.data().pokemonIds) || [];
+
       await db.runTransaction(async (tx) => {
         const stateSnap = await tx.get(stateRef);
         const state = stateSnap.data();
@@ -715,15 +732,16 @@
         if (Date.now() <= state.pickDeadlineAt.toMillis()) throw new Error("The deadline hasn't passed yet.");
 
         const targetUid = state.currentUid;
+        if (targetUid !== preTargetUid) throw new Error("The draft moved on - try again.");
+
         const teamRef = db.collection("teams").doc(targetUid);
-        const rankingRef = db.collection("predraftRankings").doc(targetUid);
-        const [teamSnap, rankingSnap] = await Promise.all([tx.get(teamRef), tx.get(rankingRef)]);
+        const teamSnap = await tx.get(teamRef);
 
         const team = teamSnap.data();
         if (!team || !team.slots) throw new Error("Team not found.");
         const openSlot = positions.find((position) => !team.slots[position]);
 
-        const rankedIds = (rankingSnap.exists && rankingSnap.data().pokemonIds) || [];
+        const rankedIds = preRankedIds;
         let chosenId = null;
         for (const id of rankedIds) {
           const draftedSnap = await tx.get(db.collection("draftedPokemon").doc(String(id)));
