@@ -1199,6 +1199,13 @@ body[data-page^="pokemon-"] .app-content {
   vertical-align: middle;
 }
 
+.export-team-btn {
+  margin-left: 0.75rem;
+  vertical-align: middle;
+  font-size: 0.7rem;
+  padding: 0.3rem 0.6rem;
+}
+
 .training-badge {
   font-size: 0.6rem;
   font-weight: 700;

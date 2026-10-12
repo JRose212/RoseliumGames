@@ -44,6 +44,10 @@
   const db = firebase.firestore();
   const groups = config.positionGroups || { offense: [], defense: [], specialTeams: [] };
   const legendaryIds = new Set(config.legendaryPokemonIds || []);
+  const trainingTypeList = config.trainingTypes || [];
+
+  const isAdmin = () =>
+    Boolean(currentUser && config.adminUid && config.adminUid !== "YOUR_ADMIN_UID" && currentUser.uid === config.adminUid);
 
   // --- PokeAPI list caching (duplicated per this repo's one-file-per-page
   // convention; only the list is needed here, sprites are resolved via the
@@ -97,6 +101,100 @@
 
   const draftIsComplete = () => Boolean(draftState && draftState.status === "complete");
 
+  // --- Admin export: roster + training, for feeding into an external
+  // results tool. Training "since last game" uses the same per-team
+  // previous-matchup lookup as the Schedule/My Team pages (a game ends a
+  // team's training window, not a fixed calendar week), plus a season-to-
+  // date total per type for the fuller picture. ---
+
+  let matchups = [];
+  let trainingLog = [];
+
+  const previousMatchupFor = (uid, currentMatchup) => {
+    if (!currentMatchup || !currentMatchup.date) return null;
+    return (
+      matchups
+        .filter(
+          (m) => (m.homeUid === uid || m.awayUid === uid) && m.date && m.date.toMillis() < currentMatchup.date.toMillis()
+        )
+        .sort((a, b) => b.date.toMillis() - a.date.toMillis())[0] || null
+    );
+  };
+
+  const nextMatchupFor = (uid) =>
+    matchups
+      .filter((m) => m.status === "scheduled" && (m.homeUid === uid || m.awayUid === uid) && m.date)
+      .sort((a, b) => a.date.toMillis() - b.date.toMillis())[0] || null;
+
+  const trainingSinceLastGame = (uid, currentMatchup) => {
+    if (!currentMatchup || !currentMatchup.date) return [];
+    const prev = previousMatchupFor(uid, currentMatchup);
+    const startMs = prev && prev.date ? prev.date.toMillis() : null;
+    const endMs = currentMatchup.date.toMillis();
+    return trainingLog
+      .filter((log) => log.uid === uid)
+      .filter((log) => {
+        const logMs = new Date(`${log.date}T12:00:00`).getTime();
+        return (startMs === null || logMs > startMs) && logMs <= endMs;
+      })
+      .flatMap((log) => log.types || []);
+  };
+
+  const countByType = (typeKeys) => {
+    const counts = new Map();
+    typeKeys.forEach((key) => counts.set(key, (counts.get(key) || 0) + 1));
+    return counts;
+  };
+
+  const csvField = (value) => {
+    const str = String(value ?? "");
+    return /[",\n]/.test(str) ? `"${str.replace(/"/g, '""')}"` : str;
+  };
+  const csvRow = (values) => values.map(csvField).join(",") + "\r\n";
+
+  const exportTeamCsv = (team) => {
+    const uid = team.uid;
+    const training = team.training || {};
+    const seasonCounts = countByType(trainingLog.filter((log) => log.uid === uid).flatMap((log) => log.types || []));
+    const upcoming = nextMatchupFor(uid);
+    const sinceLastCounts = countByType(upcoming ? trainingSinceLastGame(uid, upcoming) : []);
+
+    let csv = "";
+    csv += csvRow(["Team", team.teamName || "Unnamed Team"]);
+    csv += csvRow(["Training Streak (days)", training.currentStreak || 0]);
+    csv += csvRow(["Bonus Sessions Banked", training.bonusSessionsAvailable || 0]);
+    csv += csvRow([
+      "Next Matchup",
+      upcoming ? `Week ${upcoming.week} - ${upcoming.date.toDate().toLocaleDateString("en-US")}` : "None scheduled",
+    ]);
+    csv += "\r\n";
+
+    csv += csvRow(["Training Since Last Game", "Count"]);
+    trainingTypeList.forEach((type) => csv += csvRow([type.label, sinceLastCounts.get(type.key) || 0]));
+    csv += "\r\n";
+
+    csv += csvRow(["Training Totals (Season)", "Count"]);
+    trainingTypeList.forEach((type) => csv += csvRow([type.label, seasonCounts.get(type.key) || 0]));
+    csv += "\r\n";
+
+    csv += csvRow(["Roster Position", "Pokemon ID", "Pokemon Name"]);
+    (config.pokemonPositions || []).forEach((position) => {
+      const pick = (team.slots || {})[position];
+      csv += csvRow([position, pick ? pick.pokemonId : "", pick ? pick.pokemonName : ""]);
+    });
+
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    const safeName = (team.teamName || "team").replace(/[^a-z0-9]+/gi, "-").toLowerCase();
+    link.download = `${safeName}-roster-training.csv`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
+  };
+
   const renderRow = (position, slots, isMine) => {
     const pick = slots[position];
     const isOut = pick && currentWeek !== null && pick.outForWeek === currentWeek;
@@ -130,6 +228,7 @@
       return;
     }
     statusEl.hidden = true;
+    const isAdminViewer = isAdmin();
     listEl.innerHTML = teams
       .map((team) => {
         const isMine = currentUser && team.ownerUid === currentUser.uid;
@@ -138,8 +237,11 @@
         const defenseRows = groups.defense.map((p) => renderRow(p, slots, isMine)).join("");
         const kickerRows = groups.specialTeams.map((p) => renderRow(p, slots, isMine)).join("");
         const benchRows = (groups.bench || []).map((p) => renderRow(p, slots, isMine)).join("");
+        const exportBtn = isAdminViewer
+          ? `<button type="button" class="btn btn-secondary export-team-btn" data-uid="${escapeHtml(team.uid)}">Export</button>`
+          : "";
         return `<section class="card">
-                  <h2>${escapeHtml(team.teamName || "Unnamed Team")}<span class="training-badges">${trainingBadgesHtml(team.training)}</span></h2>
+                  <h2>${escapeHtml(team.teamName || "Unnamed Team")}<span class="training-badges">${trainingBadgesHtml(team.training)}</span>${exportBtn}</h2>
                   <div class="roster-columns">
                     <div class="roster-column">
                       <h3 class="roster-column-heading">Offense</h3>
@@ -164,6 +266,12 @@
       })
       .join("");
 
+    if (isAdminViewer) {
+      listEl.querySelectorAll(".export-team-btn").forEach((btn) => {
+        const team = teams.find((t) => t.uid === btn.dataset.uid);
+        if (team) btn.addEventListener("click", () => exportTeamCsv(team));
+      });
+    }
     listEl.querySelectorAll(".fa-open-btn").forEach((btn) => {
       btn.addEventListener("click", () => openFreeAgentPicker(btn.dataset.slot));
     });
@@ -307,13 +415,15 @@
   let unsubscribeDrafted = null;
   let unsubscribeSeason = null;
   let unsubscribeDraftState = null;
+  let unsubscribeMatchups = null;
+  let unsubscribeTrainingLog = null;
   let latestTeams = [];
 
   const subscribe = () => {
-    [unsubscribeTeams, unsubscribeDrafted, unsubscribeSeason, unsubscribeDraftState].forEach(
+    [unsubscribeTeams, unsubscribeDrafted, unsubscribeSeason, unsubscribeDraftState, unsubscribeMatchups, unsubscribeTrainingLog].forEach(
       (unsubscribe) => unsubscribe && unsubscribe()
     );
-    unsubscribeTeams = unsubscribeDrafted = unsubscribeSeason = unsubscribeDraftState = null;
+    unsubscribeTeams = unsubscribeDrafted = unsubscribeSeason = unsubscribeDraftState = unsubscribeMatchups = unsubscribeTrainingLog = null;
 
     if (!currentUser) {
       listEl.innerHTML = "";
@@ -332,7 +442,7 @@
       .orderBy("createdAt")
       .onSnapshot(
         (snapshot) => {
-          latestTeams = snapshot.docs.map((doc) => doc.data());
+          latestTeams = snapshot.docs.map((doc) => ({ uid: doc.id, ...doc.data() }));
           renderTeams(latestTeams);
         },
         (error) => {
@@ -371,6 +481,18 @@
         },
         () => {}
       );
+
+    // Only the admin's export button needs these - skip the extra reads
+    // for everyone else.
+    if (isAdmin()) {
+      unsubscribeMatchups = db.collection("matchups").onSnapshot((snapshot) => {
+        matchups = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+      }, () => {});
+
+      unsubscribeTrainingLog = db.collection("trainingLog").onSnapshot((snapshot) => {
+        trainingLog = snapshot.docs.map((doc) => doc.data());
+      }, () => {});
+    }
   };
 
   auth.onAuthStateChanged((user) => {
