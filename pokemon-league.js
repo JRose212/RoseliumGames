@@ -191,12 +191,21 @@
     if (!latestDraftState) return;
     const minManagers = config.minManagersToStartDraft || 8;
 
+    const isAdmin = Boolean(
+      auth.currentUser && config.adminUid && config.adminUid !== "YOUR_ADMIN_UID" && auth.currentUser.uid === config.adminUid
+    );
+    const restartButtonHtml = isAdmin
+      ? `<button type="button" class="btn btn-secondary" id="restart-draft-btn">Restart Draft</button>`
+      : "";
+
     if (latestDraftState.status === "drafting") {
-      startDraftAreaEl.innerHTML = `<p class="status">The draft is in progress — <a href="pokemon-draft.html">head to the Draft Room</a>.</p>`;
+      startDraftAreaEl.innerHTML = `<p class="status">The draft is in progress — <a href="pokemon-draft.html">head to the Draft Room</a>.</p>${restartButtonHtml}<p class="status" id="restart-draft-message" hidden></p>`;
+      if (isAdmin) document.getElementById("restart-draft-btn").addEventListener("click", restartDraft);
       return;
     }
     if (latestDraftState.status === "complete") {
-      startDraftAreaEl.innerHTML = `<p class="status">The draft is complete — <a href="pokemon-teams.html">view the rosters</a>.</p>`;
+      startDraftAreaEl.innerHTML = `<p class="status">The draft is complete — <a href="pokemon-teams.html">view the rosters</a>.</p>${restartButtonHtml}<p class="status" id="restart-draft-message" hidden></p>`;
+      if (isAdmin) document.getElementById("restart-draft-btn").addEventListener("click", restartDraft);
       return;
     }
 
@@ -345,6 +354,68 @@
           startedBy: auth.currentUser.uid,
         });
       });
+    } catch (error) {
+      showMessage(error.message, true);
+    }
+  }
+
+  // Admin-only. Wipes every pick/roster record so a draft can be run again
+  // from scratch - pick numbering always restarts at 0001, which would
+  // otherwise collide with leftover draftPicks docs from whatever draft ran
+  // before and get rejected by the append-only security rule. Pre-draft
+  // rankings are left untouched since those are a manager's own standing
+  // preferences, not part of a single draft run.
+  async function restartDraft() {
+    const messageEl = document.getElementById("restart-draft-message");
+    const showMessage = (text, isError) => {
+      if (!messageEl) return;
+      messageEl.hidden = false;
+      messageEl.textContent = text;
+      messageEl.className = `status${isError ? " error" : ""}`;
+    };
+
+    if (!window.confirm("This permanently deletes every draft pick and empties every roster. Continue?")) return;
+
+    try {
+      const [picksSnapshot, draftedSnapshot, teamsSnapshot] = await Promise.all([
+        db.collection("draftPicks").get(),
+        db.collection("draftedPokemon").get(),
+        db.collection("teams").get(),
+      ]);
+
+      const ops = [];
+      picksSnapshot.docs.forEach((doc) => ops.push({ ref: doc.ref, type: "delete" }));
+      draftedSnapshot.docs.forEach((doc) => ops.push({ ref: doc.ref, type: "delete" }));
+      teamsSnapshot.docs.forEach((doc) => ops.push({ ref: doc.ref, type: "update", data: { slots: emptyRoster() } }));
+      ops.push({
+        ref: db.collection("draftState").doc("current"),
+        type: "update",
+        data: {
+          status: "pending",
+          participants: [],
+          pickOrder: [],
+          positionList: [],
+          currentPickIndex: 0,
+          currentUid: null,
+          currentRound: 1,
+          pickDeadlineAt: null,
+          completedAt: null,
+          startedAt: null,
+          startedBy: null,
+        },
+      });
+
+      // Firestore caps a single batch at 500 writes.
+      for (let i = 0; i < ops.length; i += 450) {
+        const batch = db.batch();
+        ops.slice(i, i + 450).forEach((op) => {
+          if (op.type === "delete") batch.delete(op.ref);
+          else batch.update(op.ref, op.data);
+        });
+        await batch.commit();
+      }
+
+      showMessage("Draft restarted - all picks cleared and rosters emptied.");
     } catch (error) {
       showMessage(error.message, true);
     }

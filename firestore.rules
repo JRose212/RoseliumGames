@@ -65,18 +65,23 @@ service cloud.firestore {
       allow update: if isSignedIn() && (
         (resource.data.status == "pending" && request.resource.data.status == "drafting") ||
         (resource.data.status == "drafting" && resource.data.currentUid == request.auth.uid) ||
-        (resource.data.status == "drafting" && request.time > resource.data.pickDeadlineAt)
+        (resource.data.status == "drafting" && request.time > resource.data.pickDeadlineAt) ||
+        isAdmin()
       );
       allow delete: if false;
     }
 
-    // Append-only pick history.
+    // Append-only pick history during a draft - but the admin can wipe it
+    // entirely when restarting a draft from scratch (pick numbering starts
+    // back at 0001, which would otherwise collide with leftover docs from
+    // whatever draft ran before).
     match /draftPicks/{pickId} {
       allow read: if isSignedIn();
       allow create: if isSignedIn() && (
         request.resource.data.uid == request.auth.uid || isOverdueAutodraftFor(request.resource.data.uid) || isAdmin()
       );
-      allow update, delete: if false;
+      allow update: if false;
+      allow delete: if isAdmin();
     }
 
     // Create-only-if-absent is what guarantees no Pokemon is drafted twice.
