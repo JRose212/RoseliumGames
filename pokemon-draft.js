@@ -5,8 +5,10 @@
   const turnTrackerEl = document.getElementById("turn-tracker");
   const turnCountdownEl = document.getElementById("turn-tracker-countdown");
   const autodraftAreaEl = document.getElementById("autodraft-area");
-  const historyCardEl = document.getElementById("pick-history-card");
   const historyListEl = document.getElementById("pick-history-list");
+  const pickHistorySidebarEl = document.getElementById("pick-history-sidebar");
+  const pickHistoryToggleBtn = document.getElementById("pick-history-toggle-btn");
+  const pickHistoryCloseBtn = document.getElementById("pick-history-close-btn");
   const searchCardEl = document.getElementById("picker-search-card");
   const searchEl = document.getElementById("picker-search");
   const pickerStatusEl = document.getElementById("picker-status");
@@ -17,6 +19,7 @@
   const modalMessageEl = document.getElementById("slot-picker-message");
   const modalCancelEl = document.getElementById("slot-picker-cancel");
   const rankingsCardEl = document.getElementById("rankings-card");
+  const rankingsCountEl = document.getElementById("rankings-count");
   const rankingsListEl = document.getElementById("rankings-list");
   const rankingsSearchEl = document.getElementById("rankings-search");
   const rankingsStatusEl = document.getElementById("rankings-status");
@@ -168,8 +171,58 @@
 
   const myTurn = () => draftState && draftState.status === "drafting" && currentUser && draftState.currentUid === currentUser.uid;
 
+  // --- Sound effects (generated via Web Audio, no asset files needed) ---
+
+  let audioCtx = null;
+  const getAudioCtx = () => {
+    if (!audioCtx) {
+      const Ctx = window.AudioContext || window.webkitAudioContext;
+      if (!Ctx) return null;
+      audioCtx = new Ctx();
+    }
+    if (audioCtx.state === "suspended") audioCtx.resume().catch(() => {});
+    return audioCtx;
+  };
+
+  const beep = (freq, durationMs, volume) => {
+    try {
+      const ctx = getAudioCtx();
+      if (!ctx) return;
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = "sine";
+      osc.frequency.value = freq;
+      gain.gain.value = volume;
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start();
+      gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + durationMs / 1000);
+      osc.stop(ctx.currentTime + durationMs / 1000 + 0.02);
+    } catch (error) {
+      // Audio blocked/unavailable - non-fatal, the draft still works fine.
+    }
+  };
+
+  const playDing = () => {
+    beep(880, 280, 0.25);
+    setTimeout(() => beep(1320, 220, 0.2), 130);
+  };
+
+  const playTick = () => beep(1000, 70, 0.12);
+
+  // --- Pick history sidebar toggle (page-specific, unlike the shared chat
+  // sidebar which pokemon-chat.js handles) ---
+
+  if (pickHistoryToggleBtn && pickHistorySidebarEl) {
+    pickHistoryToggleBtn.addEventListener("click", () => pickHistorySidebarEl.classList.add("open"));
+  }
+  if (pickHistoryCloseBtn && pickHistorySidebarEl) {
+    pickHistoryCloseBtn.addEventListener("click", () => pickHistorySidebarEl.classList.remove("open"));
+  }
+
   const renderTurnTracker = () => {
     turnTrackerEl.classList.toggle("draft-turn-tracker--mine", Boolean(myTurn()));
+    turnTrackerEl.classList.toggle("draft-turn-tracker--active", Boolean(draftState && draftState.status === "drafting"));
 
     if (!draftState) {
       turnNameEl.textContent = "Draft not set up yet";
@@ -195,7 +248,10 @@
   };
 
   const renderPickHistory = (picks) => {
-    historyCardEl.hidden = !picks.length;
+    if (!picks.length) {
+      historyListEl.innerHTML = `<li class="status">No picks yet.</li>`;
+      return;
+    }
     historyListEl.innerHTML = picks
       .slice()
       .reverse()
@@ -241,9 +297,37 @@
 
   setInterval(renderCountdown, 1000);
 
+  // Ticking sound that speeds up as the deadline approaches - a separate
+  // self-rescheduling timer from the 1s visual countdown above, since the
+  // tick cadence itself needs to go faster than once per second near the end.
+  let tickTimeoutId = null;
+
+  const stopTicking = () => {
+    if (tickTimeoutId) {
+      clearTimeout(tickTimeoutId);
+      tickTimeoutId = null;
+    }
+  };
+
+  const scheduleTick = () => {
+    if (!draftState || draftState.status !== "drafting" || !draftState.pickDeadlineAt) {
+      stopTicking();
+      return;
+    }
+    const remainingMs = draftState.pickDeadlineAt.toMillis() - Date.now();
+    if (remainingMs <= 0) {
+      stopTicking();
+      return;
+    }
+    playTick();
+    const delay = remainingMs > 10000 ? 1000 : remainingMs > 5000 ? 500 : 250;
+    tickTimeoutId = setTimeout(scheduleTick, Math.min(delay, remainingMs));
+  };
+
   // --- Pre-draft rankings ---
 
   const renderRankingsList = () => {
+    if (rankingsCountEl) rankingsCountEl.textContent = `${myRankings.length}/${MAX_RANKINGS}`;
     if (!myRankings.length) {
       rankingsListEl.innerHTML = `<li class="status">No Pokémon ranked yet.</li>`;
       return;
@@ -280,10 +364,15 @@
     });
   };
 
+  let rankingsStatusTimeout = null;
   const showRankingsStatus = (text, isError) => {
     rankingsStatusEl.hidden = false;
     rankingsStatusEl.className = `status${isError ? " error" : ""}`;
     rankingsStatusEl.textContent = text;
+    clearTimeout(rankingsStatusTimeout);
+    rankingsStatusTimeout = setTimeout(() => {
+      rankingsStatusEl.hidden = true;
+    }, 4000);
   };
 
   async function saveRankings() {
@@ -297,6 +386,19 @@
       showRankingsStatus(error.message, true);
     }
   }
+
+  // If a Pokemon on your private ranking gets drafted by someone else
+  // before your own turn reaches it, drop it from your list automatically
+  // so the list only ever shows what's still actually available.
+  const pruneMyRankings = () => {
+    if (!myRankings.length) return;
+    const stillAvailable = myRankings.filter((id) => !draftedMap.has(id));
+    if (stillAvailable.length === myRankings.length) return;
+    myRankings = stillAvailable;
+    renderRankingsList();
+    applyRankingPickableState();
+    saveRankings();
+  };
 
   const applyRankingPickableState = () => {
     rankingsGridEl.querySelectorAll(".poke-card").forEach((card) => {
@@ -366,7 +468,40 @@
     rankingsSearchDebounce = setTimeout(applyRankingsSearch, 150);
   });
 
+  // Click a pickable card to select it (shows an inline "Draft This
+  // Pokemon" confirm button); click again or pick another card to change
+  // your mind. Only the confirm button actually opens the slot-choice
+  // modal, so one accidental click can't start a pick.
+  let selectedPickId = null;
+
+  const clearSelection = () => {
+    if (selectedPickId === null) return;
+    const card = gridEl.querySelector(`.poke-card[data-id="${selectedPickId}"]`);
+    if (card) {
+      card.classList.remove("poke-card--selected");
+      const btn = card.querySelector(".poke-card-draft-btn");
+      if (btn) btn.remove();
+    }
+    selectedPickId = null;
+  };
+
+  const selectCard = (card) => {
+    clearSelection();
+    card.classList.add("poke-card--selected");
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "btn poke-card-draft-btn";
+    btn.textContent = "Draft This Pokémon";
+    btn.addEventListener("click", (event) => {
+      event.stopPropagation();
+      openSlotPicker(Number(card.dataset.id), card.dataset.name);
+    });
+    card.appendChild(btn);
+    selectedPickId = Number(card.dataset.id);
+  };
+
   const applyPickableState = () => {
+    if (!myTurn()) clearSelection();
     gridEl.querySelectorAll(".poke-card").forEach((card) => {
       const id = Number(card.dataset.id);
       const drafted = draftedMap.get(id);
@@ -389,6 +524,7 @@
   };
 
   const renderPickerGrid = (entries) => {
+    clearSelection();
     gridEl.innerHTML = entries
       .map(
         (entry) => `
@@ -406,7 +542,11 @@
       detailObserver.observe(card);
       card.addEventListener("click", () => {
         if (!card.classList.contains("poke-card--pickable")) return;
-        openSlotPicker(Number(card.dataset.id), card.dataset.name);
+        if (selectedPickId === Number(card.dataset.id)) {
+          clearSelection();
+          return;
+        }
+        selectCard(card);
       });
     });
     applyPickableState();
@@ -452,6 +592,7 @@
   const closeSlotPicker = () => {
     modalEl.hidden = true;
     pendingPick = null;
+    clearSelection();
   };
 
   modalCancelEl.addEventListener("click", closeSlotPicker);
@@ -648,6 +789,8 @@
   let unsubscribeDrafted = null;
   let unsubscribePicks = null;
   let unsubscribeDraftState = null;
+  let lastCurrentUid = undefined;
+  let lastDeadlineMillis = undefined;
   let unsubscribeMyRankings = null;
 
   const subscribeDraftRoom = () => {
@@ -692,6 +835,7 @@
         draftedMap = new Map();
         snapshot.forEach((doc) => draftedMap.set(Number(doc.id), doc.data()));
         applyPickableState();
+        pruneMyRankings();
       },
       () => {}
     );
@@ -713,6 +857,21 @@
           const active = draftState && draftState.status !== "pending";
           searchCardEl.hidden = !active;
           gridEl.hidden = !active;
+
+          const newUid = draftState ? draftState.currentUid : undefined;
+          const newDeadlineMillis =
+            draftState && draftState.pickDeadlineAt ? draftState.pickDeadlineAt.toMillis() : undefined;
+          const turnChanged = lastCurrentUid !== undefined && newUid !== lastCurrentUid;
+          const deadlineChanged = newDeadlineMillis !== lastDeadlineMillis;
+          lastCurrentUid = newUid;
+          lastDeadlineMillis = newDeadlineMillis;
+
+          if (turnChanged && draftState && draftState.status === "drafting") playDing();
+          if (deadlineChanged) {
+            stopTicking();
+            if (newDeadlineMillis) scheduleTick();
+          }
+
           renderTurnTracker();
           applyPickableState();
         },

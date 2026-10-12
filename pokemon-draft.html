@@ -65,11 +65,13 @@
         <div id="autodraft-area"></div>
       </section>
 
-      <section class="card" id="rankings-card" hidden>
-        <h2>My pre-draft rankings</h2>
+      <section class="card rankings-section" id="rankings-card" hidden>
+        <h2>My pre-draft rankings <span class="rankings-count" id="rankings-count">0/30</span></h2>
         <p>
           Privately rank up to 30 Pokémon, best first. Nobody else can see this
-          list. If you miss a pick, autodraft works down this list for you.
+          list. Click a Pokémon below to <strong>instantly add it</strong> to
+          your list — this does not draft it. If you miss a live pick,
+          autodraft works down this list for you.
         </p>
         <ol class="pick-history-order" id="rankings-list"></ol>
         <div class="selector-card dex-search-bar" style="margin-top: 1rem;">
@@ -77,13 +79,13 @@
           <input type="search" id="rankings-search" placeholder="Pokémon name…" />
         </div>
         <p class="status" id="rankings-status" hidden></p>
-        <div class="poke-grid" id="rankings-grid"></div>
+        <div class="poke-grid rankings-grid" id="rankings-grid"></div>
       </section>
 
-      <section class="card" id="pick-history-card" hidden>
-        <h2>Pick history</h2>
-        <ul class="agenda-items" id="pick-history-list"></ul>
-      </section>
+      <div class="section-heading" id="live-picker-heading">
+        <h2>Live draft picker</h2>
+        <p>Only usable on your turn. Click a Pokémon, then confirm to draft it.</p>
+      </div>
 
       <section class="card selector-card dex-search-bar" id="picker-search-card" hidden>
         <label for="picker-search">Search</label>
@@ -108,6 +110,16 @@
     </footer>
   </div>
 
+  <aside class="chat-sidebar pick-history-sidebar" id="pick-history-sidebar">
+    <div class="chat-header">
+      <h2>Pick History</h2>
+      <button type="button" class="chat-close-btn" id="pick-history-close-btn" aria-label="Close pick history">✕</button>
+    </div>
+    <ul class="chat-messages agenda-items" id="pick-history-list">
+      <li class="status">No picks yet.</li>
+    </ul>
+  </aside>
+
   <aside class="chat-sidebar" id="chat-sidebar">
     <div class="chat-header">
       <h2>League Chat</h2>
@@ -123,6 +135,7 @@
     <p class="status" id="chat-status" hidden></p>
   </aside>
   </div>
+  <button type="button" class="pick-history-toggle-btn chat-toggle-btn" id="pick-history-toggle-btn" aria-label="Open pick history">📜</button>
   <button type="button" class="chat-toggle-btn" id="chat-toggle-btn" aria-label="Open chat">💬</button>
   </body>
 </html>

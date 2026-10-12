@@ -858,3 +858,108 @@ body[data-page^="pokemon-"] .app-content {
     box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4);
   }
 }
+
+/* Pick history sidebar (pokemon-draft.html only) - shares .chat-sidebar's
+   base layout/responsive behavior, narrower, and sits between the main
+   content and the chat sidebar. */
+
+.pick-history-sidebar {
+  width: 260px;
+}
+
+.pick-history-sidebar .agenda-item {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  padding: 0.75rem 1.25rem;
+}
+
+.pick-history-sidebar .agenda-item-main {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.2rem;
+}
+
+.pick-history-sidebar .agenda-item-name {
+  text-align: left;
+}
+
+@media (max-width: 900px) {
+  .pick-history-toggle-btn {
+    right: 6.5rem;
+  }
+}
+
+/* Click-to-select-then-confirm live draft picks */
+
+.poke-card--selected {
+  border-color: var(--accent-strong) !important;
+  box-shadow: 0 0 0 3px rgba(255, 203, 5, 0.45) !important;
+}
+
+.poke-card-draft-btn {
+  width: 100%;
+  margin-top: 0.3rem;
+}
+
+/* Rankings add-grid: visually distinct "+" cue so it never reads as the
+   live draft picker, which uses the select-then-confirm pattern above. */
+
+.rankings-count {
+  margin-left: 0.5rem;
+  font-size: 0.75rem;
+  color: var(--muted);
+  text-transform: none;
+  letter-spacing: normal;
+  font-weight: 400;
+}
+
+.rankings-grid .poke-card--pickable {
+  position: relative;
+}
+
+.rankings-grid .poke-card--pickable::after {
+  content: "+ Add to rankings";
+  display: block;
+  margin-top: 0.3rem;
+  font-size: 0.68rem;
+  color: var(--accent-strong);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+/* Turn tracker: glow for everyone while drafting, stronger/faster pulse
+   specifically for whoever's on the clock. Countdown is much bigger. */
+
+.draft-turn-tracker--active {
+  animation: pokemon-turn-glow 2s ease-in-out infinite;
+}
+
+.draft-turn-tracker--mine {
+  animation: pokemon-turn-pulse 0.9s ease-in-out infinite;
+}
+
+@keyframes pokemon-turn-glow {
+  0%, 100% { box-shadow: 0 0 10px rgba(47, 111, 237, 0.35); }
+  50% { box-shadow: 0 0 28px rgba(47, 111, 237, 0.75); }
+}
+
+@keyframes pokemon-turn-pulse {
+  0%, 100% { box-shadow: 0 0 16px rgba(255, 203, 5, 0.55); }
+  50% { box-shadow: 0 0 40px rgba(255, 203, 5, 0.95); }
+}
+
+#turn-tracker-countdown {
+  font-family: "Press Start 2P", monospace;
+  font-size: 2.2rem !important;
+  font-weight: 700 !important;
+  color: var(--accent-strong) !important;
+  text-transform: none !important;
+  letter-spacing: 0.04em !important;
+  text-align: center;
+  margin: 0.5rem 0 !important;
+}
+
+@media (max-width: 640px) {
+  #turn-tracker-countdown {
+    font-size: 1.5rem !important;
+  }
+}
