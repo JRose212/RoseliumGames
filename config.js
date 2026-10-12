@@ -37,6 +37,22 @@ window.siteConfig = {
     bench: ["BENCH1", "BENCH2", "BENCH3"],
   },
 
+  // Daily team training (My Team page). Each type's "item" is the PokeAPI
+  // sprites repo item slug shown on its button - chosen to fit the
+  // training concept rather than being literally about that item (the
+  // stat-boosting vitamins map 1:1 onto attack/defense/sp.atk/sp.def,
+  // which lines up neatly with run/pass offense/defense).
+  trainingTypes: [
+    { key: "passOffense", label: "Pass Offense", color: "#2f6fed", item: "calcium" },
+    { key: "runOffense", label: "Run Offense", color: "#d9542f", item: "protein" },
+    { key: "passDefense", label: "Pass Defense", color: "#2fa7c7", item: "zinc" },
+    { key: "runDefense", label: "Run Defense", color: "#3f9e52", item: "iron" },
+    { key: "filmSession", label: "Film Session", color: "#8e5fd9", item: "tm-normal" },
+    { key: "teamBonding", label: "Team Bonding", color: "#d9a62f", item: "exp-share" },
+  ],
+  trainingInfoBlurb:
+    'Train your Team daily to enhance their abilities in their upcoming matchup. You are allowed to do one training session per day so choose wisely between "Pass Defense", "Run Defense", "Pass Offense", "Run Offense", "Film Session", "Team Bonding". Each training type provides different benefits to your team to edge out your opponent. Training more than your opponent for the week does not guarantee you win the matchup but it does help tip the scales. Determine your best training regiment and log in daily to get them right.\n\nLosing a matchup grants you a bonus practice session for the upcoming week, so be sure to use them. Bonus training sessions stack per week until your team wins a game.',
+
   pokeApiBaseUrl: "https://pokeapi.co/api/v2",
   pokemonListCacheTtlMs: 30 * 24 * 60 * 60 * 1000, // 30 days
   pokemonDetailCacheTtlMs: 90 * 24 * 60 * 60 * 1000, // 90 days

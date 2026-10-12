@@ -23,6 +23,16 @@
   const spriteUrl = (pokemonId) =>
     `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${pokemonId}.png`;
 
+  const trainingBadgesHtml = (training) => {
+    const t = training || {};
+    const streak = t.currentStreak || 0;
+    const bonus = t.bonusSessionsAvailable || 0;
+    const parts = [];
+    if (streak > 0) parts.push(`<span class="training-badge training-badge--streak">🔥 ${streak}-day streak</span>`);
+    if (bonus > 0) parts.push(`<span class="training-badge training-badge--bonus">+${bonus} bonus session${bonus === 1 ? "" : "s"}</span>`);
+    return parts.join("");
+  };
+
   if (!config.firebaseConfig || config.firebaseConfig.apiKey === "YOUR_FIREBASE_API_KEY") {
     statusEl.className = "status error";
     statusEl.textContent = "Fantasy League is not configured yet.";
@@ -128,7 +138,7 @@
         const kickerRows = groups.specialTeams.map((p) => renderRow(p, slots, isMine)).join("");
         const benchRows = (groups.bench || []).map((p) => renderRow(p, slots, isMine)).join("");
         return `<section class="card">
-                  <h2>${escapeHtml(team.teamName || "Unnamed Team")}</h2>
+                  <h2>${escapeHtml(team.teamName || "Unnamed Team")}<span class="training-badges">${trainingBadgesHtml(team.training)}</span></h2>
                   <div class="roster-columns">
                     <div class="roster-column">
                       <h3 class="roster-column-heading">Offense</h3>

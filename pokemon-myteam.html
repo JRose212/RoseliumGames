@@ -60,8 +60,19 @@
 
       <p class="status" id="myteam-status">Loading your team…</p>
 
+      <section class="card" id="training-card" hidden>
+        <h2>
+          Train Your Team
+          <button type="button" class="info-tooltip-btn" id="training-info-btn" aria-label="What is training?">?</button>
+        </h2>
+        <div class="info-tooltip-popover" id="training-info-popover" hidden></div>
+        <p class="training-meta" id="training-meta"></p>
+        <div class="training-buttons" id="training-buttons"></div>
+        <p class="status" id="training-message" hidden></p>
+      </section>
+
       <section class="card" id="myteam-roster-card" hidden>
-        <h2>My Roster</h2>
+        <h2>My Roster<span class="training-badges" id="myteam-training-badges"></span></h2>
         <div class="myteam-group">
           <h3 class="roster-column-heading">Offense</h3>
           <div class="myteam-grid" id="myteam-offense-grid"></div>
@@ -85,7 +96,7 @@
         <p class="status" id="myteam-matchup-meta"></p>
         <div class="roster-columns" style="margin-top: 1rem;">
           <div class="roster-column">
-            <h3 class="roster-column-heading" id="myteam-opp-heading">Opponent</h3>
+            <h3 class="roster-column-heading" id="myteam-opp-heading">Opponent<span class="training-badges" id="myteam-opp-training-badges"></span></h3>
             <ul class="roster-list" id="myteam-opp-list"></ul>
           </div>
         </div>

@@ -98,6 +98,17 @@ service cloud.firestore {
       allow delete: if isSignedIn() && (request.auth.uid == resource.data.uid || isAdmin());
     }
 
+    // One training log entry per manager per calendar day (doc id is
+    // "{uid}_{YYYY-MM-DD}", enforced client-side, not by these rules - same
+    // "honest limitation" tradeoff used throughout this app). create covers
+    // today's first session, update covers a second session spent from a
+    // banked bonus credit (adds a second entry to the same day's types).
+    match /trainingLog/{logId} {
+      allow read: if isSignedIn();
+      allow create, update: if isSignedIn() && request.resource.data.uid == request.auth.uid;
+      allow delete: if false;
+    }
+
     // Season-level schedule state. Admin-managed; everyone can read it.
     match /seasonState/current {
       allow read: if isSignedIn();

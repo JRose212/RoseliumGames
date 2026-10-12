@@ -45,11 +45,14 @@
   const auth = firebase.auth();
   const db = firebase.firestore();
   const regularWeeks = config.regularSeasonWeeks || 13;
+  const itemSpriteUrl = (item) => `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/${item}.png`;
+  const trainingTypeByKey = new Map((config.trainingTypes || []).map((t) => [t.key, t]));
 
   let currentUser = null;
   let teamsByUid = new Map();
   let matchups = [];
   let seasonState = null;
+  let trainingLog = [];
 
   const isAdmin = () =>
     Boolean(currentUser && config.adminUid && config.adminUid !== "YOUR_ADMIN_UID" && currentUser.uid === config.adminUid);
@@ -243,12 +246,48 @@
 
   // --- Weekly schedule rendering ---
 
+  // The training sessions a team logged during a given matchup's week
+  // (Thursday through the following Wednesday, matching how weeks are
+  // actually laid out in generateSchedule), shown as small item sprites
+  // under that team's name - one icon per session, in the order trained.
+  const weekTrainingTypes = (uid, week) => {
+    if (!seasonState || !seasonState.startDate) return [];
+    const weekStart = dateForDay(seasonState.startDate.toDate(), week, "thu");
+    const weekEnd = new Date(weekStart);
+    weekEnd.setDate(weekEnd.getDate() + 7);
+    return trainingLog
+      .filter((log) => log.uid === uid)
+      .filter((log) => {
+        const logDate = new Date(`${log.date}T12:00:00`);
+        return logDate >= weekStart && logDate < weekEnd;
+      })
+      .sort((a, b) => a.date.localeCompare(b.date))
+      .flatMap((log) => log.types || []);
+  };
+
+  const trainingSpriteRow = (uid, week) => {
+    const icons = weekTrainingTypes(uid, week)
+      .map((key) => trainingTypeByKey.get(key))
+      .filter(Boolean)
+      .map(
+        (type) =>
+          `<img class="matchup-training-sprite" src="${itemSpriteUrl(type.item)}" alt="${escapeHtml(type.label)}" title="${escapeHtml(type.label)}" loading="lazy" />`
+      )
+      .join("");
+    return `<span class="matchup-training-row">${icons}</span>`;
+  };
+
+  const matchupTeamBlock = (uid, week, won) => `
+    <span class="matchup-team${won ? " winner" : ""}">
+      <span class="matchup-team-name">${escapeHtml(teamName(uid))}</span>
+      ${trainingSpriteRow(uid, week)}
+    </span>
+  `;
+
   const matchupLabel = (m) => {
-    const home = escapeHtml(teamName(m.homeUid));
-    const away = escapeHtml(teamName(m.awayUid));
     const homeWon = m.status === "final" && m.winnerUid === m.homeUid;
     const awayWon = m.status === "final" && m.winnerUid === m.awayUid;
-    return `<span class="${homeWon ? "winner" : ""}">${home}</span> @ <span class="${awayWon ? "winner" : ""}">${away}</span>`;
+    return `${matchupTeamBlock(m.homeUid, m.week, homeWon)} @ ${matchupTeamBlock(m.awayUid, m.week, awayWon)}`;
   };
 
   const roundLabel = (round) =>
@@ -380,6 +419,30 @@
       slot: input.dataset.slot,
     }));
 
+    // A losing team banks a bonus training session for the weeks ahead; a
+    // winning team's banked sessions reset to zero. Only applied the first
+    // time a matchup goes final, not on a later "Edit Result", so
+    // re-declaring the same matchup never double-credits a bonus.
+    const isFirstDeclaration = matchup.status !== "final";
+
+    // Firestore batches reject more than one write to the same document,
+    // so every field touched for a given team - injury flags, training
+    // bonus - has to land in a single merged update() call per uid.
+    const teamUpdates = new Map();
+    const mergeTeamUpdate = (uid, fields) => {
+      teamUpdates.set(uid, Object.assign(teamUpdates.get(uid) || {}, fields));
+    };
+
+    injured.forEach(({ uid, slot }) => {
+      mergeTeamUpdate(uid, { [`slots.${slot}.outForWeek`]: matchup.week + 1 });
+    });
+
+    if (isFirstDeclaration && winnerUid) {
+      const loserUid = winnerUid === matchup.homeUid ? matchup.awayUid : matchup.homeUid;
+      mergeTeamUpdate(winnerUid, { "training.bonusSessionsAvailable": 0 });
+      mergeTeamUpdate(loserUid, { "training.bonusSessionsAvailable": firebase.firestore.FieldValue.increment(1) });
+    }
+
     try {
       const batch = db.batch();
       batch.update(db.collection("matchups").doc(pendingMatchupId), {
@@ -389,8 +452,8 @@
         summary: resultSummaryEl.value.trim(),
         status: "final",
       });
-      injured.forEach(({ uid, slot }) => {
-        batch.update(db.collection("teams").doc(uid), { [`slots.${slot}.outForWeek`]: matchup.week + 1 });
+      teamUpdates.forEach((fields, uid) => {
+        batch.update(db.collection("teams").doc(uid), fields);
       });
       await batch.commit();
       closeResultModal();
@@ -554,6 +617,7 @@
   let unsubscribeTeams = null;
   let unsubscribeMatchups = null;
   let unsubscribeSeason = null;
+  let unsubscribeTrainingLog = null;
 
   const renderAll = () => {
     renderStandings();
@@ -563,8 +627,10 @@
   };
 
   const subscribe = () => {
-    [unsubscribeTeams, unsubscribeMatchups, unsubscribeSeason].forEach((unsubscribe) => unsubscribe && unsubscribe());
-    unsubscribeTeams = unsubscribeMatchups = unsubscribeSeason = null;
+    [unsubscribeTeams, unsubscribeMatchups, unsubscribeSeason, unsubscribeTrainingLog].forEach(
+      (unsubscribe) => unsubscribe && unsubscribe()
+    );
+    unsubscribeTeams = unsubscribeMatchups = unsubscribeSeason = unsubscribeTrainingLog = null;
 
     if (!currentUser) {
       statusEl.hidden = false;
@@ -583,6 +649,14 @@
     unsubscribeTeams = db.collection("teams").onSnapshot(
       (snapshot) => {
         teamsByUid = new Map(snapshot.docs.map((doc) => [doc.id, doc.data()]));
+        renderAll();
+      },
+      () => {}
+    );
+
+    unsubscribeTrainingLog = db.collection("trainingLog").onSnapshot(
+      (snapshot) => {
+        trainingLog = snapshot.docs.map((doc) => doc.data());
         renderAll();
       },
       () => {}

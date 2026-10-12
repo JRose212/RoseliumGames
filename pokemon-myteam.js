@@ -10,6 +10,13 @@
   const matchupMetaEl = document.getElementById("myteam-matchup-meta");
   const oppHeadingEl = document.getElementById("myteam-opp-heading");
   const oppListEl = document.getElementById("myteam-opp-list");
+  const trainingCardEl = document.getElementById("training-card");
+  const trainingInfoBtnEl = document.getElementById("training-info-btn");
+  const trainingInfoPopoverEl = document.getElementById("training-info-popover");
+  const trainingMetaEl = document.getElementById("training-meta");
+  const trainingButtonsEl = document.getElementById("training-buttons");
+  const trainingMessageEl = document.getElementById("training-message");
+  const myTrainingBadgesEl = document.getElementById("myteam-training-badges");
 
   if (!rosterCardEl) return;
 
@@ -26,6 +33,18 @@
     `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${pokemonId}.png`;
   const largeSpriteUrl = (pokemonId) =>
     `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/${pokemonId}.png`;
+  const itemSpriteUrl = (item) => `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/${item}.png`;
+
+  const trainingTypes = config.trainingTypes || [];
+  const trainingTypeByKey = new Map(trainingTypes.map((t) => [t.key, t]));
+
+  // Local calendar day, not a rolling 24h window - 11:59pm and 12:01am the
+  // next day are two different training days.
+  const dateKey = (offsetDays = 0) => {
+    const d = new Date();
+    d.setDate(d.getDate() + offsetDays);
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  };
 
   if (!config.firebaseConfig || config.firebaseConfig.apiKey === "YOUR_FIREBASE_API_KEY") {
     statusEl.className = "status error";
@@ -42,6 +61,139 @@
   let teamsByUid = new Map();
   let matchups = [];
   let currentWeek = null;
+  let todayLog = null;
+
+  // --- Training ---
+
+  const trainingBadgesHtml = (training) => {
+    const t = training || {};
+    const streak = t.currentStreak || 0;
+    const bonus = t.bonusSessionsAvailable || 0;
+    const parts = [];
+    if (streak > 0) parts.push(`<span class="training-badge training-badge--streak">🔥 ${streak}-day streak</span>`);
+    if (bonus > 0) parts.push(`<span class="training-badge training-badge--bonus">+${bonus} bonus session${bonus === 1 ? "" : "s"}</span>`);
+    return parts.join("");
+  };
+
+  let trainingMessageTimeout = null;
+  const showTrainingMessage = (text, isError) => {
+    trainingMessageEl.hidden = false;
+    trainingMessageEl.className = `status${isError ? " error" : ""}`;
+    trainingMessageEl.textContent = text;
+    clearTimeout(trainingMessageTimeout);
+    trainingMessageTimeout = setTimeout(() => {
+      trainingMessageEl.hidden = true;
+    }, 5000);
+  };
+
+  const renderTraining = () => {
+    if (!currentUser) {
+      trainingCardEl.hidden = true;
+      return;
+    }
+    const myTeam = teamsByUid.get(currentUser.uid);
+    if (!myTeam) {
+      trainingCardEl.hidden = true;
+      return;
+    }
+    trainingCardEl.hidden = false;
+
+    const training = myTeam.training || {};
+    const bonusAvailable = training.bonusSessionsAvailable || 0;
+    const doneToday = (todayLog && todayLog.types) || [];
+    const maxToday = bonusAvailable > 0 ? 2 : 1;
+    const quotaUsed = doneToday.length >= maxToday;
+
+    if (doneToday.length === 0) {
+      trainingMetaEl.textContent =
+        bonusAvailable > 0
+          ? `You have a bonus session banked - pick up to 2 today.`
+          : `Pick today's training session.`;
+    } else if (!quotaUsed) {
+      trainingMetaEl.textContent = `One more session available today (bonus session banked).`;
+    } else {
+      trainingMetaEl.textContent = `Today's training is done. Come back tomorrow.`;
+    }
+
+    trainingButtonsEl.innerHTML = trainingTypes
+      .map((type) => {
+        const alreadyDone = doneToday.includes(type.key);
+        const disabled = alreadyDone || quotaUsed;
+        return `<button type="button" class="training-btn${alreadyDone ? " training-btn--done" : ""}" data-key="${type.key}"
+                  style="--training-color: ${type.color}" ${disabled ? "disabled" : ""}>
+                  <img class="training-btn-sprite" src="${itemSpriteUrl(type.item)}" alt="" loading="lazy" />
+                  <span>${escapeHtml(type.label)}</span>
+                  ${alreadyDone ? `<span class="training-btn-check">✓ Done today</span>` : ""}
+                </button>`;
+      })
+      .join("");
+
+    trainingButtonsEl.querySelectorAll(".training-btn:not([disabled])").forEach((btn) => {
+      btn.addEventListener("click", () => logTraining(btn.dataset.key));
+    });
+  };
+
+  async function logTraining(typeKey) {
+    if (!currentUser) return;
+    const type = trainingTypeByKey.get(typeKey);
+    if (!type) return;
+
+    const today = dateKey();
+    const yesterday = dateKey(-1);
+    const logRef = db.collection("trainingLog").doc(`${currentUser.uid}_${today}`);
+    const teamRef = db.collection("teams").doc(currentUser.uid);
+
+    try {
+      await db.runTransaction(async (tx) => {
+        const [logSnap, teamSnap] = await Promise.all([tx.get(logRef), tx.get(teamRef)]);
+        const team = teamSnap.data();
+        const training = (team && team.training) || {};
+        const bonusAvailable = training.bonusSessionsAvailable || 0;
+
+        if (!logSnap.exists) {
+          const prevStreak = training.lastTrainedDate === yesterday ? training.currentStreak || 0 : 0;
+          tx.set(logRef, {
+            uid: currentUser.uid,
+            date: today,
+            types: [typeKey],
+            loggedAt: firebase.firestore.FieldValue.serverTimestamp(),
+          });
+          tx.update(teamRef, {
+            "training.lastTrainedDate": today,
+            "training.currentStreak": prevStreak + 1,
+          });
+          return;
+        }
+
+        const existing = logSnap.data();
+        if (existing.types.includes(typeKey)) throw new Error("You've already done that session today.");
+        if (existing.types.length >= 2) throw new Error("No more training sessions available today.");
+        if (bonusAvailable <= 0) throw new Error("No more training sessions available today.");
+
+        tx.update(logRef, { types: firebase.firestore.FieldValue.arrayUnion(typeKey) });
+        tx.update(teamRef, { "training.bonusSessionsAvailable": firebase.firestore.FieldValue.increment(-1) });
+      });
+      showTrainingMessage(`Your team had a good ${type.label} session today!`);
+    } catch (error) {
+      showTrainingMessage(error.message, true);
+    }
+  }
+
+  trainingInfoBtnEl.addEventListener("click", (event) => {
+    event.stopPropagation();
+    trainingInfoPopoverEl.hidden = !trainingInfoPopoverEl.hidden;
+  });
+  document.addEventListener("click", (event) => {
+    if (!trainingInfoPopoverEl.hidden && !trainingInfoPopoverEl.contains(event.target) && event.target !== trainingInfoBtnEl) {
+      trainingInfoPopoverEl.hidden = true;
+    }
+  });
+  if (trainingInfoPopoverEl) {
+    trainingInfoPopoverEl.innerHTML = (config.trainingInfoBlurb || "")
+      .split("\n\n")
+      .map((para) => `<p>${escapeHtml(para)}</p>`)
+      .join("");
+  }
 
   // --- My roster: draggable, square, large-sprite slots ---
 
@@ -112,6 +264,7 @@
       return;
     }
     rosterCardEl.hidden = false;
+    myTrainingBadgesEl.innerHTML = trainingBadgesHtml(myTeam.training);
     const slots = myTeam.slots || {};
 
     const groupRender = (gridEl, positions) => {
@@ -179,7 +332,7 @@
       matchupCardEl.hidden = false;
       matchupMetaEl.hidden = false;
       matchupMetaEl.textContent = "No upcoming matchup scheduled yet.";
-      oppHeadingEl.textContent = "Opponent";
+      oppHeadingEl.innerHTML = `Opponent<span class="training-badges" id="myteam-opp-training-badges"></span>`;
       oppListEl.innerHTML = "";
       return;
     }
@@ -191,7 +344,8 @@
     matchupCardEl.hidden = false;
     matchupMetaEl.hidden = false;
     matchupMetaEl.textContent = `Week ${upcoming.week} — ${formatMatchupDate(upcoming.date)}`;
-    oppHeadingEl.textContent = opponent ? opponent.teamName || "Unnamed Team" : "Unknown team";
+    const opponentName = escapeHtml(opponent ? opponent.teamName || "Unnamed Team" : "Unknown team");
+    oppHeadingEl.innerHTML = `${opponentName}<span class="training-badges">${trainingBadgesHtml(opponent && opponent.training)}</span>`;
 
     const positions = config.pokemonPositions || [];
     oppListEl.innerHTML = positions.map((position) => renderOppRow(position, opponentSlots)).join("");
@@ -200,17 +354,22 @@
   const renderAll = () => {
     renderMyRoster();
     renderNextMatchup();
+    renderTraining();
   };
 
   // --- Live listeners ---
 
   let unsubscribeTeams = null;
   let unsubscribeMatchups = null;
+  let unsubscribeTodayLog = null;
   let unsubscribeSeason = null;
 
   const subscribe = () => {
-    [unsubscribeTeams, unsubscribeMatchups, unsubscribeSeason].forEach((unsubscribe) => unsubscribe && unsubscribe());
-    unsubscribeTeams = unsubscribeMatchups = unsubscribeSeason = null;
+    [unsubscribeTeams, unsubscribeMatchups, unsubscribeSeason, unsubscribeTodayLog].forEach(
+      (unsubscribe) => unsubscribe && unsubscribe()
+    );
+    unsubscribeTeams = unsubscribeMatchups = unsubscribeSeason = unsubscribeTodayLog = null;
+    todayLog = null;
 
     if (!currentUser) {
       statusEl.hidden = false;
@@ -218,8 +377,20 @@
       statusEl.innerHTML = `Sign in on the <a href="pokemon-league.html">League Home</a> page to view your team.`;
       rosterCardEl.hidden = true;
       matchupCardEl.hidden = true;
+      trainingCardEl.hidden = true;
       return;
     }
+
+    unsubscribeTodayLog = db
+      .collection("trainingLog")
+      .doc(`${currentUser.uid}_${dateKey()}`)
+      .onSnapshot(
+        (doc) => {
+          todayLog = doc.exists ? doc.data() : null;
+          renderAll();
+        },
+        () => {}
+      );
 
     statusEl.hidden = true;
 
@@ -268,4 +439,16 @@
     currentUser = user;
     subscribe();
   });
+
+  // If the page is left open across local midnight, re-point the today's-
+  // log listener and re-render so a new day's training actually unlocks
+  // without needing a manual refresh.
+  let lastSeenDateKey = dateKey();
+  setInterval(() => {
+    const nowKey = dateKey();
+    if (nowKey !== lastSeenDateKey) {
+      lastSeenDateKey = nowKey;
+      subscribe();
+    }
+  }, 30000);
 })();

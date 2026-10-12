@@ -581,6 +581,20 @@ body[data-page^="pokemon-"] .jump-nav a {
   font-weight: 700;
   text-transform: uppercase;
   font-size: 0.9rem;
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.matchup-team {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.matchup-team-name {
+  display: block;
 }
 
 .matchup-teams .winner {
@@ -1055,4 +1069,148 @@ body[data-page^="pokemon-"] .app-content {
   #turn-tracker-countdown {
     font-size: 1.5rem !important;
   }
+}
+
+/* Training (My Team page): one info tooltip + a row of six color-coded
+   buttons, plus small streak/bonus badges reused next to team names
+   elsewhere (Rosters, My Team, Next Matchup). */
+
+.info-tooltip-btn {
+  width: 22px;
+  height: 22px;
+  margin-left: 0.5rem;
+  border-radius: 50%;
+  border: 1px solid var(--accent);
+  background: transparent;
+  color: var(--accent);
+  font-weight: 700;
+  font-size: 0.75rem;
+  line-height: 1;
+  cursor: pointer;
+  vertical-align: middle;
+}
+
+.info-tooltip-btn:hover {
+  background: var(--accent);
+  color: var(--surface);
+}
+
+.info-tooltip-popover {
+  position: relative;
+  margin-top: 0.75rem;
+  padding: 0.9rem 1rem;
+  border: 1px solid var(--accent);
+  background: var(--surface-strong);
+  font-size: 0.82rem;
+  line-height: 1.5;
+}
+
+.info-tooltip-popover p {
+  margin: 0 0 0.75rem;
+}
+
+.info-tooltip-popover p:last-child {
+  margin-bottom: 0;
+}
+
+.training-meta {
+  color: var(--muted);
+  font-size: 0.85rem;
+  margin-top: 0.5rem;
+}
+
+.training-buttons {
+  display: grid;
+  gap: 0.75rem;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  margin-top: 1rem;
+}
+
+.training-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.75rem 0.5rem;
+  border: 2px solid var(--training-color, var(--border));
+  background: color-mix(in srgb, var(--training-color, var(--border)) 14%, var(--surface-strong));
+  color: var(--text);
+  font: inherit;
+  font-weight: 700;
+  text-transform: uppercase;
+  font-size: 0.75rem;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.training-btn:hover:not([disabled]) {
+  box-shadow: 0 8px 20px color-mix(in srgb, var(--training-color, var(--accent)) 45%, transparent);
+  transform: translateY(-2px);
+}
+
+.training-btn[disabled] {
+  cursor: not-allowed;
+  opacity: 0.35;
+}
+
+.training-btn--done {
+  opacity: 0.7;
+}
+
+.training-btn-sprite {
+  width: 48px;
+  height: 48px;
+  object-fit: contain;
+}
+
+.training-btn-check {
+  font-size: 0.65rem;
+  color: var(--accent-strong);
+  text-transform: none;
+  letter-spacing: normal;
+  font-weight: 400;
+}
+
+.training-badges {
+  margin-left: 0.6rem;
+  display: inline-flex;
+  gap: 0.4rem;
+  vertical-align: middle;
+}
+
+.training-badge {
+  font-size: 0.6rem;
+  font-weight: 700;
+  text-transform: none;
+  letter-spacing: normal;
+  padding: 0.15rem 0.45rem;
+  border-radius: 10px;
+  white-space: nowrap;
+}
+
+.training-badge--streak {
+  background: rgba(217, 84, 47, 0.18);
+  color: #d9542f;
+}
+
+.training-badge--bonus {
+  background: rgba(255, 203, 5, 0.18);
+  color: var(--accent-strong);
+}
+
+/* Schedule matchup cards: small per-type item sprites showing how much a
+   team trained that week, under its name in the matchup row. */
+
+.matchup-training-row {
+  display: flex;
+  gap: 0.25rem;
+  margin-top: 0.25rem;
+  min-height: 18px;
+}
+
+.matchup-training-sprite {
+  width: 18px;
+  height: 18px;
+  object-fit: contain;
 }
