@@ -1221,3 +1221,26 @@ body[data-page^="pokemon-"] .app-content {
   height: 18px;
   object-fit: contain;
 }
+
+/* My Team's Next Matchup card: side-by-side "this week" training compare. */
+
+.matchup-training-compare {
+  display: flex;
+  gap: 2rem;
+  flex-wrap: wrap;
+  margin-top: 0.75rem;
+}
+
+.matchup-training-side {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.matchup-training-label {
+  color: var(--muted);
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-weight: 700;
+}

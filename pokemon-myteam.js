@@ -10,6 +10,7 @@
   const matchupMetaEl = document.getElementById("myteam-matchup-meta");
   const oppHeadingEl = document.getElementById("myteam-opp-heading");
   const oppListEl = document.getElementById("myteam-opp-list");
+  const matchupTrainingEl = document.getElementById("myteam-matchup-training");
   const trainingCardEl = document.getElementById("training-card");
   const trainingInfoBtnEl = document.getElementById("training-info-btn");
   const trainingInfoPopoverEl = document.getElementById("training-info-popover");
@@ -38,6 +39,13 @@
   const trainingTypes = config.trainingTypes || [];
   const trainingTypeByKey = new Map(trainingTypes.map((t) => [t.key, t]));
 
+  const dateForDay = (startDate, week, day) => {
+    const dayOffset = { thu: 0, sun: 3, mon: 4 };
+    const result = new Date(startDate);
+    result.setDate(result.getDate() + (week - 1) * 7 + dayOffset[day]);
+    return result;
+  };
+
   // Local calendar day, not a rolling 24h window - 11:59pm and 12:01am the
   // next day are two different training days.
   const dateKey = (offsetDays = 0) => {
@@ -62,8 +70,42 @@
   let matchups = [];
   let currentWeek = null;
   let todayLog = null;
+  let seasonState = null;
+  let trainingLog = [];
 
   // --- Training ---
+
+  // Same per-matchup-week scoping as the Schedule page's item-sprite row
+  // (Thursday through the following Wednesday) - week 1 has no lower
+  // bound so pre-season training still counts toward the first matchup.
+  // This resets to empty every new week by design, unlike the streak/
+  // bonus badges below, which intentionally persist across weeks.
+  const weekTrainingTypes = (uid, week) => {
+    if (!seasonState || !seasonState.startDate) return [];
+    const weekStart = week <= 1 ? null : dateForDay(seasonState.startDate.toDate(), week, "thu");
+    const weekEnd = new Date(dateForDay(seasonState.startDate.toDate(), week, "thu"));
+    weekEnd.setDate(weekEnd.getDate() + 7);
+    return trainingLog
+      .filter((log) => log.uid === uid)
+      .filter((log) => {
+        const logDate = new Date(`${log.date}T12:00:00`);
+        return (!weekStart || logDate >= weekStart) && logDate < weekEnd;
+      })
+      .sort((a, b) => a.date.localeCompare(b.date))
+      .flatMap((log) => log.types || []);
+  };
+
+  const trainingSpriteRowHtml = (uid, week) => {
+    const icons = weekTrainingTypes(uid, week)
+      .map((key) => trainingTypeByKey.get(key))
+      .filter(Boolean)
+      .map(
+        (type) =>
+          `<img class="matchup-training-sprite" src="${itemSpriteUrl(type.item)}" alt="${escapeHtml(type.label)}" title="${escapeHtml(type.label)}" loading="lazy" />`
+      )
+      .join("");
+    return `<span class="matchup-training-row">${icons}</span>`;
+  };
 
   const trainingBadgesHtml = (training) => {
     const t = training || {};
@@ -334,6 +376,7 @@
       matchupMetaEl.textContent = "No upcoming matchup scheduled yet.";
       oppHeadingEl.innerHTML = `Opponent<span class="training-badges" id="myteam-opp-training-badges"></span>`;
       oppListEl.innerHTML = "";
+      matchupTrainingEl.innerHTML = "";
       return;
     }
 
@@ -346,6 +389,17 @@
     matchupMetaEl.textContent = `Week ${upcoming.week} — ${formatMatchupDate(upcoming.date)}`;
     const opponentName = escapeHtml(opponent ? opponent.teamName || "Unnamed Team" : "Unknown team");
     oppHeadingEl.innerHTML = `${opponentName}<span class="training-badges">${trainingBadgesHtml(opponent && opponent.training)}</span>`;
+
+    matchupTrainingEl.innerHTML = `
+      <div class="matchup-training-side">
+        <span class="matchup-training-label">You this week</span>
+        ${trainingSpriteRowHtml(currentUser.uid, upcoming.week)}
+      </div>
+      <div class="matchup-training-side">
+        <span class="matchup-training-label">${opponentName} this week</span>
+        ${trainingSpriteRowHtml(opponentUid, upcoming.week)}
+      </div>
+    `;
 
     const positions = config.pokemonPositions || [];
     oppListEl.innerHTML = positions.map((position) => renderOppRow(position, opponentSlots)).join("");
@@ -363,12 +417,13 @@
   let unsubscribeMatchups = null;
   let unsubscribeTodayLog = null;
   let unsubscribeSeason = null;
+  let unsubscribeTrainingLog = null;
 
   const subscribe = () => {
-    [unsubscribeTeams, unsubscribeMatchups, unsubscribeSeason, unsubscribeTodayLog].forEach(
+    [unsubscribeTeams, unsubscribeMatchups, unsubscribeSeason, unsubscribeTodayLog, unsubscribeTrainingLog].forEach(
       (unsubscribe) => unsubscribe && unsubscribe()
     );
-    unsubscribeTeams = unsubscribeMatchups = unsubscribeSeason = unsubscribeTodayLog = null;
+    unsubscribeTeams = unsubscribeMatchups = unsubscribeSeason = unsubscribeTodayLog = unsubscribeTrainingLog = null;
     todayLog = null;
 
     if (!currentUser) {
@@ -423,12 +478,21 @@
       () => {}
     );
 
+    unsubscribeTrainingLog = db.collection("trainingLog").onSnapshot(
+      (snapshot) => {
+        trainingLog = snapshot.docs.map((doc) => doc.data());
+        renderAll();
+      },
+      () => {}
+    );
+
     unsubscribeSeason = db
       .collection("seasonState")
       .doc("current")
       .onSnapshot(
         (doc) => {
-          currentWeek = doc.exists ? doc.data().currentWeek ?? null : null;
+          seasonState = doc.exists ? doc.data() : null;
+          currentWeek = seasonState ? seasonState.currentWeek ?? null : null;
           renderAll();
         },
         () => {}

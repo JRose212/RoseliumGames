@@ -250,16 +250,19 @@
   // (Thursday through the following Wednesday, matching how weeks are
   // actually laid out in generateSchedule), shown as small item sprites
   // under that team's name - one icon per session, in the order trained.
+  // Week 1 has no lower bound, so pre-season training (logged before the
+  // season's generated start date) still counts toward the first matchup
+  // instead of silently falling outside every week's range.
   const weekTrainingTypes = (uid, week) => {
     if (!seasonState || !seasonState.startDate) return [];
-    const weekStart = dateForDay(seasonState.startDate.toDate(), week, "thu");
-    const weekEnd = new Date(weekStart);
+    const weekStart = week <= 1 ? null : dateForDay(seasonState.startDate.toDate(), week, "thu");
+    const weekEnd = new Date(dateForDay(seasonState.startDate.toDate(), week, "thu"));
     weekEnd.setDate(weekEnd.getDate() + 7);
     return trainingLog
       .filter((log) => log.uid === uid)
       .filter((log) => {
         const logDate = new Date(`${log.date}T12:00:00`);
-        return logDate >= weekStart && logDate < weekEnd;
+        return (!weekStart || logDate >= weekStart) && logDate < weekEnd;
       })
       .sort((a, b) => a.date.localeCompare(b.date))
       .flatMap((log) => log.types || []);
