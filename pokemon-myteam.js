@@ -39,13 +39,6 @@
   const trainingTypes = config.trainingTypes || [];
   const trainingTypeByKey = new Map(trainingTypes.map((t) => [t.key, t]));
 
-  const dateForDay = (startDate, week, day) => {
-    const dayOffset = { thu: 0, sun: 3, mon: 4 };
-    const result = new Date(startDate);
-    result.setDate(result.getDate() + (week - 1) * 7 + dayOffset[day]);
-    return result;
-  };
-
   // Local calendar day, not a rolling 24h window - 11:59pm and 12:01am the
   // next day are two different training days.
   const dateKey = (offsetDays = 0) => {
@@ -75,28 +68,41 @@
 
   // --- Training ---
 
-  // Same per-matchup-week scoping as the Schedule page's item-sprite row
-  // (Thursday through the following Wednesday) - week 1 has no lower
-  // bound so pre-season training still counts toward the first matchup.
-  // This resets to empty every new week by design, unlike the streak/
-  // bonus badges below, which intentionally persist across weeks.
-  const weekTrainingTypes = (uid, week) => {
-    if (!seasonState || !seasonState.startDate) return [];
-    const weekStart = week <= 1 ? null : dateForDay(seasonState.startDate.toDate(), week, "thu");
-    const weekEnd = new Date(dateForDay(seasonState.startDate.toDate(), week, "thu"));
-    weekEnd.setDate(weekEnd.getDate() + 7);
+  // A team's "week" of training isn't a fixed calendar block - a game ends
+  // it. Teams rotate through Thu/Sun/Mon, so the gap between a team's own
+  // two consecutive games varies (Thursday one week, Sunday the next) -
+  // this looks up that team's actual previous game relative to the
+  // matchup being shown, same logic as the Schedule page. Resets to empty
+  // every new game by design, unlike the streak/bonus badges above, which
+  // intentionally persist across games.
+  const previousMatchupFor = (uid, currentMatchup) => {
+    if (!currentMatchup.date) return null;
+    return (
+      matchups
+        .filter(
+          (m) => (m.homeUid === uid || m.awayUid === uid) && m.date && m.date.toMillis() < currentMatchup.date.toMillis()
+        )
+        .sort((a, b) => b.date.toMillis() - a.date.toMillis())[0] || null
+    );
+  };
+
+  const trainingSinceLastGame = (uid, currentMatchup) => {
+    if (!currentMatchup.date) return [];
+    const prev = previousMatchupFor(uid, currentMatchup);
+    const startMs = prev && prev.date ? prev.date.toMillis() : null;
+    const endMs = currentMatchup.date.toMillis();
     return trainingLog
       .filter((log) => log.uid === uid)
       .filter((log) => {
-        const logDate = new Date(`${log.date}T12:00:00`);
-        return (!weekStart || logDate >= weekStart) && logDate < weekEnd;
+        const logMs = new Date(`${log.date}T12:00:00`).getTime();
+        return (startMs === null || logMs > startMs) && logMs <= endMs;
       })
       .sort((a, b) => a.date.localeCompare(b.date))
       .flatMap((log) => log.types || []);
   };
 
-  const trainingSpriteRowHtml = (uid, week) => {
-    const icons = weekTrainingTypes(uid, week)
+  const trainingSpriteRowHtml = (uid, currentMatchup) => {
+    const icons = trainingSinceLastGame(uid, currentMatchup)
       .map((key) => trainingTypeByKey.get(key))
       .filter(Boolean)
       .map(
@@ -392,12 +398,12 @@
 
     matchupTrainingEl.innerHTML = `
       <div class="matchup-training-side">
-        <span class="matchup-training-label">You this week</span>
-        ${trainingSpriteRowHtml(currentUser.uid, upcoming.week)}
+        <span class="matchup-training-label">You since your last game</span>
+        ${trainingSpriteRowHtml(currentUser.uid, upcoming)}
       </div>
       <div class="matchup-training-side">
-        <span class="matchup-training-label">${opponentName} this week</span>
-        ${trainingSpriteRowHtml(opponentUid, upcoming.week)}
+        <span class="matchup-training-label">${opponentName} since their last game</span>
+        ${trainingSpriteRowHtml(opponentUid, upcoming)}
       </div>
     `;
 
