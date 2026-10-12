@@ -254,6 +254,17 @@
   const roundLabel = (round) =>
     ({ regular: "Regular Season", quarterfinal: "Quarterfinal", semifinal: "Semifinal", pokebowl: "PokéBowl" }[round] || round);
 
+  // Thursday Night Football, then the Sunday slate, then Monday Night
+  // Football last - the order NFL weeks actually play in, not the order
+  // matchup docs happened to be created in.
+  const dayOrder = { thu: 0, sun: 1, mon: 2 };
+  const dayLabel = { thu: "Thursday", sun: "Sunday", mon: "Monday" };
+
+  const formatMatchupDate = (date) => {
+    if (!date) return "";
+    return date.toDate().toLocaleDateString("en-US", { month: "short", day: "numeric" });
+  };
+
   const renderWeeks = () => {
     if (!matchups.length) {
       weeksEl.innerHTML = "";
@@ -268,7 +279,9 @@
 
     weeksEl.innerHTML = weeks
       .map((week) => {
-        const weekMatchups = byWeek.get(week).sort((a, b) => a.id.localeCompare(b.id));
+        const weekMatchups = byWeek
+          .get(week)
+          .sort((a, b) => (dayOrder[a.day] ?? 99) - (dayOrder[b.day] ?? 99) || a.id.localeCompare(b.id));
         const heading =
           weekMatchups[0].round === "regular"
             ? `Week ${week}`
@@ -283,7 +296,7 @@
                 ? `<button type="button" class="btn btn-secondary result-open-btn" data-id="${m.id}">Edit Result</button>`
                 : "";
             return `<div class="card matchup-card">
-                      <span class="matchup-day">${m.day}</span>
+                      <span class="matchup-day">${dayLabel[m.day] || m.day}, ${formatMatchupDate(m.date)}</span>
                       <span class="matchup-teams">${matchupLabel(m)}</span>
                       <span class="matchup-score">${scoreText}</span>
                       ${declareBtn}
