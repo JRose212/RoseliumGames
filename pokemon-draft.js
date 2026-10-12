@@ -725,6 +725,26 @@
       const preRankingSnap = await db.collection("predraftRankings").doc(preTargetUid).get();
       const preRankedIds = (preRankingSnap.exists && preRankingSnap.data().pokemonIds) || [];
 
+      // TEMPORARY DIAGNOSTIC LOGGING - remove once the permission bug is found.
+      try {
+        const tokenResult = await auth.currentUser.getIdTokenResult(true);
+        console.log("[autodraft-debug]", {
+          "module currentUser.uid": currentUser && currentUser.uid,
+          "auth.currentUser.uid": auth.currentUser && auth.currentUser.uid,
+          "token claims.sub": tokenResult.claims.sub,
+          "token claims.user_id": tokenResult.claims.user_id,
+          "token issuedAtTime": tokenResult.issuedAtTime,
+          "token expirationTime": tokenResult.expirationTime,
+          "preTargetUid (who we're autodrafting for)": preTargetUid,
+          "serverNow vs pickDeadlineAt": {
+            deadline: preState.pickDeadlineAt.toDate().toISOString(),
+            clientNow: new Date().toISOString(),
+          },
+        });
+      } catch (debugErr) {
+        console.log("[autodraft-debug] failed to gather diagnostics:", debugErr);
+      }
+
       await db.runTransaction(async (tx) => {
         const stateSnap = await tx.get(stateRef);
         const state = stateSnap.data();
