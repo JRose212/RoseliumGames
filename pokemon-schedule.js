@@ -101,6 +101,13 @@
     generateMessageEl.textContent = text;
   };
 
+  // Any already-played game locks the schedule in - regenerating would
+  // silently wipe its recorded result back to blank, and reshuffle every
+  // other week's pairings since the round-robin depends on the full team
+  // list. Before that point, it's just a preview and safe to re-run as
+  // more teams join.
+  const hasFinalRegularGame = () => matchups.some((m) => m.round === "regular" && m.status === "final");
+
   async function generateSchedule() {
     const dateValue = startDateEl.value;
     if (!dateValue) {
@@ -113,10 +120,30 @@
       return;
     }
 
+    if (hasFinalRegularGame()) {
+      showGenerateMessage("A result has already been recorded - the schedule can no longer be regenerated.", true);
+      return;
+    }
+
+    if (
+      seasonState &&
+      !window.confirm("A schedule already exists. Regenerating replaces every regular-season matchup. Continue?")
+    ) {
+      return;
+    }
+
     try {
       const teamsSnapshot = await db.collection("teams").orderBy("createdAt").get();
       const uids = teamsSnapshot.docs.map((doc) => doc.id);
       if (uids.length < 2) throw new Error("Need at least 2 teams to generate a schedule.");
+
+      // Clear out any previously-generated regular-season matchups first -
+      // a different team count can produce a different number of
+      // matchups per week, which would otherwise leave stale leftover docs.
+      const staleSnapshot = await db.collection("matchups").where("round", "==", "regular").get();
+      const deleteBatch = db.batch();
+      staleSnapshot.docs.forEach((doc) => deleteBatch.delete(doc.ref));
+      if (staleSnapshot.docs.length) await deleteBatch.commit();
 
       const rrRounds = roundRobinRounds(uids);
       const batch = db.batch();
@@ -551,6 +578,7 @@
     unsubscribeMatchups = db.collection("matchups").onSnapshot(
       (snapshot) => {
         matchups = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+        generateCardEl.hidden = !(isAdmin() && !hasFinalRegularGame());
         renderAll();
       },
       () => {}
@@ -562,7 +590,8 @@
       .onSnapshot(
         (doc) => {
           seasonState = doc.exists ? doc.data() : null;
-          generateCardEl.hidden = !(isAdmin() && !seasonState);
+          generateCardEl.hidden = !(isAdmin() && !hasFinalRegularGame());
+          if (generateBtnEl) generateBtnEl.textContent = seasonState ? "Regenerate Schedule" : "Generate Schedule";
           renderAll();
         },
         () => {}
