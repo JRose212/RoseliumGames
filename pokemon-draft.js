@@ -298,7 +298,9 @@
       stopTicking();
       return;
     }
-    playTick();
+    // Only the manager actually on the clock hears the countdown ticking -
+    // everyone else still sees the big visual countdown, just silently.
+    if (myTurn()) playTick();
     const delay = remainingMs > 10000 ? 1000 : remainingMs > 5000 ? 500 : 250;
     tickTimeoutId = setTimeout(scheduleTick, Math.min(delay, remainingMs));
   };
