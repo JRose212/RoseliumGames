@@ -482,31 +482,38 @@
 
   const renderSelectionUI = () => {
     if (selectedPickId === null) return;
-    let el = gridEl.querySelector(`.poke-card[data-id="${selectedPickId}"]`);
-    let selectedClass = "poke-card--selected";
-    if (!el) {
-      el = rankingsListEl.querySelector(`.ranking-item[data-id="${selectedPickId}"]`);
-      selectedClass = "ranking-item--selected";
-    }
-    if (!el) {
+    // Attach the confirm button to every place this Pokemon is currently
+    // rendered (the live grid AND the rankings list, if both happen to
+    // show it) rather than just the first match - otherwise selecting it
+    // from the rankings list would only show the button on the grid card
+    // below, defeating the point of not having to scroll to find it.
+    const targets = [
+      [gridEl.querySelector(`.poke-card[data-id="${selectedPickId}"]`), "poke-card--selected"],
+      [rankingsListEl.querySelector(`.ranking-item[data-id="${selectedPickId}"]`), "ranking-item--selected"],
+    ].filter(([el]) => el);
+
+    if (!targets.length) {
       // No longer rendered anywhere (drafted, pruned, filtered out by
       // search) - the selection no longer makes sense.
       selectedPickId = null;
       selectedPickName = null;
       return;
     }
-    el.classList.add(selectedClass);
-    if (!el.querySelector(".poke-card-draft-btn")) {
-      const btn = document.createElement("button");
-      btn.type = "button";
-      btn.className = "btn poke-card-draft-btn";
-      btn.textContent = "Draft This Pokémon";
-      btn.addEventListener("click", (event) => {
-        event.stopPropagation();
-        openSlotPicker(selectedPickId, selectedPickName);
-      });
-      el.appendChild(btn);
-    }
+
+    targets.forEach(([el, selectedClass]) => {
+      el.classList.add(selectedClass);
+      if (!el.querySelector(".poke-card-draft-btn")) {
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "btn poke-card-draft-btn";
+        btn.textContent = "Draft This Pokémon";
+        btn.addEventListener("click", (event) => {
+          event.stopPropagation();
+          openSlotPicker(selectedPickId, selectedPickName);
+        });
+        el.appendChild(btn);
+      }
+    });
   };
 
   const selectForDraft = (id, name) => {
