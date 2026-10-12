@@ -28,7 +28,7 @@
     const streak = t.currentStreak || 0;
     const bonus = t.bonusSessionsAvailable || 0;
     const parts = [];
-    if (streak > 0) parts.push(`<span class="training-badge training-badge--streak">🔥 ${streak}-day streak</span>`);
+    if (streak > 0) parts.push(`<span class="training-badge training-badge--streak">🔥 ${streak}-day training streak</span>`);
     if (bonus > 0) parts.push(`<span class="training-badge training-badge--bonus">+${bonus} bonus session${bonus === 1 ? "" : "s"}</span>`);
     return parts.join("");
   };
