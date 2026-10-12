@@ -463,10 +463,21 @@ body[data-page^="pokemon-"] .jump-nav a {
 .ranking-item {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: 0.6rem;
   padding: 0.5rem 0.75rem;
   border: 1px solid var(--border);
   background: rgba(199, 211, 222, 0.05);
+}
+
+.ranking-item--selected {
+  border-color: var(--accent-strong) !important;
+  box-shadow: 0 0 0 3px rgba(255, 203, 5, 0.45);
+}
+
+.ranking-item .poke-card-draft-btn {
+  flex: 1 0 100%;
+  margin-top: 0.2rem;
 }
 
 .ranking-item-rank {
@@ -480,6 +491,15 @@ body[data-page^="pokemon-"] .jump-nav a {
   font-weight: 700;
   text-transform: uppercase;
   font-size: 0.85rem;
+}
+
+.ranking-item-name--pickable {
+  cursor: pointer;
+  text-decoration: underline dotted;
+}
+
+.ranking-item-name--pickable:hover {
+  color: var(--accent-strong);
 }
 
 .ranking-item-actions {

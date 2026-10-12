@@ -313,12 +313,15 @@
       rankingsListEl.innerHTML = `<li class="status">No Pokémon ranked yet.</li>`;
       return;
     }
+    const canDraftFromList = Boolean(myTurn());
     rankingsListEl.innerHTML = myRankings
       .map(
         (id, index) => `
-          <li class="ranking-item">
+          <li class="ranking-item" data-id="${id}">
             <span class="ranking-item-rank">${index + 1}</span>
-            <span class="ranking-item-name">${escapeHtml(nameForId(id))}</span>
+            <span class="ranking-item-name${canDraftFromList ? " ranking-item-name--pickable" : ""}" data-id="${id}" data-name="${escapeHtml(
+          nameForId(id)
+        )}" title="${canDraftFromList ? "Click to draft this Pokémon" : ""}">${escapeHtml(nameForId(id))}</span>
             <div class="ranking-item-actions">
               <button type="button" data-action="up" data-id="${id}" ${index === 0 ? "disabled" : ""}>▲</button>
               <button type="button" data-action="down" data-id="${id}" ${index === myRankings.length - 1 ? "disabled" : ""}>▼</button>
@@ -343,6 +346,14 @@
         saveRankings();
       });
     });
+    if (canDraftFromList) {
+      rankingsListEl.querySelectorAll(".ranking-item-name--pickable").forEach((nameEl) => {
+        nameEl.addEventListener("click", () => {
+          selectForDraft(Number(nameEl.dataset.id), nameEl.dataset.name);
+        });
+      });
+    }
+    renderSelectionUI();
   };
 
   let rankingsStatusTimeout = null;
@@ -449,36 +460,64 @@
     rankingsSearchDebounce = setTimeout(applyRankingsSearch, 150);
   });
 
-  // Click a pickable card to select it (shows an inline "Draft This
-  // Pokemon" confirm button); click again or pick another card to change
-  // your mind. Only the confirm button actually opens the slot-choice
-  // modal, so one accidental click can't start a pick.
+  // Click a pickable Pokemon - either in the live grid below or directly
+  // in your own pre-draft rankings list - to select it (shows an inline
+  // "Draft This Pokemon" confirm button wherever it's currently shown);
+  // click again to change your mind. Only the confirm button actually
+  // opens the slot-choice modal, so one accidental click can't start a
+  // pick. Tracked by id/name rather than a DOM reference so it survives
+  // either list re-rendering out from under it.
   let selectedPickId = null;
+  let selectedPickName = null;
 
   const clearSelection = () => {
-    if (selectedPickId === null) return;
-    const card = gridEl.querySelector(`.poke-card[data-id="${selectedPickId}"]`);
-    if (card) {
-      card.classList.remove("poke-card--selected");
-      const btn = card.querySelector(".poke-card-draft-btn");
-      if (btn) btn.remove();
-    }
     selectedPickId = null;
+    selectedPickName = null;
+    document.querySelectorAll(".poke-card--selected, .ranking-item--selected").forEach((el) => {
+      el.classList.remove("poke-card--selected", "ranking-item--selected");
+      const btn = el.querySelector(".poke-card-draft-btn");
+      if (btn) btn.remove();
+    });
   };
 
-  const selectCard = (card) => {
+  const renderSelectionUI = () => {
+    if (selectedPickId === null) return;
+    let el = gridEl.querySelector(`.poke-card[data-id="${selectedPickId}"]`);
+    let selectedClass = "poke-card--selected";
+    if (!el) {
+      el = rankingsListEl.querySelector(`.ranking-item[data-id="${selectedPickId}"]`);
+      selectedClass = "ranking-item--selected";
+    }
+    if (!el) {
+      // No longer rendered anywhere (drafted, pruned, filtered out by
+      // search) - the selection no longer makes sense.
+      selectedPickId = null;
+      selectedPickName = null;
+      return;
+    }
+    el.classList.add(selectedClass);
+    if (!el.querySelector(".poke-card-draft-btn")) {
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "btn poke-card-draft-btn";
+      btn.textContent = "Draft This Pokémon";
+      btn.addEventListener("click", (event) => {
+        event.stopPropagation();
+        openSlotPicker(selectedPickId, selectedPickName);
+      });
+      el.appendChild(btn);
+    }
+  };
+
+  const selectForDraft = (id, name) => {
+    if (selectedPickId === id) {
+      clearSelection();
+      return;
+    }
     clearSelection();
-    card.classList.add("poke-card--selected");
-    const btn = document.createElement("button");
-    btn.type = "button";
-    btn.className = "btn poke-card-draft-btn";
-    btn.textContent = "Draft This Pokémon";
-    btn.addEventListener("click", (event) => {
-      event.stopPropagation();
-      openSlotPicker(Number(card.dataset.id), card.dataset.name);
-    });
-    card.appendChild(btn);
-    selectedPickId = Number(card.dataset.id);
+    selectedPickId = id;
+    selectedPickName = name;
+    renderSelectionUI();
   };
 
   const applyPickableState = () => {
@@ -505,7 +544,6 @@
   };
 
   const renderPickerGrid = (entries) => {
-    clearSelection();
     gridEl.innerHTML = entries
       .map(
         (entry) => `
@@ -523,14 +561,11 @@
       detailObserver.observe(card);
       card.addEventListener("click", () => {
         if (!card.classList.contains("poke-card--pickable")) return;
-        if (selectedPickId === Number(card.dataset.id)) {
-          clearSelection();
-          return;
-        }
-        selectCard(card);
+        selectForDraft(Number(card.dataset.id), card.dataset.name);
       });
     });
     applyPickableState();
+    renderSelectionUI();
   };
 
   let searchDebounce = null;
