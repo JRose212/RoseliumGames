@@ -23,6 +23,9 @@
   const resultMessageEl = document.getElementById("result-message");
   const resultSubmitBtnEl = document.getElementById("result-submit-btn");
   const resultCancelBtnEl = document.getElementById("result-cancel-btn");
+  const resetSeasonCardEl = document.getElementById("reset-season-card");
+  const resetSeasonBtnEl = document.getElementById("reset-season-btn");
+  const resetSeasonMessageEl = document.getElementById("reset-season-message");
 
   if (!weeksEl) return;
 
@@ -110,6 +113,44 @@
   // list. Before that point, it's just a preview and safe to re-run as
   // more teams join.
   const hasFinalRegularGame = () => matchups.some((m) => m.round === "regular" && m.status === "final");
+
+  const updateGenerateCardVisibility = () => {
+    const locked = hasFinalRegularGame();
+    generateCardEl.hidden = !(isAdmin() && !locked);
+    resetSeasonCardEl.hidden = !(isAdmin() && locked);
+  };
+
+  // Deletes every matchup and the season state doc entirely, so
+  // generateSchedule() can run fresh afterward - the only way back once a
+  // result has gone final and locked normal regeneration. Does not touch
+  // training/trainingLog data; that's a separate system.
+  async function resetSeason() {
+    if (
+      !window.confirm(
+        "This permanently deletes every matchup (including recorded results) and the season state. Continue?"
+      )
+    ) {
+      return;
+    }
+    try {
+      const matchupsSnapshot = await db.collection("matchups").get();
+      const refs = [db.collection("seasonState").doc("current"), ...matchupsSnapshot.docs.map((doc) => doc.ref)];
+      for (let i = 0; i < refs.length; i += 450) {
+        const batch = db.batch();
+        refs.slice(i, i + 450).forEach((ref) => batch.delete(ref));
+        await batch.commit();
+      }
+      resetSeasonMessageEl.hidden = false;
+      resetSeasonMessageEl.className = "status";
+      resetSeasonMessageEl.textContent = "Season reset - you can generate a fresh schedule now.";
+    } catch (error) {
+      resetSeasonMessageEl.hidden = false;
+      resetSeasonMessageEl.className = "status error";
+      resetSeasonMessageEl.textContent = error.message;
+    }
+  }
+
+  if (resetSeasonBtnEl) resetSeasonBtnEl.addEventListener("click", resetSeason);
 
   async function generateSchedule() {
     const dateValue = startDateEl.value;
@@ -653,6 +694,7 @@
       statusEl.className = "status";
       statusEl.innerHTML = `Sign in on the <a href="pokemon-league.html">League Home</a> page to view the schedule.`;
       generateCardEl.hidden = true;
+      resetSeasonCardEl.hidden = true;
       standingsCardEl.hidden = true;
       playoffAdminCardEl.hidden = true;
       bracketCardEl.hidden = true;
@@ -681,7 +723,7 @@
     unsubscribeMatchups = db.collection("matchups").onSnapshot(
       (snapshot) => {
         matchups = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
-        generateCardEl.hidden = !(isAdmin() && !hasFinalRegularGame());
+        updateGenerateCardVisibility();
         renderAll();
       },
       () => {}
@@ -693,7 +735,7 @@
       .onSnapshot(
         (doc) => {
           seasonState = doc.exists ? doc.data() : null;
-          generateCardEl.hidden = !(isAdmin() && !hasFinalRegularGame());
+          updateGenerateCardVisibility();
           if (generateBtnEl) generateBtnEl.textContent = seasonState ? "Regenerate Schedule" : "Generate Schedule";
           renderAll();
         },
