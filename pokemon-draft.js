@@ -42,6 +42,7 @@
   const auth = firebase.auth();
   const db = firebase.firestore();
   const positions = config.pokemonPositions || [];
+  const legendaryIds = new Set(config.legendaryPokemonIds || []);
 
   // --- PokeAPI list/detail caching (duplicated from pokemon-dex.js by this
   // repo's one-self-contained-file-per-page convention). ---
@@ -396,17 +397,29 @@
     rankingsGridEl.querySelectorAll(".poke-card").forEach((card) => {
       const id = Number(card.dataset.id);
       const rankIndex = myRankings.indexOf(id);
-      const ribbonEl = card.querySelector(".poke-card-drafted-by");
-      if (rankIndex !== -1) {
+      const ribbonEl = card.querySelector(".poke-card-drafted-by, .poke-card-legendary-badge");
+      if (legendaryIds.has(id)) {
+        card.classList.remove("poke-card--drafted");
+        card.classList.add("poke-card--legendary");
+        if (!ribbonEl || ribbonEl.className !== "poke-card-legendary-badge") {
+          if (ribbonEl) ribbonEl.remove();
+          const badge = document.createElement("p");
+          badge.className = "poke-card-legendary-badge";
+          badge.textContent = "Legendary";
+          card.appendChild(badge);
+        }
+      } else if (rankIndex !== -1) {
+        card.classList.remove("poke-card--legendary");
         card.classList.add("poke-card--drafted");
-        if (!ribbonEl) {
+        if (!ribbonEl || ribbonEl.className !== "poke-card-drafted-by") {
+          if (ribbonEl) ribbonEl.remove();
           const ribbon = document.createElement("p");
           ribbon.className = "poke-card-drafted-by";
           card.appendChild(ribbon);
         }
         card.querySelector(".poke-card-drafted-by").textContent = `Ranked #${rankIndex + 1}`;
       } else {
-        card.classList.remove("poke-card--drafted");
+        card.classList.remove("poke-card--drafted", "poke-card--legendary");
         if (ribbonEl) ribbonEl.remove();
       }
     });
@@ -430,7 +443,7 @@
       detailObserver.observe(card);
       card.addEventListener("click", () => {
         const id = Number(card.dataset.id);
-        if (myRankings.includes(id)) return;
+        if (legendaryIds.has(id) || myRankings.includes(id)) return;
         if (myRankings.length >= MAX_RANKINGS) {
           showRankingsStatus(`You can only rank up to ${MAX_RANKINGS} Pokémon.`, true);
           return;
@@ -532,18 +545,32 @@
     gridEl.querySelectorAll(".poke-card").forEach((card) => {
       const id = Number(card.dataset.id);
       const drafted = draftedMap.get(id);
-      const ribbonEl = card.querySelector(".poke-card-drafted-by");
-      if (drafted) {
+      const ribbonEl = card.querySelector(".poke-card-drafted-by, .poke-card-legendary-badge");
+      if (legendaryIds.has(id)) {
+        card.classList.remove("poke-card--drafted", "poke-card--pickable");
+        card.classList.add("poke-card--legendary");
+        if (!ribbonEl || ribbonEl.className !== "poke-card-legendary-badge") {
+          if (ribbonEl) ribbonEl.remove();
+          const badge = document.createElement("p");
+          badge.className = "poke-card-legendary-badge";
+          badge.textContent = "Legendary";
+          card.appendChild(badge);
+        }
+      } else if (drafted) {
+        card.classList.remove("poke-card--legendary");
         card.classList.add("poke-card--drafted");
         card.classList.remove("poke-card--pickable");
-        if (!ribbonEl) {
+        if (!ribbonEl || ribbonEl.className !== "poke-card-drafted-by") {
+          if (ribbonEl) ribbonEl.remove();
           const ribbon = document.createElement("p");
           ribbon.className = "poke-card-drafted-by";
           ribbon.textContent = `Drafted by ${drafted.teamName}`;
           card.appendChild(ribbon);
+        } else {
+          ribbonEl.textContent = `Drafted by ${drafted.teamName}`;
         }
       } else {
-        card.classList.remove("poke-card--drafted");
+        card.classList.remove("poke-card--drafted", "poke-card--legendary");
         if (ribbonEl) ribbonEl.remove();
         card.classList.toggle("poke-card--pickable", Boolean(myTurn()));
       }

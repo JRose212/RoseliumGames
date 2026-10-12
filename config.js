@@ -37,6 +37,44 @@ window.siteConfig = {
     bench: ["BENCH1", "BENCH2", "BENCH3"],
   },
 
+  // Legendary and Mythical Pokemon, excluded from the draft, pre-draft
+  // rankings, and free agency entirely - shown grayed-out/labeled
+  // "Legendary" everywhere they'd otherwise appear (including the plain
+  // Pokedex browse page). PokeAPI has no bulk "is legendary" list - each
+  // species' own detail page carries that flag, and fetching all ~1300
+  // individually isn't practical for a static site - so this is a
+  // hand-maintained list instead, grouped by generation for easy editing
+  // if a new game's legendaries need adding. High confidence through Gen
+  // 8; the Gen 9 DLC-era entries (Loyal Three, Ogerpon, Terapagos,
+  // Pecharunt) are the ones most worth double-checking.
+  legendaryPokemonIds: [
+    // Gen 1: birds, Mewtwo, Mew
+    144, 145, 146, 150, 151,
+    // Gen 2: beasts, Lugia, Ho-Oh, Celebi
+    243, 244, 245, 249, 250, 251,
+    // Gen 3: Regis, Eon duo, weather trio, Jirachi, Deoxys
+    377, 378, 379, 380, 381, 382, 383, 384, 385, 386,
+    // Gen 4: lake trio, Dialga/Palkia/Giratina, Heatran, Regigigas,
+    // Cresselia, Manaphy, Darkrai, Shaymin, Arceus
+    480, 481, 482, 483, 484, 485, 486, 487, 488, 490, 491, 492, 493,
+    // Gen 5: Victini, swords of justice, forces of nature, Kyurem,
+    // Keldeo, Meloetta, Genesect
+    494, 638, 639, 640, 641, 642, 643, 644, 645, 646, 647, 648, 649,
+    // Gen 6: Xerneas, Yveltal, Zygarde, Diancie, Hoopa, Volcanion
+    716, 717, 718, 719, 720, 721,
+    // Gen 7: Tapus, cosmog line, Ultra Beasts, Magearna, Marshadow,
+    // Necrozma, Zeraora, Meltan/Melmetal
+    785, 786, 787, 788, 789, 790, 791, 792, 793, 794, 795, 796, 797, 798,
+    799, 800, 801, 802, 803, 804, 805, 806, 807, 808, 809,
+    // Gen 8: Zacian, Zamazenta, Eternatus, Zarude, Regieleki, Regidrago,
+    // Glastrier, Spectrier, Calyrex
+    888, 889, 890, 893, 894, 895, 896, 897, 898,
+    // Gen 9: treasures of ruin, box legends (Walking Wake/Iron Leaves are
+    // Paradox Pokemon, not legendary-flagged, so deliberately left out),
+    // loyal three + Ogerpon, Terapagos, Pecharunt
+    1001, 1002, 1003, 1004, 1007, 1008, 1014, 1015, 1016, 1017, 1024, 1025,
+  ],
+
   // Daily team training (My Team page). Each type's "item" is the PokeAPI
   // sprites repo item slug shown on its button - chosen to fit the
   // training concept rather than being literally about that item (the

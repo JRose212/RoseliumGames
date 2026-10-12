@@ -250,6 +250,19 @@ body[data-page^="pokemon-"] .jump-nav a {
   cursor: not-allowed;
 }
 
+.poke-card--legendary {
+  opacity: 0.4;
+  cursor: not-allowed;
+  filter: grayscale(0.8);
+}
+
+.poke-card-legendary-badge {
+  color: var(--accent-strong);
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
 .poke-sprite {
   width: 72px;
   height: 72px;

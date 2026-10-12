@@ -4,6 +4,7 @@
   const gridEl = document.getElementById("dex-grid");
   const searchEl = document.getElementById("dex-search");
   const typeFilterEl = document.getElementById("dex-type-filter");
+  const legendaryIds = new Set(config.legendaryPokemonIds || []);
 
   if (!gridEl) return;
 
@@ -103,17 +104,29 @@
     gridEl.querySelectorAll(".poke-card").forEach((card) => {
       const id = Number(card.dataset.id);
       const drafted = draftedMap.get(id);
-      const existingRibbon = card.querySelector(".poke-card-drafted-by");
-      if (drafted) {
+      const existingRibbon = card.querySelector(".poke-card-drafted-by, .poke-card-legendary-badge");
+      if (legendaryIds.has(id)) {
+        card.classList.remove("poke-card--drafted");
+        card.classList.add("poke-card--legendary");
+        if (!existingRibbon || existingRibbon.className !== "poke-card-legendary-badge") {
+          if (existingRibbon) existingRibbon.remove();
+          const badge = document.createElement("p");
+          badge.className = "poke-card-legendary-badge";
+          badge.textContent = "Legendary";
+          card.appendChild(badge);
+        }
+      } else if (drafted) {
+        card.classList.remove("poke-card--legendary");
         card.classList.add("poke-card--drafted");
-        if (!existingRibbon) {
+        if (!existingRibbon || existingRibbon.className !== "poke-card-drafted-by") {
+          if (existingRibbon) existingRibbon.remove();
           const ribbon = document.createElement("p");
           ribbon.className = "poke-card-drafted-by";
           ribbon.textContent = `Drafted by ${drafted.teamName}`;
           card.appendChild(ribbon);
         }
       } else {
-        card.classList.remove("poke-card--drafted");
+        card.classList.remove("poke-card--drafted", "poke-card--legendary");
         if (existingRibbon) existingRibbon.remove();
       }
     });

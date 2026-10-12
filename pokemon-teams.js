@@ -43,6 +43,7 @@
   const auth = firebase.auth();
   const db = firebase.firestore();
   const groups = config.positionGroups || { offense: [], defense: [], specialTeams: [] };
+  const legendaryIds = new Set(config.legendaryPokemonIds || []);
 
   // --- PokeAPI list caching (duplicated per this repo's one-file-per-page
   // convention; only the list is needed here, sprites are resolved via the
@@ -206,16 +207,24 @@
 
   const renderFaGrid = (entries) => {
     faGridEl.innerHTML = entries
-      .map(
-        (entry) => `
-          <article class="card poke-card ${draftedMap.has(entry.id) ? "poke-card--drafted" : "poke-card--pickable"}" data-id="${entry.id}" data-name="${escapeHtml(entry.name)}">
+      .map((entry) => {
+        const isLegendary = legendaryIds.has(entry.id);
+        const isDrafted = draftedMap.has(entry.id);
+        const cardClass = isLegendary ? "poke-card--legendary" : isDrafted ? "poke-card--drafted" : "poke-card--pickable";
+        const ribbon = isLegendary
+          ? `<p class="poke-card-legendary-badge">Legendary</p>`
+          : isDrafted
+          ? `<p class="poke-card-drafted-by">Drafted by ${escapeHtml(draftedMap.get(entry.id).teamName || "another team")}</p>`
+          : "";
+        return `
+          <article class="card poke-card ${cardClass}" data-id="${entry.id}" data-name="${escapeHtml(entry.name)}">
             <span class="poke-card-number">#${String(entry.id).padStart(4, "0")}</span>
             <img class="poke-sprite" src="${spriteUrl(entry.id)}" alt="${escapeHtml(entry.name)}" loading="lazy" />
             <span class="poke-card-name">${escapeHtml(entry.name)}</span>
-            ${draftedMap.has(entry.id) ? `<p class="poke-card-drafted-by">Drafted by ${escapeHtml(draftedMap.get(entry.id).teamName || "another team")}</p>` : ""}
+            ${ribbon}
           </article>
-        `
-      )
+        `;
+      })
       .join("");
     faGridEl.querySelectorAll(".poke-card--pickable").forEach((card) => {
       card.addEventListener("click", () => signFreeAgent(Number(card.dataset.id), card.dataset.name));
@@ -263,7 +272,7 @@
   faCancelEl.addEventListener("click", closeFreeAgentPicker);
 
   async function signFreeAgent(pokemonId, pokemonName) {
-    if (!pendingSlot || !currentUser) return;
+    if (!pendingSlot || !currentUser || legendaryIds.has(pokemonId)) return;
     const slot = pendingSlot;
     const teamRef = db.collection("teams").doc(currentUser.uid);
     const draftedRef = db.collection("draftedPokemon").doc(String(pokemonId));
