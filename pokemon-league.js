@@ -359,12 +359,15 @@
     }
   }
 
-  // Admin-only. Wipes every pick/roster record so a draft can be run again
-  // from scratch - pick numbering always restarts at 0001, which would
-  // otherwise collide with leftover draftPicks docs from whatever draft ran
-  // before and get rejected by the append-only security rule. Pre-draft
-  // rankings are left untouched since those are a manager's own standing
-  // preferences, not part of a single draft run.
+  // Admin-only. Wipes every pick/roster/training record so a draft can be
+  // run again from scratch - pick numbering always restarts at 0001, which
+  // would otherwise collide with leftover draftPicks docs from whatever
+  // draft ran before and get rejected by the append-only security rule.
+  // Training streaks/bonus sessions and the daily trainingLog are wiped
+  // too, since those are tied to a specific draft's rosters, not something
+  // that should carry over into a redone test (or a real restart). Pre-
+  // draft rankings are left untouched since those are a manager's own
+  // standing preferences, not part of a single draft run.
   async function restartDraft() {
     const messageEl = document.getElementById("restart-draft-message");
     const showMessage = (text, isError) => {
@@ -374,19 +377,33 @@
       messageEl.className = `status${isError ? " error" : ""}`;
     };
 
-    if (!window.confirm("This permanently deletes every draft pick and empties every roster. Continue?")) return;
+    if (
+      !window.confirm(
+        "This permanently deletes every draft pick, empties every roster, and clears all training streaks/bonus sessions. Continue?"
+      )
+    ) {
+      return;
+    }
 
     try {
-      const [picksSnapshot, draftedSnapshot, teamsSnapshot] = await Promise.all([
+      const [picksSnapshot, draftedSnapshot, teamsSnapshot, trainingLogSnapshot] = await Promise.all([
         db.collection("draftPicks").get(),
         db.collection("draftedPokemon").get(),
         db.collection("teams").get(),
+        db.collection("trainingLog").get(),
       ]);
 
       const ops = [];
       picksSnapshot.docs.forEach((doc) => ops.push({ ref: doc.ref, type: "delete" }));
       draftedSnapshot.docs.forEach((doc) => ops.push({ ref: doc.ref, type: "delete" }));
-      teamsSnapshot.docs.forEach((doc) => ops.push({ ref: doc.ref, type: "update", data: { slots: emptyRoster() } }));
+      trainingLogSnapshot.docs.forEach((doc) => ops.push({ ref: doc.ref, type: "delete" }));
+      teamsSnapshot.docs.forEach((doc) =>
+        ops.push({
+          ref: doc.ref,
+          type: "update",
+          data: { slots: emptyRoster(), training: firebase.firestore.FieldValue.delete() },
+        })
+      );
       ops.push({
         ref: db.collection("draftState").doc("current"),
         type: "update",
@@ -415,7 +432,7 @@
         await batch.commit();
       }
 
-      showMessage("Draft restarted - all picks cleared and rosters emptied.");
+      showMessage("Draft restarted - picks cleared, rosters emptied, training reset.");
     } catch (error) {
       showMessage(error.message, true);
     }

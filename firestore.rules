@@ -106,7 +106,7 @@ service cloud.firestore {
     match /trainingLog/{logId} {
       allow read: if isSignedIn();
       allow create, update: if isSignedIn() && request.resource.data.uid == request.auth.uid;
-      allow delete: if false;
+      allow delete: if isAdmin();
     }
 
     // Season-level schedule state. Admin-managed; everyone can read it.
