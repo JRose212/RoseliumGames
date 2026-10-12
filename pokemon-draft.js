@@ -709,41 +709,16 @@
 
     try {
       // predraftRankings is read here, outside the transaction, rather
-      // than via tx.get() inside it below. A manager's own ranking
+      // than via tx.get() inside it below - a manager's own ranking
       // changing mid-autodraft is an acceptable race (unlike the
       // uniqueness check further down, which does stay inside the
-      // transaction) - and reading it outside avoids it ever becoming a
-      // read-only "verify" entry in the transaction's commit, which
-      // forces Firestore to re-validate that read's permission at commit
-      // time via a separate, much less-exercised code path. That's the
-      // most likely explanation for the intermittent permission-denied
-      // failures seen here.
+      // transaction).
       const preStateSnap = await stateRef.get();
       const preState = preStateSnap.data();
       if (!preState || preState.status !== "drafting") throw new Error("The draft isn't active right now.");
       const preTargetUid = preState.currentUid;
       const preRankingSnap = await db.collection("predraftRankings").doc(preTargetUid).get();
       const preRankedIds = (preRankingSnap.exists && preRankingSnap.data().pokemonIds) || [];
-
-      // TEMPORARY DIAGNOSTIC LOGGING - remove once the permission bug is found.
-      try {
-        const tokenResult = await auth.currentUser.getIdTokenResult(true);
-        console.log("[autodraft-debug]", {
-          "module currentUser.uid": currentUser && currentUser.uid,
-          "auth.currentUser.uid": auth.currentUser && auth.currentUser.uid,
-          "token claims.sub": tokenResult.claims.sub,
-          "token claims.user_id": tokenResult.claims.user_id,
-          "token issuedAtTime": tokenResult.issuedAtTime,
-          "token expirationTime": tokenResult.expirationTime,
-          "preTargetUid (who we're autodrafting for)": preTargetUid,
-          "serverNow vs pickDeadlineAt": {
-            deadline: preState.pickDeadlineAt.toDate().toISOString(),
-            clientNow: new Date().toISOString(),
-          },
-        });
-      } catch (debugErr) {
-        console.log("[autodraft-debug] failed to gather diagnostics:", debugErr);
-      }
 
       await db.runTransaction(async (tx) => {
         const stateSnap = await tx.get(stateRef);
@@ -922,6 +897,7 @@
 
           renderTurnTracker();
           applyPickableState();
+          renderRankingsList();
         },
         (error) => {
           turnNameEl.textContent = "Unable to load draft status";
