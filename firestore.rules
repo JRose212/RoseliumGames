@@ -53,7 +53,7 @@ service cloud.firestore {
     // the narrow overdue-autodraft window, so a missed live pick can still
     // be filled from the absent manager's own ranking.
     match /predraftRankings/{uid} {
-      allow read: if isSignedIn() && (request.auth.uid == uid || isOverdueAutodraftFor(uid));
+      allow read: if isSignedIn() && (request.auth.uid == uid || isOverdueAutodraftFor(uid) || isAdmin());
       allow write: if isSignedIn() && request.auth.uid == uid;
     }
 
@@ -74,7 +74,7 @@ service cloud.firestore {
     match /draftPicks/{pickId} {
       allow read: if isSignedIn();
       allow create: if isSignedIn() && (
-        request.resource.data.uid == request.auth.uid || isOverdueAutodraftFor(request.resource.data.uid)
+        request.resource.data.uid == request.auth.uid || isOverdueAutodraftFor(request.resource.data.uid) || isAdmin()
       );
       allow update, delete: if false;
     }
@@ -87,7 +87,7 @@ service cloud.firestore {
     match /draftedPokemon/{pokemonId} {
       allow read: if isSignedIn();
       allow create: if isSignedIn() && (
-        request.resource.data.uid == request.auth.uid || isOverdueAutodraftFor(request.resource.data.uid)
+        request.resource.data.uid == request.auth.uid || isOverdueAutodraftFor(request.resource.data.uid) || isAdmin()
       );
       allow update: if false;
       allow delete: if isSignedIn() && (request.auth.uid == resource.data.uid || isAdmin());
