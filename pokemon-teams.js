@@ -169,7 +169,12 @@
   };
 
   const renderTeams = (teams) => {
-    if (!teams.length) {
+    const isAdminViewer = isAdmin();
+    // Hidden teams (admin-only toggle) stay off everyone else's view -
+    // the admin still sees them here, badged, to be able to unhide later.
+    const visibleTeams = teams.filter((team) => !team.hidden || isAdminViewer);
+
+    if (!visibleTeams.length) {
       listEl.innerHTML = "";
       statusEl.hidden = false;
       statusEl.className = "status";
@@ -177,8 +182,7 @@
       return;
     }
     statusEl.hidden = true;
-    const isAdminViewer = isAdmin();
-    listEl.innerHTML = teams
+    listEl.innerHTML = visibleTeams
       .map((team) => {
         const isMine = currentUser && team.ownerUid === currentUser.uid;
         const slots = team.slots || {};
@@ -189,8 +193,12 @@
         const exportBtn = isAdminViewer
           ? `<button type="button" class="btn btn-secondary export-team-btn" data-uid="${escapeHtml(team.uid)}">Export</button>`
           : "";
+        const hideBtn = isAdminViewer
+          ? `<button type="button" class="btn btn-secondary hide-team-btn" data-uid="${escapeHtml(team.uid)}" data-hidden="${team.hidden ? "true" : "false"}">${team.hidden ? "Show" : "Hide"}</button>`
+          : "";
+        const hiddenBadge = team.hidden ? `<span class="training-badge training-badge--hidden">HIDDEN</span>` : "";
         return `<section class="card">
-                  <h2>${escapeHtml(team.teamName || "Unnamed Team")}<span class="training-badges">${trainingBadgesHtml(team.training)}</span>${exportBtn}</h2>
+                  <h2>${escapeHtml(team.teamName || "Unnamed Team")}<span class="training-badges">${trainingBadgesHtml(team.training)}${hiddenBadge}</span>${exportBtn}${hideBtn}</h2>
                   <div class="roster-columns">
                     <div class="roster-column">
                       <h3 class="roster-column-heading">Offense</h3>
@@ -220,6 +228,9 @@
         const team = teams.find((t) => t.uid === btn.dataset.uid);
         if (team) btn.addEventListener("click", () => exportTeamCsv(team));
       });
+      listEl.querySelectorAll(".hide-team-btn").forEach((btn) => {
+        btn.addEventListener("click", () => toggleTeamHidden(btn.dataset.uid, btn.dataset.hidden === "true"));
+      });
     }
     listEl.querySelectorAll(".roster-remove-btn").forEach((btn) => {
       btn.addEventListener("click", () =>
@@ -227,6 +238,14 @@
       );
     });
   };
+
+  async function toggleTeamHidden(uid, currentlyHidden) {
+    try {
+      await db.collection("teams").doc(uid).update({ hidden: !currentlyHidden });
+    } catch (error) {
+      window.alert(`Unable to update: ${error.message}`);
+    }
+  }
 
   async function removeFromRoster(slot, pokemonId, pokemonName) {
     if (!currentUser) return;

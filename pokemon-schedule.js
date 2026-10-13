@@ -178,7 +178,7 @@
 
     try {
       const teamsSnapshot = await db.collection("teams").orderBy("createdAt").get();
-      const uids = teamsSnapshot.docs.map((doc) => doc.id);
+      const uids = teamsSnapshot.docs.filter((doc) => !doc.data().hidden).map((doc) => doc.id);
       if (uids.length < 2) throw new Error("Need at least 2 teams to generate a schedule.");
 
       // Clear out any previously-generated regular-season matchups first -
@@ -234,10 +234,12 @@
 
   const computeStandings = () => {
     const stats = new Map(
-      [...teamsByUid.entries()].map(([uid, team]) => [
-        uid,
-        { uid, teamName: team.teamName, wins: 0, losses: 0, pointsFor: 0, pointsAgainst: 0 },
-      ])
+      [...teamsByUid.entries()]
+        .filter(([, team]) => !team.hidden)
+        .map(([uid, team]) => [
+          uid,
+          { uid, teamName: team.teamName, wins: 0, losses: 0, pointsFor: 0, pointsAgainst: 0 },
+        ])
     );
     matchups
       .filter((m) => m.round === "regular" && m.status === "final")
@@ -615,7 +617,7 @@
 
   async function generateQuarterfinals() {
     const teamsSnapshot = await db.collection("teams").orderBy("createdAt").get();
-    const uidsWithData = teamsSnapshot.docs.map((doc) => doc.id);
+    const uidsWithData = teamsSnapshot.docs.filter((doc) => !doc.data().hidden).map((doc) => doc.id);
     if (uidsWithData.length < 8) {
       playoffAdminAreaEl.innerHTML = `<p class="status error">Need at least 8 teams to generate an 8-team playoff bracket.</p>`;
       return;

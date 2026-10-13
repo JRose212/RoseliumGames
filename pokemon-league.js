@@ -305,7 +305,9 @@
       .orderBy("createdAt")
       .onSnapshot(
         (snapshot) => {
-          latestTeams = snapshot.docs.map((doc) => ({ uid: doc.id, ...doc.data() }));
+          // Hidden teams (admin-only toggle, Rosters page) stay out of the
+          // manager list, the Start Draft headcount, and the draft itself.
+          latestTeams = snapshot.docs.map((doc) => ({ uid: doc.id, ...doc.data() })).filter((team) => !team.hidden);
           renderManagerList();
           renderStartDraftArea();
         },
@@ -369,7 +371,7 @@
 
     try {
       const teamsSnapshot = await db.collection("teams").orderBy("createdAt").get();
-      const uids = teamsSnapshot.docs.map((doc) => doc.id);
+      const uids = teamsSnapshot.docs.filter((doc) => !doc.data().hidden).map((doc) => doc.id);
       const positions = config.pokemonPositions || [];
       const pickOrder = buildSnakePickOrder(uids, positions);
 

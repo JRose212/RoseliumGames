@@ -1248,6 +1248,11 @@ body[data-page^="pokemon-"] .app-content {
   color: var(--accent-strong);
 }
 
+.training-badge--hidden {
+  background: rgba(199, 211, 222, 0.15);
+  color: var(--muted);
+}
+
 /* Schedule matchup cards: small per-type item sprites showing how much a
    team trained that week, under its name in the matchup row. */
 
