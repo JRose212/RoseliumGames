@@ -109,6 +109,16 @@ service cloud.firestore {
       allow delete: if isAdmin();
     }
 
+    // Private feedback box. Anyone signed in can submit their own; only the
+    // admin can read or delete any of it - unlike chat, this is never
+    // visible to other managers, by design.
+    match /feedback/{feedbackId} {
+      allow read: if isAdmin();
+      allow create: if isSignedIn() && request.resource.data.uid == request.auth.uid;
+      allow update: if false;
+      allow delete: if isAdmin();
+    }
+
     // Season-level schedule state. Admin-managed; everyone can read it.
     match /seasonState/current {
       allow read: if isSignedIn();
