@@ -1,3 +1,43 @@
+// League rules modal - a self-contained IIFE, separate from the main one
+// below, so it works regardless of Firebase/auth state (including signed
+// out, or Firebase failing to configure entirely). #rules in the URL opens
+// it directly, so the link is shareable on its own.
+(function () {
+  const modalEl = document.getElementById("rules-modal");
+  const linkBtn = document.getElementById("rules-link-btn");
+  const closeBtn = document.getElementById("rules-modal-close");
+  if (!modalEl || !linkBtn || !closeBtn) return;
+
+  const openModal = () => {
+    modalEl.hidden = false;
+  };
+  const closeModal = () => {
+    modalEl.hidden = true;
+    if (location.hash === "#rules") {
+      history.replaceState(null, "", location.pathname + location.search);
+    }
+  };
+
+  linkBtn.addEventListener("click", (event) => {
+    event.preventDefault();
+    location.hash = "rules";
+    openModal();
+  });
+  closeBtn.addEventListener("click", closeModal);
+  modalEl.addEventListener("click", (event) => {
+    if (event.target === modalEl) closeModal();
+  });
+  document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape" && !modalEl.hidden) closeModal();
+  });
+  window.addEventListener("hashchange", () => {
+    if (location.hash === "#rules") openModal();
+    else modalEl.hidden = true;
+  });
+
+  if (location.hash === "#rules") openModal();
+})();
+
 (function () {
   const config = window.siteConfig || {};
   const authPanelEl = document.getElementById("auth-panel");

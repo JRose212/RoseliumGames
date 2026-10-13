@@ -55,6 +55,10 @@
           season kicking off <strong>October 15th</strong>. Sign up, rank
           your picks, and get ready to battle your way to the PokéBowl.
         </p>
+        <a href="#rules" class="rules-link-btn" id="rules-link-btn">
+          <span class="pokemon-nav-badge-icon" aria-hidden="true"></span>
+          League Rules &amp; Information
+        </a>
       </section>
 
       <nav class="jump-nav card" aria-label="Fantasy league navigation">
@@ -77,6 +81,101 @@
         <ul class="manager-list" id="manager-list"></ul>
       </section>
     </main>
+
+    <div class="rules-modal" id="rules-modal" hidden>
+      <div class="card rules-modal-panel">
+        <button type="button" class="rules-modal-close" id="rules-modal-close" aria-label="Close">✕</button>
+
+        <h2>Welcome to Fantasy Pokéball</h2>
+        <p>
+          Fantasy Pokéball is starting soon - a fantasy football league where you draft Pokémon instead of
+          NFL players onto a 26-slot roster, then manage your team all season through a weekly schedule,
+          standings, and playoffs.
+        </p>
+        <p>You're getting this because you're in (or invited to) the league. Here's what to do and where everything lives.</p>
+
+        <h3>How to Join</h3>
+        <ol>
+          <li>Go to <a href="pokemon-league.html">League Home</a>.</li>
+          <li>Create an account with your email and a password, and give your team a name.</li>
+          <li>That's it - you'll show up in the manager list immediately, and you can start building your Pre-Draft Rankings right away.</li>
+        </ol>
+
+        <h3>Quick Tour</h3>
+        <div class="table-wrap">
+          <table class="rules-modal-table">
+            <thead><tr><th>Page</th><th>What it's for</th></tr></thead>
+            <tbody>
+              <tr><td><a href="pokemon-league.html">League Home</a></td><td>Sign up, see who's joined, start the draft once enough managers are in</td></tr>
+              <tr><td><a href="pokemon-myteam.html">My Team</a></td><td>Your own roster, drag-and-drop slot management, daily training, next matchup</td></tr>
+              <tr><td><a href="pokemon-dex.html">Pokédex</a></td><td>Browse every Pokémon and sign free agents once the season starts - Legendaries are grayed out, since they can't be drafted</td></tr>
+              <tr><td><a href="pokemon-teams.html">Rosters</a></td><td>Every manager's roster, live and read-only here - sign free agents from the Pokédex instead</td></tr>
+              <tr><td><a href="pokemon-draft.html">Draft Room</a></td><td>Where the live draft happens, and where you build your private Pre-Draft Rankings beforehand</td></tr>
+              <tr><td><a href="pokemon-schedule.html">Schedule</a></td><td>Weekly matchups, standings, and the playoff bracket</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p>
+          Worth doing now, before the draft: rank your Pokémon preferences on the Draft Room page. It's
+          private, takes a few minutes, and means autodraft can still make good picks for you if you ever
+          miss your turn.
+        </p>
+
+        <h3>How the Draft Works</h3>
+        <p>A snake draft across all 26 roster positions - pick order reverses every round. It starts once enough managers have joined.</p>
+        <p>
+          Each pick has a countdown timer. If yours expires, any signed-in manager can trigger your
+          autodraft - it fills your highest-ranked still-available Pokémon from your own Pre-Draft Rankings
+          into your first open slot, or skips the pick if your list is empty. Rank your Pokémon ahead of
+          time on the Draft Room page so autodraft can still pick well for you if you're away.
+        </p>
+        <p>
+          Legendary and Mythical Pokémon can't be drafted, ranked, or signed as free agents - they show up
+          grayed out and labeled "Legendary" everywhere a Pokémon can normally be picked.
+        </p>
+
+        <h3>Daily Training</h3>
+        <p>
+          Once your team exists, train it daily from the My Team page to help your results each week. One
+          session per real calendar day - six types to pick from:
+        </p>
+        <div class="table-wrap">
+          <table class="rules-modal-table">
+            <thead><tr><th>Type</th><th>Represents</th></tr></thead>
+            <tbody>
+              <tr><td>Pass Offense</td><td>Calcium</td></tr>
+              <tr><td>Run Offense</td><td>Protein</td></tr>
+              <tr><td>Pass Defense</td><td>Zinc</td></tr>
+              <tr><td>Run Defense</td><td>Iron</td></tr>
+              <tr><td>Film Session</td><td>TM</td></tr>
+              <tr><td>Team Bonding</td><td>Exp. Share</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <ul>
+          <li>Losing a declared matchup banks a bonus session, letting you train twice (two different types) on a later day. Bonus sessions stack across multiple losses and clear the moment you win.</li>
+          <li>A streak badge tracks consecutive days trained, shown on My Team and publicly on the Rosters page.</li>
+        </ul>
+
+        <h3>Free Agency</h3>
+        <p>Once the season starts, any Pokémon nobody has drafted is fair game - sign one from the Pokédex page:</p>
+        <ol>
+          <li>Click an eligible Pokémon (not drafted, not Legendary) - a "Sign Free Agent" button appears.</li>
+          <li>Choose a slot from your own roster to sign it into. If that slot is already filled, the current Pokémon there is dropped back into the pool as part of the same move.</li>
+          <li>Confirm - the league chat announces it automatically ("Your Team dropped X for Y").</li>
+        </ol>
+        <p>Limited to 2 free agent signings per week, shown on the Pokédex as you sign.</p>
+
+        <h3>What's Next</h3>
+        <p>
+          The live draft date will take place Wednesday, October 14th at 8pm - get your account made and
+          your Pre-Draft Rankings in before then so you're ready. The season officially kicks off October
+          15th. After the draft, the admin will generate the regular-season schedule, and the season kicks
+          off from there.
+        </p>
+        <p>Questions along the way? Ask in the league chat - it's open on every page.</p>
+      </div>
+    </div>
 
     <footer class="site-footer">
       <p>Roselium Games • community-managed records for tactical play nights</p>
