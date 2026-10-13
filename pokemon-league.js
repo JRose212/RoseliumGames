@@ -360,6 +360,17 @@
     return order;
   };
 
+  // Fisher-Yates - picks a fresh random round-1 order each time the draft
+  // is started, rather than always running in signup order.
+  const shuffle = (array) => {
+    const result = array.slice();
+    for (let i = result.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [result[i], result[j]] = [result[j], result[i]];
+    }
+    return result;
+  };
+
   async function startDraft() {
     const messageEl = document.getElementById("start-draft-message");
     const showMessage = (text, isError) => {
@@ -371,7 +382,7 @@
 
     try {
       const teamsSnapshot = await db.collection("teams").orderBy("createdAt").get();
-      const uids = teamsSnapshot.docs.filter((doc) => !doc.data().hidden).map((doc) => doc.id);
+      const uids = shuffle(teamsSnapshot.docs.filter((doc) => !doc.data().hidden).map((doc) => doc.id));
       const positions = config.pokemonPositions || [];
       const pickOrder = buildSnakePickOrder(uids, positions);
 
