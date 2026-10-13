@@ -254,8 +254,8 @@
       return;
     }
 
-    if (!auth.currentUser) {
-      startDraftAreaEl.innerHTML = `<p class="status">Sign in to start the draft.</p>`;
+    if (!isAdmin) {
+      startDraftAreaEl.innerHTML = `<p class="status">${latestTeams.length} managers signed up - the admin will start the draft when ready.</p>`;
       return;
     }
 

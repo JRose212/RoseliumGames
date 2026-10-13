@@ -63,7 +63,7 @@ service cloud.firestore {
       allow read: if isSignedIn();
       allow create: if false;
       allow update: if isSignedIn() && (
-        (resource.data.status == "pending" && request.resource.data.status == "drafting") ||
+        (resource.data.status == "pending" && request.resource.data.status == "drafting" && isAdmin()) ||
         (resource.data.status == "drafting" && resource.data.currentUid == request.auth.uid) ||
         (resource.data.status == "drafting" && request.time > resource.data.pickDeadlineAt) ||
         isAdmin()
