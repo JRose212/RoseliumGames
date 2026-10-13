@@ -2,12 +2,6 @@
   const config = window.siteConfig || {};
   const statusEl = document.getElementById("teams-status");
   const listEl = document.getElementById("teams-list");
-  const faModalEl = document.getElementById("fa-modal");
-  const faSlotLabelEl = document.getElementById("fa-slot-label");
-  const faSearchEl = document.getElementById("fa-search");
-  const faMessageEl = document.getElementById("fa-message");
-  const faGridEl = document.getElementById("fa-grid");
-  const faCancelEl = document.getElementById("fa-cancel");
 
   if (!listEl) return;
 
@@ -43,56 +37,11 @@
   const auth = firebase.auth();
   const db = firebase.firestore();
   const groups = config.positionGroups || { offense: [], defense: [], specialTeams: [] };
-  const legendaryIds = new Set(config.legendaryPokemonIds || []);
   const trainingTypeList = config.trainingTypes || [];
 
   const isAdmin = () =>
     Boolean(currentUser && config.adminUid && config.adminUid !== "YOUR_ADMIN_UID" && currentUser.uid === config.adminUid);
 
-  // --- PokeAPI list caching (duplicated per this repo's one-file-per-page
-  // convention; only the list is needed here, sprites are resolved via the
-  // static raw.githubusercontent.com path, no per-Pokemon detail fetch). ---
-
-  const readCache = (key, ttlMs) => {
-    try {
-      const raw = localStorage.getItem(key);
-      if (!raw) return null;
-      const parsed = JSON.parse(raw);
-      if (Date.now() - parsed.fetchedAt > ttlMs) return null;
-      return parsed.data;
-    } catch (error) {
-      return null;
-    }
-  };
-
-  const writeCache = (key, data) => {
-    try {
-      localStorage.setItem(key, JSON.stringify({ fetchedAt: Date.now(), data }));
-    } catch (error) {
-      // Non-fatal.
-    }
-  };
-
-  const listTtl = config.pokemonListCacheTtlMs || 30 * 24 * 60 * 60 * 1000;
-  const apiBase = config.pokeApiBaseUrl || "https://pokeapi.co/api/v2";
-
-  const fetchList = async () => {
-    const cached = readCache("pokedex:list:v1", listTtl);
-    if (cached) return cached;
-    const response = await fetch(`${apiBase}/pokemon?limit=1025`, { cache: "no-store" });
-    if (!response.ok) throw new Error(`Unable to load Pokédex list (${response.status})`);
-    const payload = await response.json();
-    const list = payload.results
-      .map((entry) => {
-        const match = entry.url.match(/\/pokemon\/(\d+)\/?$/);
-        return match ? { id: Number(match[1]), name: entry.name } : null;
-      })
-      .filter(Boolean);
-    writeCache("pokedex:list:v1", list);
-    return list;
-  };
-
-  let fullList = [];
   let currentUser = null;
   let myTeam = null;
   let draftedMap = new Map();
@@ -206,7 +155,7 @@
         </span>
         ${isMine ? `<button type="button" class="roster-remove-btn" data-slot="${escapeHtml(position)}" data-id="${pick.pokemonId}" data-name="${escapeHtml(pick.pokemonName)}" title="Remove from roster">✕</button>` : ""}`;
     } else if (isMine && draftIsComplete()) {
-      middle = `<button type="button" class="btn btn-secondary fa-open-btn" data-slot="${escapeHtml(position)}">Sign Free Agent</button>`;
+      middle = `<span class="roster-row-empty">— empty — (sign a free agent from the <a href="pokemon-dex.html">Pokédex</a>)</span>`;
     } else if (isMine) {
       middle = `<span class="roster-row-empty">— empty — (free agency opens after the draft)</span>`;
     } else {
@@ -272,9 +221,6 @@
         if (team) btn.addEventListener("click", () => exportTeamCsv(team));
       });
     }
-    listEl.querySelectorAll(".fa-open-btn").forEach((btn) => {
-      btn.addEventListener("click", () => openFreeAgentPicker(btn.dataset.slot));
-    });
     listEl.querySelectorAll(".roster-remove-btn").forEach((btn) => {
       btn.addEventListener("click", () =>
         removeFromRoster(btn.dataset.slot, Number(btn.dataset.id), btn.dataset.name)
@@ -300,112 +246,6 @@
       });
     } catch (error) {
       window.alert(`Unable to remove: ${error.message}`);
-    }
-  }
-
-  // --- Free agent picker modal ---
-
-  let pendingSlot = null;
-
-  const faShowMessage = (text, isError) => {
-    faMessageEl.hidden = false;
-    faMessageEl.className = `status${isError ? " error" : ""}`;
-    faMessageEl.textContent = text;
-  };
-
-  const renderFaGrid = (entries) => {
-    faGridEl.innerHTML = entries
-      .map((entry) => {
-        const isLegendary = legendaryIds.has(entry.id);
-        const isDrafted = draftedMap.has(entry.id);
-        const cardClass = isLegendary ? "poke-card--legendary" : isDrafted ? "poke-card--drafted" : "poke-card--pickable";
-        const ribbon = isLegendary
-          ? `<p class="poke-card-legendary-badge">Legendary</p>`
-          : isDrafted
-          ? `<p class="poke-card-drafted-by">Drafted by ${escapeHtml(draftedMap.get(entry.id).teamName || "another team")}</p>`
-          : "";
-        return `
-          <article class="card poke-card ${cardClass}" data-id="${entry.id}" data-name="${escapeHtml(entry.name)}">
-            <span class="poke-card-number">#${String(entry.id).padStart(4, "0")}</span>
-            <img class="poke-sprite" src="${spriteUrl(entry.id)}" alt="${escapeHtml(entry.name)}" loading="lazy" />
-            <span class="poke-card-name">${escapeHtml(entry.name)}</span>
-            ${ribbon}
-          </article>
-        `;
-      })
-      .join("");
-    faGridEl.querySelectorAll(".poke-card--pickable").forEach((card) => {
-      card.addEventListener("click", () => signFreeAgent(Number(card.dataset.id), card.dataset.name));
-    });
-  };
-
-  let faSearchDebounce = null;
-  const applyFaSearch = () => {
-    const query = faSearchEl.value.trim().toLowerCase();
-    if (!query) {
-      faGridEl.innerHTML = "";
-      return;
-    }
-    const filtered = fullList.filter((entry) => entry.name.includes(query));
-    renderFaGrid(filtered.slice(0, 200));
-  };
-
-  faSearchEl.addEventListener("input", () => {
-    clearTimeout(faSearchDebounce);
-    faSearchDebounce = setTimeout(applyFaSearch, 150);
-  });
-
-  const openFreeAgentPicker = async (slot) => {
-    pendingSlot = slot;
-    faSlotLabelEl.textContent = slot;
-    faMessageEl.hidden = true;
-    faSearchEl.value = "";
-    faGridEl.innerHTML = "";
-    faModalEl.hidden = false;
-
-    if (!fullList.length) {
-      try {
-        fullList = await fetchList();
-      } catch (error) {
-        faShowMessage(`Unable to load the Pokédex. ${error.message}`, true);
-      }
-    }
-  };
-
-  const closeFreeAgentPicker = () => {
-    faModalEl.hidden = true;
-    pendingSlot = null;
-  };
-
-  faCancelEl.addEventListener("click", closeFreeAgentPicker);
-
-  async function signFreeAgent(pokemonId, pokemonName) {
-    if (!pendingSlot || !currentUser || legendaryIds.has(pokemonId)) return;
-    const slot = pendingSlot;
-    const teamRef = db.collection("teams").doc(currentUser.uid);
-    const draftedRef = db.collection("draftedPokemon").doc(String(pokemonId));
-
-    try {
-      await db.runTransaction(async (tx) => {
-        const [teamSnap, draftedSnap] = await Promise.all([tx.get(teamRef), tx.get(draftedRef)]);
-        const team = teamSnap.data();
-        if (!team || !team.slots || team.slots[slot]) throw new Error("That slot is already filled.");
-        if (draftedSnap.exists) throw new Error("That Pokémon is already on a roster.");
-
-        tx.set(draftedRef, {
-          pokemonId,
-          pokemonName,
-          uid: currentUser.uid,
-          teamName: team.teamName,
-          slot,
-          freeAgent: true,
-          pickedAt: firebase.firestore.FieldValue.serverTimestamp(),
-        });
-        tx.update(teamRef, { [`slots.${slot}`]: { pokemonId, pokemonName, freeAgent: true } });
-      });
-      closeFreeAgentPicker();
-    } catch (error) {
-      faShowMessage(error.message, true);
     }
   }
 

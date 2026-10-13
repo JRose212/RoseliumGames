@@ -1,10 +1,19 @@
 (function () {
   const config = window.siteConfig || {};
   const statusEl = document.getElementById("dex-status");
+  const faLimitStatusEl = document.getElementById("fa-limit-status");
   const gridEl = document.getElementById("dex-grid");
   const searchEl = document.getElementById("dex-search");
   const typeFilterEl = document.getElementById("dex-type-filter");
+  const faModalEl = document.getElementById("fa-sign-modal");
+  const faModalNameEl = document.getElementById("fa-sign-pokemon-name");
+  const faModalMessageEl = document.getElementById("fa-sign-message");
+  const faModalGridEl = document.getElementById("fa-sign-slot-grid");
+  const faModalConfirmEl = document.getElementById("fa-sign-confirm-btn");
+  const faModalCancelEl = document.getElementById("fa-sign-cancel-btn");
   const legendaryIds = new Set(config.legendaryPokemonIds || []);
+  const positions = config.pokemonPositions || [];
+  const MAX_SIGNINGS_PER_WEEK = 2;
 
   if (!gridEl) return;
 
@@ -98,7 +107,56 @@
     return new Set(ids);
   };
 
+  // --- Firebase (drafted overlay + free agency) ---
+
+  let db = null;
+  let auth = null;
+  let currentUser = null;
+  let myTeam = null;
+  let seasonState = null;
   let draftedMap = new Map();
+
+  const firebaseReady = Boolean(config.firebaseConfig && config.firebaseConfig.apiKey !== "YOUR_FIREBASE_API_KEY");
+  if (firebaseReady) {
+    try {
+      firebase.initializeApp(config.firebaseConfig);
+      db = firebase.firestore();
+      auth = firebase.auth();
+    } catch (error) {
+      db = null;
+      auth = null;
+    }
+  }
+
+  const seasonHasStarted = () => Boolean(seasonState);
+
+  const signingsUsedThisWeek = () => {
+    if (!myTeam || !seasonState) return 0;
+    const fa = myTeam.freeAgency || {};
+    return fa.week === seasonState.currentWeek ? fa.signings || 0 : 0;
+  };
+
+  const canSignFreeAgents = () => Boolean(currentUser && myTeam && seasonHasStarted());
+
+  const isSignable = (id) => canSignFreeAgents() && !legendaryIds.has(id) && !draftedMap.has(id);
+
+  const renderFaLimitStatus = () => {
+    if (!faLimitStatusEl) return;
+    if (!currentUser) {
+      faLimitStatusEl.hidden = true;
+      return;
+    }
+    if (!seasonHasStarted()) {
+      faLimitStatusEl.hidden = false;
+      faLimitStatusEl.className = "status";
+      faLimitStatusEl.textContent = "Free agency opens once the season starts.";
+      return;
+    }
+    const used = signingsUsedThisWeek();
+    faLimitStatusEl.hidden = false;
+    faLimitStatusEl.className = "status";
+    faLimitStatusEl.textContent = `Free agent signings used this week: ${used}/${MAX_SIGNINGS_PER_WEEK}`;
+  };
 
   const applyDraftedOverlay = () => {
     gridEl.querySelectorAll(".poke-card").forEach((card) => {
@@ -106,7 +164,7 @@
       const drafted = draftedMap.get(id);
       const existingRibbon = card.querySelector(".poke-card-drafted-by, .poke-card-legendary-badge");
       if (legendaryIds.has(id)) {
-        card.classList.remove("poke-card--drafted");
+        card.classList.remove("poke-card--drafted", "poke-card--pickable");
         card.classList.add("poke-card--legendary");
         if (!existingRibbon || existingRibbon.className !== "poke-card-legendary-badge") {
           if (existingRibbon) existingRibbon.remove();
@@ -116,7 +174,7 @@
           card.appendChild(badge);
         }
       } else if (drafted) {
-        card.classList.remove("poke-card--legendary");
+        card.classList.remove("poke-card--legendary", "poke-card--pickable");
         card.classList.add("poke-card--drafted");
         if (!existingRibbon || existingRibbon.className !== "poke-card-drafted-by") {
           if (existingRibbon) existingRibbon.remove();
@@ -128,47 +186,216 @@
       } else {
         card.classList.remove("poke-card--drafted", "poke-card--legendary");
         if (existingRibbon) existingRibbon.remove();
+        card.classList.toggle("poke-card--pickable", canSignFreeAgents());
       }
+    });
+    renderSelectionUI();
+    renderFaLimitStatus();
+  };
+
+  if (db && auth) {
+    let unsubscribeDrafted = null;
+    let unsubscribeTeam = null;
+    let unsubscribeSeason = null;
+
+    auth.onAuthStateChanged((user) => {
+      currentUser = user;
+      [unsubscribeDrafted, unsubscribeTeam, unsubscribeSeason].forEach((u) => u && u());
+      unsubscribeDrafted = unsubscribeTeam = unsubscribeSeason = null;
+
+      if (!user) {
+        draftedMap = new Map();
+        myTeam = null;
+        seasonState = null;
+        clearSelection();
+        applyDraftedOverlay();
+        return;
+      }
+
+      unsubscribeDrafted = db.collection("draftedPokemon").onSnapshot(
+        (snapshot) => {
+          draftedMap = new Map();
+          snapshot.forEach((doc) => draftedMap.set(Number(doc.id), doc.data()));
+          applyDraftedOverlay();
+        },
+        () => {}
+      );
+
+      unsubscribeTeam = db
+        .collection("teams")
+        .doc(user.uid)
+        .onSnapshot(
+          (doc) => {
+            myTeam = doc.exists ? doc.data() : null;
+            applyDraftedOverlay();
+          },
+          () => {}
+        );
+
+      unsubscribeSeason = db
+        .collection("seasonState")
+        .doc("current")
+        .onSnapshot(
+          (doc) => {
+            seasonState = doc.exists ? doc.data() : null;
+            applyDraftedOverlay();
+          },
+          () => {}
+        );
+    });
+  }
+
+  // --- Click-to-select-then-confirm, same pattern as the Draft Room's
+  // live picker: clicking an eligible card shows an inline "Sign Free
+  // Agent" button; only that button opens the drop-slot modal. ---
+
+  let selectedSignId = null;
+  let selectedSignName = null;
+
+  const clearSelection = () => {
+    selectedSignId = null;
+    selectedSignName = null;
+    gridEl.querySelectorAll(".poke-card--selected").forEach((el) => {
+      el.classList.remove("poke-card--selected");
+      const btn = el.querySelector(".poke-card-draft-btn");
+      if (btn) btn.remove();
     });
   };
 
-  if (config.firebaseConfig && config.firebaseConfig.apiKey !== "YOUR_FIREBASE_API_KEY") {
-    try {
-      firebase.initializeApp(config.firebaseConfig);
-      const db = firebase.firestore();
-      let unsubscribeDrafted = null;
-
-      // Wait for auth to actually resolve before subscribing - a listener
-      // that starts too early (before a saved login rehydrates) gets a
-      // permission error and never retries, even after sign-in completes.
-      firebase.auth().onAuthStateChanged((user) => {
-        if (unsubscribeDrafted) {
-          unsubscribeDrafted();
-          unsubscribeDrafted = null;
-        }
-        if (!user) {
-          draftedMap = new Map();
-          applyDraftedOverlay();
-          return;
-        }
-        unsubscribeDrafted = db.collection("draftedPokemon").onSnapshot(
-          (snapshot) => {
-            draftedMap = new Map();
-            snapshot.forEach((doc) => {
-              const data = doc.data();
-              draftedMap.set(Number(doc.id), data);
-            });
-            applyDraftedOverlay();
-          },
-          () => {
-            // Non-fatal - the dex still works fine without the overlay.
-          }
-        );
+  function renderSelectionUI() {
+    if (selectedSignId === null) return;
+    const card = gridEl.querySelector(`.poke-card[data-id="${selectedSignId}"]`);
+    if (!card || !card.classList.contains("poke-card--pickable")) {
+      selectedSignId = null;
+      selectedSignName = null;
+      return;
+    }
+    card.classList.add("poke-card--selected");
+    if (!card.querySelector(".poke-card-draft-btn")) {
+      const limitReached = signingsUsedThisWeek() >= MAX_SIGNINGS_PER_WEEK;
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "btn poke-card-draft-btn";
+      btn.textContent = limitReached ? "Weekly Limit Reached" : "Sign Free Agent";
+      btn.disabled = limitReached;
+      btn.addEventListener("click", (event) => {
+        event.stopPropagation();
+        openFreeAgentSignModal(selectedSignId, selectedSignName);
       });
-    } catch (error) {
-      // Firebase not configured or unreachable - the dex still works without the overlay.
+      card.appendChild(btn);
     }
   }
+
+  const selectForSigning = (id, name) => {
+    if (selectedSignId === id) {
+      clearSelection();
+      return;
+    }
+    clearSelection();
+    selectedSignId = id;
+    selectedSignName = name;
+    renderSelectionUI();
+  };
+
+  // --- Sign/drop modal ---
+
+  let pendingSign = null;
+
+  const showFaModalMessage = (text, isError) => {
+    faModalMessageEl.hidden = false;
+    faModalMessageEl.className = `status${isError ? " error" : ""}`;
+    faModalMessageEl.textContent = text;
+  };
+
+  const openFreeAgentSignModal = (pokemonId, pokemonName) => {
+    if (!myTeam || !myTeam.slots) return;
+    pendingSign = { pokemonId, pokemonName, slot: null };
+    faModalNameEl.textContent = pokemonName;
+    faModalMessageEl.hidden = true;
+    faModalConfirmEl.disabled = true;
+    faModalGridEl.innerHTML = positions
+      .map((position) => {
+        const filled = myTeam.slots[position];
+        return `<button type="button" class="slot-picker-slot" data-slot="${escapeHtml(position)}">
+                  <span class="slot-picker-slot-position">${escapeHtml(position)}</span>
+                  <span class="slot-picker-slot-value">${filled ? `Drop ${escapeHtml(filled.pokemonName)}` : "— empty —"}</span>
+                </button>`;
+      })
+      .join("");
+    faModalGridEl.querySelectorAll(".slot-picker-slot").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        faModalGridEl.querySelectorAll(".slot-picker-slot--selected").forEach((el) => el.classList.remove("slot-picker-slot--selected"));
+        btn.classList.add("slot-picker-slot--selected");
+        pendingSign.slot = btn.dataset.slot;
+        faModalConfirmEl.disabled = false;
+      });
+    });
+    faModalEl.hidden = false;
+  };
+
+  const closeFreeAgentSignModal = () => {
+    faModalEl.hidden = true;
+    pendingSign = null;
+  };
+
+  faModalCancelEl.addEventListener("click", closeFreeAgentSignModal);
+
+  async function confirmFreeAgentSign() {
+    if (!pendingSign || !pendingSign.slot || !currentUser) return;
+    const { pokemonId, pokemonName, slot } = pendingSign;
+    const teamRef = db.collection("teams").doc(currentUser.uid);
+    const newDraftedRef = db.collection("draftedPokemon").doc(String(pokemonId));
+
+    try {
+      await db.runTransaction(async (tx) => {
+        const [teamSnap, newDraftedSnap] = await Promise.all([tx.get(teamRef), tx.get(newDraftedRef)]);
+        const team = teamSnap.data();
+        if (!team || !team.slots) throw new Error("Team not found.");
+        if (newDraftedSnap.exists) throw new Error("That Pokémon was just signed by someone else.");
+
+        const state = seasonState;
+        if (!state) throw new Error("Free agency opens once the season starts.");
+
+        const fa = team.freeAgency || {};
+        const signingsSoFar = fa.week === state.currentWeek ? fa.signings || 0 : 0;
+        if (signingsSoFar >= MAX_SIGNINGS_PER_WEEK) {
+          throw new Error("You've already used both free agent signings this week.");
+        }
+
+        const dropped = team.slots[slot];
+        if (dropped) tx.delete(db.collection("draftedPokemon").doc(String(dropped.pokemonId)));
+
+        tx.set(newDraftedRef, {
+          pokemonId,
+          pokemonName,
+          uid: currentUser.uid,
+          teamName: team.teamName,
+          slot,
+          freeAgent: true,
+          pickedAt: firebase.firestore.FieldValue.serverTimestamp(),
+        });
+        tx.update(teamRef, {
+          [`slots.${slot}`]: { pokemonId, pokemonName, freeAgent: true },
+          "freeAgency.week": state.currentWeek,
+          "freeAgency.signings": signingsSoFar + 1,
+        });
+        tx.set(db.collection("chatMessages").doc(), {
+          uid: currentUser.uid,
+          system: true,
+          text: dropped
+            ? `${team.teamName} dropped ${dropped.pokemonName} for ${pokemonName}`
+            : `${team.teamName} signed ${pokemonName} as a free agent`,
+          createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+        });
+      });
+      closeFreeAgentSignModal();
+      clearSelection();
+    } catch (error) {
+      showFaModalMessage(error.message, true);
+    }
+  }
+
+  faModalConfirmEl.addEventListener("click", confirmFreeAgentSign);
 
   // heightM/weightKg are stored metric (that's what PokeAPI returns), but
   // displayed in feet/inches and pounds.
@@ -220,7 +447,7 @@
     gridEl.innerHTML = entries
       .map(
         (entry) => `
-          <article class="card poke-card" data-id="${entry.id}">
+          <article class="card poke-card" data-id="${entry.id}" data-name="${escapeHtml(entry.name)}">
             <span class="poke-card-number">#${String(entry.id).padStart(4, "0")}</span>
             <img class="poke-sprite" alt="${escapeHtml(entry.name)}" loading="lazy" />
             <span class="poke-card-name">${escapeHtml(entry.name)}</span>
@@ -230,7 +457,13 @@
         `
       )
       .join("");
-    gridEl.querySelectorAll(".poke-card").forEach((card) => detailObserver.observe(card));
+    gridEl.querySelectorAll(".poke-card").forEach((card) => {
+      detailObserver.observe(card);
+      card.addEventListener("click", () => {
+        if (!card.classList.contains("poke-card--pickable")) return;
+        selectForSigning(Number(card.dataset.id), card.dataset.name);
+      });
+    });
     applyDraftedOverlay();
   };
 

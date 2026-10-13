@@ -441,6 +441,11 @@ body[data-page^="pokemon-"] .jump-nav a {
   cursor: not-allowed;
 }
 
+.slot-picker-slot--selected {
+  border-color: var(--accent-strong) !important;
+  box-shadow: 0 0 0 3px rgba(255, 203, 5, 0.45);
+}
+
 .slot-picker-slot-position {
   display: block;
   font-weight: 700;

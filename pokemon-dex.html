@@ -46,7 +46,11 @@
     <main class="page page-stack">
       <section class="page-intro">
         <h1>Pokédex</h1>
-        <p>Browse the entire player pool — every Pokémon is draftable, no restrictions.</p>
+        <p>
+          Browse the entire player pool. Legendary and Mythical Pokémon can't
+          be drafted or signed. Once the season starts, click any undrafted
+          Pokémon here to sign it as a free agent - up to twice a week.
+        </p>
       </section>
 
       <nav class="jump-nav card" aria-label="Fantasy league navigation">
@@ -86,8 +90,20 @@
       </section>
 
       <p class="status" id="dex-status">Loading Pokédex…</p>
+      <p class="status" id="fa-limit-status" hidden></p>
       <div class="poke-grid" id="dex-grid"></div>
     </main>
+
+    <div class="slot-picker-modal" id="fa-sign-modal" hidden>
+      <div class="card slot-picker-panel">
+        <h2>Sign <span id="fa-sign-pokemon-name"></span></h2>
+        <p>Choose a roster slot. If it's already filled, that Pokémon is dropped and returned to the free agent pool.</p>
+        <p class="status" id="fa-sign-message" hidden></p>
+        <div class="slot-picker-grid" id="fa-sign-slot-grid"></div>
+        <button type="button" class="btn" id="fa-sign-confirm-btn" disabled>Confirm Signing</button>
+        <button type="button" class="btn btn-secondary" id="fa-sign-cancel-btn" style="margin-top: 0.5rem;">Cancel</button>
+      </div>
+    </div>
 
     <footer class="site-footer">
       <p>Roselium Games • community-managed records for tactical play nights</p>
