@@ -7,6 +7,7 @@
   const toggleBtn = document.getElementById("chat-toggle-btn");
   const sidebarEl = document.getElementById("chat-sidebar");
   const closeBtn = document.getElementById("chat-close-btn");
+  const clearSystemBtn = document.getElementById("chat-clear-system-btn");
   const messagesEl = document.getElementById("chat-messages");
   const formEl = document.getElementById("chat-form");
   const inputEl = document.getElementById("chat-input");
@@ -53,6 +54,7 @@
   };
 
   const renderMessages = (messages) => {
+    if (clearSystemBtn) clearSystemBtn.hidden = !isAdmin();
     if (!messages.length) {
       messagesEl.innerHTML = `<p class="status">No messages yet - say hello.</p>`;
       return;
@@ -95,6 +97,25 @@
     }
   }
 
+  // Admin-only. System messages (pick/autodraft/skip/free-agent
+  // announcements) pile up fast during testing - this clears all of them
+  // in one go instead of deleting each with the per-message "✕".
+  async function clearSystemMessages() {
+    if (!window.confirm("Delete every system message from the chat? This can't be undone.")) return;
+    try {
+      const snapshot = await db.collection("chatMessages").where("system", "==", true).get();
+      for (let i = 0; i < snapshot.docs.length; i += 450) {
+        const batch = db.batch();
+        snapshot.docs.slice(i, i + 450).forEach((doc) => batch.delete(doc.ref));
+        await batch.commit();
+      }
+    } catch (error) {
+      window.alert(`Unable to clear system messages: ${error.message}`);
+    }
+  }
+
+  if (clearSystemBtn) clearSystemBtn.addEventListener("click", clearSystemMessages);
+
   let unsubscribe = null;
 
   const subscribe = () => {
@@ -108,6 +129,7 @@
       sendBtn.disabled = true;
       inputEl.placeholder = "Sign in to chat…";
       messagesEl.innerHTML = `<p class="status">Sign in on <a href="pokemon-league.html">League Home</a> to view and join the chat.</p>`;
+      if (clearSystemBtn) clearSystemBtn.hidden = true;
       return;
     }
 

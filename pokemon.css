@@ -800,6 +800,23 @@ body[data-page^="pokemon-"] .app-content {
   cursor: pointer;
 }
 
+.chat-clear-system-btn {
+  padding: 0.3rem 0.6rem;
+  border-radius: 2px;
+  border: 1px solid var(--border);
+  background: rgba(199, 211, 222, 0.08);
+  color: var(--muted);
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+}
+
+.chat-clear-system-btn:hover {
+  border-color: var(--danger);
+  color: var(--danger);
+}
+
 .chat-messages {
   flex: 1;
   overflow-y: auto;
