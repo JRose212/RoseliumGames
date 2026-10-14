@@ -26,6 +26,19 @@
       .replace(/'/g, "&#39;");
   };
 
+  // Best-effort only - never block the real action on this. Called AFTER
+  // a transaction commits, never from inside its callback (which Firestore
+  // can retry on contention - a fetch() isn't part of the transaction's
+  // buffered writes, so calling it inside would risk duplicate posts).
+  const notifyDiscord = (text) => {
+    if (!config.discordWebhookUrl) return;
+    fetch(config.discordWebhookUrl, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ content: text }),
+    }).catch(() => {});
+  };
+
   const readCache = (key, ttlMs) => {
     try {
       const raw = localStorage.getItem(key);
@@ -345,6 +358,7 @@
     const { pokemonId, pokemonName, slot } = pendingSign;
     const teamRef = db.collection("teams").doc(currentUser.uid);
     const newDraftedRef = db.collection("draftedPokemon").doc(String(pokemonId));
+    let announceText = null;
 
     try {
       await db.runTransaction(async (tx) => {
@@ -379,15 +393,17 @@
           "freeAgency.week": state.currentWeek,
           "freeAgency.signings": signingsSoFar + 1,
         });
+        announceText = dropped
+          ? `${team.teamName} dropped ${dropped.pokemonName} for ${pokemonName}`
+          : `${team.teamName} signed ${pokemonName} as a free agent`;
         tx.set(db.collection("chatMessages").doc(), {
           uid: currentUser.uid,
           system: true,
-          text: dropped
-            ? `${team.teamName} dropped ${dropped.pokemonName} for ${pokemonName}`
-            : `${team.teamName} signed ${pokemonName} as a free agent`,
+          text: announceText,
           createdAt: firebase.firestore.FieldValue.serverTimestamp(),
         });
       });
+      if (announceText) notifyDiscord(announceText);
       closeFreeAgentSignModal();
       clearSelection();
     } catch (error) {

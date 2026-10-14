@@ -33,6 +33,19 @@
       .replace(/'/g, "&#39;");
   };
 
+  // Best-effort only - never block the real action on this. Called AFTER
+  // a transaction commits, never from inside its callback (which Firestore
+  // can retry on contention - a fetch() isn't part of the transaction's
+  // buffered writes, so calling it inside would risk duplicate posts).
+  const notifyDiscord = (text) => {
+    if (!config.discordWebhookUrl) return;
+    fetch(config.discordWebhookUrl, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ content: text }),
+    }).catch(() => {});
+  };
+
   const smallSpriteUrl = (pokemonId) =>
     `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${pokemonId}.png`;
   const largeSpriteUrl = (pokemonId) =>
@@ -513,6 +526,7 @@
     const fromRef = db.collection("teams").doc(trade.fromUid);
     const toRef = db.collection("teams").doc(trade.toUid);
     const tradeRef = db.collection("trades").doc(tradeId);
+    let announceText = null;
 
     try {
       await db.runTransaction(async (tx) => {
@@ -598,13 +612,15 @@
         tx.update(fromRef, fromSlotUpdates);
         tx.update(toRef, toSlotUpdates);
         tx.update(tradeRef, { status: "accepted", resolvedAt: firebase.firestore.FieldValue.serverTimestamp() });
+        announceText = `${fromTeam.teamName} and ${toTeam.teamName} completed a trade: ${give.map((i) => i.pokemonName).join(", ")} for ${receive.map((i) => i.pokemonName).join(", ")}`;
         tx.set(db.collection("chatMessages").doc(), {
           uid: currentUser.uid,
           system: true,
-          text: `${fromTeam.teamName} and ${toTeam.teamName} completed a trade: ${give.map((i) => i.pokemonName).join(", ")} for ${receive.map((i) => i.pokemonName).join(", ")}`,
+          text: announceText,
           createdAt: firebase.firestore.FieldValue.serverTimestamp(),
         });
       });
+      if (announceText) notifyDiscord(announceText);
     } catch (error) {
       showTradeMessage(error.message, true);
     }

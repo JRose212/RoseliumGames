@@ -14,6 +14,16 @@
       .replace(/'/g, "&#39;");
   };
 
+  // Best-effort only - never block the real action on this.
+  const notifyDiscord = (text) => {
+    if (!config.discordWebhookUrl) return;
+    fetch(config.discordWebhookUrl, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ content: text }),
+    }).catch(() => {});
+  };
+
   const spriteUrl = (pokemonId) =>
     `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${pokemonId}.png`;
 
@@ -439,12 +449,14 @@
 
       const giveNames = give.map((p) => p.pokemonName).join(", ");
       const receiveNames = receive.map((p) => p.pokemonName).join(", ");
+      const announceText = `${myTeamData.teamName} proposes a trade to ${tradeOtherTeam.teamName}: ${giveNames} for ${receiveNames}`;
       await db.collection("chatMessages").add({
         uid: currentUser.uid,
         system: true,
-        text: `${myTeamData.teamName} proposes a trade to ${tradeOtherTeam.teamName}: ${giveNames} for ${receiveNames}`,
+        text: announceText,
         createdAt: firebase.firestore.FieldValue.serverTimestamp(),
       });
+      notifyDiscord(announceText);
 
       closeTradeModal();
     } catch (error) {

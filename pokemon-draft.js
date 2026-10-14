@@ -32,6 +32,20 @@
       .replace(/'/g, "&#39;");
   };
 
+  // Best-effort only - never let a Discord hiccup block the real action.
+  // Call this AFTER a transaction has actually committed, never from
+  // inside the callback itself - Firestore can retry that callback on
+  // contention, and a fetch() isn't part of the transaction's buffered
+  // writes, so calling it inside would risk posting duplicates.
+  const notifyDiscord = (text) => {
+    if (!config.discordWebhookUrl) return;
+    fetch(config.discordWebhookUrl, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ content: text }),
+    }).catch(() => {});
+  };
+
   if (!config.firebaseConfig || config.firebaseConfig.apiKey === "YOUR_FIREBASE_API_KEY") {
     turnNameEl.textContent = "Not configured";
     turnMetaEl.textContent = "Fantasy League is not configured yet.";
@@ -706,6 +720,7 @@
     const stateRef = db.collection("draftState").doc("current");
     const teamRef = db.collection("teams").doc(currentUser.uid);
     const draftedRef = db.collection("draftedPokemon").doc(String(pokemonId));
+    let announceText = null;
 
     try {
       await db.runTransaction(async (tx) => {
@@ -752,7 +767,8 @@
           pickedAt: firebase.firestore.FieldValue.serverTimestamp(),
         });
 
-        postSystemMessage(tx, `${team.teamName} drafted ${pokemonName} (${slot})`);
+        announceText = `${team.teamName} drafted ${pokemonName} (${slot})`;
+        postSystemMessage(tx, announceText);
 
         tx.update(stateRef, {
           currentPickIndex: nextIndex,
@@ -763,6 +779,7 @@
           pickDeadlineAt: nextUid ? newDeadline() : null,
         });
       });
+      if (announceText) notifyDiscord(announceText);
       closeSlotPicker();
     } catch (error) {
       showError(error.message);
@@ -785,6 +802,7 @@
     };
 
     const stateRef = db.collection("draftState").doc("current");
+    let announceText = null;
 
     try {
       // predraftRankings is read here, outside the transaction, rather
@@ -856,7 +874,8 @@
             triggeredBy: currentUser.uid,
             pickedAt: firebase.firestore.FieldValue.serverTimestamp(),
           });
-          postSystemMessage(tx, `${team.teamName} drafted ${pokemonName} (${openSlot}) — autodraft`);
+          announceText = `${team.teamName} drafted ${pokemonName} (${openSlot}) — autodraft`;
+          postSystemMessage(tx, announceText);
         } else {
           // Nothing usable left on their list (or no open slot, which
           // shouldn't happen while drafting) - skip this pick entirely.
@@ -873,7 +892,8 @@
             triggeredBy: currentUser.uid,
             pickedAt: firebase.firestore.FieldValue.serverTimestamp(),
           });
-          postSystemMessage(tx, `${team.teamName}'s pick was skipped (missed deadline)`);
+          announceText = `${team.teamName}'s pick was skipped (missed deadline)`;
+          postSystemMessage(tx, announceText);
         }
 
         tx.update(stateRef, {
@@ -885,6 +905,7 @@
           pickDeadlineAt: nextUid ? newDeadline() : null,
         });
       });
+      if (announceText) notifyDiscord(announceText);
     } catch (error) {
       showError(error.message);
     }

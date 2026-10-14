@@ -88,6 +88,14 @@ window.siteConfig = {
     { key: "filmSession", label: "Film Session", color: "#8e5fd9", item: "tm-normal" },
     { key: "teamBonding", label: "Team Bonding", color: "#d9a62f", item: "exp-share" },
   ],
+  // Mirrors league activity (picks/autodraft, free agency, trades,
+  // results) into a Discord channel - a plain Discord webhook URL, no
+  // bot/backend involved. Treat this like a password: anyone who has it
+  // can post to that channel, and it necessarily lives here in client-
+  // side code since this site has no server to hide it behind. Leave as
+  // "" to disable.
+  discordWebhookUrl: "https://discord.com/api/webhooks/1560029114906443787/G4kdRTUO-smng_vuodGEcDHmLa7KN_F1bi4vSe4I8AxUZybusZhUWEQXAgnxybJFN-QB",
+
   trainingInfoBlurb:
     'Train your Team daily to enhance their abilities in their upcoming matchup. You are allowed to do one training session per day so choose wisely between "Pass Defense", "Run Defense", "Pass Offense", "Run Offense", "Film Session", "Team Bonding". Each training type provides different benefits to your team to edge out your opponent. Training more than your opponent for the week does not guarantee you win the matchup but it does help tip the scales. Determine your best training regiment and log in daily to get them right.\n\nLosing a matchup grants you a bonus practice session for the upcoming week, so be sure to use them. Bonus training sessions stack per week until your team wins a game.',
 

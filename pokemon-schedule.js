@@ -71,6 +71,16 @@
       .replace(/'/g, "&#39;");
   };
 
+  // Best-effort only - never block the real action on this.
+  const notifyDiscord = (text) => {
+    if (!config.discordWebhookUrl) return;
+    fetch(config.discordWebhookUrl, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ content: text }),
+    }).catch(() => {});
+  };
+
   if (!config.firebaseConfig || config.firebaseConfig.apiKey === "YOUR_FIREBASE_API_KEY") {
     statusEl.className = "status error";
     statusEl.textContent = "Fantasy League is not configured yet.";
@@ -614,6 +624,10 @@
       mergeTeamUpdate(loserUid, { "training.bonusSessionsAvailable": firebase.firestore.FieldValue.increment(1) });
     }
 
+    const resultText = winnerUid
+      ? `${teamName(winnerUid)} defeated ${teamName(winnerUid === matchup.homeUid ? matchup.awayUid : matchup.homeUid)} ${Math.max(homeScore, awayScore)}-${Math.min(homeScore, awayScore)} (Week ${matchup.week})`
+      : `${teamName(matchup.homeUid)} and ${teamName(matchup.awayUid)} tied ${homeScore}-${awayScore} (Week ${matchup.week})`;
+
     try {
       const batch = db.batch();
       batch.update(db.collection("matchups").doc(pendingMatchupId), {
@@ -626,7 +640,16 @@
       teamUpdates.forEach((fields, uid) => {
         batch.update(db.collection("teams").doc(uid), fields);
       });
+      if (isFirstDeclaration) {
+        batch.set(db.collection("chatMessages").doc(), {
+          uid: auth.currentUser.uid,
+          system: true,
+          text: resultText,
+          createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+        });
+      }
       await batch.commit();
+      if (isFirstDeclaration) notifyDiscord(resultText);
       closeResultModal();
     } catch (error) {
       showResultMessage(error.message, true);
