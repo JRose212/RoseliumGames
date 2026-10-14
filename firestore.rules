@@ -109,6 +109,22 @@ service cloud.firestore {
       allow delete: if isAdmin();
     }
 
+    // Proposed trades between two managers. Readable by anyone signed in
+    // (needed for the pending-trade notification badge and the "already in
+    // a pending trade" lock on the Rosters page) - only the two parties
+    // involved (or admin) can act on one, and only while still pending.
+    // The actual roster/draftedPokemon moves on acceptance are a separate,
+    // equally-guarded write - this collection only ever records the offer
+    // and its outcome.
+    match /trades/{tradeId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn() && request.resource.data.fromUid == request.auth.uid && request.resource.data.status == "pending";
+      allow update: if isSignedIn() && resource.data.status == "pending" && (
+        resource.data.toUid == request.auth.uid || resource.data.fromUid == request.auth.uid || isAdmin()
+      );
+      allow delete: if false;
+    }
+
     // Private feedback box. Anyone signed in can submit their own; only the
     // admin can read or delete any of it - unlike chat, this is never
     // visible to other managers, by design.

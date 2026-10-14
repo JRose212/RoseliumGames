@@ -709,6 +709,76 @@ body[data-page^="pokemon-"] .jump-nav a {
   font-size: 0.82rem;
 }
 
+.roster-row-filled--tradeable {
+  cursor: pointer;
+  text-decoration: underline dotted;
+}
+
+.roster-row-filled--tradeable:hover {
+  color: var(--accent-strong);
+}
+
+/* Propose-trade modal (pokemon-teams.html) */
+
+.trade-modal-panel {
+  max-width: 680px;
+}
+
+.trade-modal-panel h3 {
+  margin-top: 1.25rem;
+  color: var(--accent-strong);
+}
+
+.trade-pick-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 0.5rem;
+  max-height: 260px;
+  overflow-y: auto;
+  margin-top: 0.5rem;
+  padding: 0.5rem;
+  border: 1px solid var(--border);
+}
+
+.trade-pick-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.3rem 0.4rem;
+  cursor: pointer;
+  font-size: 0.82rem;
+}
+
+.trade-pick-item:hover {
+  background: rgba(199, 211, 222, 0.08);
+}
+
+.trade-pick-item--disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.trade-pick-item img {
+  width: 24px;
+  height: 24px;
+  object-fit: contain;
+  image-rendering: pixelated;
+}
+
+.trade-pending-card {
+  margin-top: 0.75rem;
+}
+
+.trade-pending-card p {
+  margin: 0.3rem 0;
+}
+
+.trade-pending-card .btn,
+.trade-pending-card .btn-secondary {
+  margin-top: 0.5rem;
+  margin-right: 0.5rem;
+}
+
 .roster-remove-btn {
   width: 22px;
   height: 22px;

@@ -47,6 +47,7 @@
   let draftedMap = new Map();
   let currentWeek = null;
   let draftState = null;
+  let seasonState = null;
 
   const draftIsComplete = () => Boolean(draftState && draftState.status === "complete");
 
@@ -88,6 +89,32 @@
       })
       .flatMap((log) => log.types || []);
   };
+
+  // --- Trading ---
+
+  // The regular season's "active" week - the earliest week number that
+  // still has an unplayed game. Not seasonState.currentWeek, since nothing
+  // auto-advances that during the regular season (only playoffs do) - this
+  // derives it live from the matchups themselves instead.
+  const currentActiveWeek = () => {
+    const unplayed = matchups.filter((m) => m.round === "regular" && m.status !== "final");
+    if (!unplayed.length) return null;
+    return Math.min(...unplayed.map((m) => m.week));
+  };
+
+  const hasPlayedActiveWeek = (uid) => {
+    const week = currentActiveWeek();
+    if (week === null) return false;
+    const matchup = matchups.find((m) => m.week === week && (m.homeUid === uid || m.awayUid === uid));
+    return Boolean(matchup && matchup.status === "final");
+  };
+
+  // Blocked only when exactly one side has already played this week and
+  // the other hasn't - that's the only way a traded Pokemon could
+  // effectively play twice in the same week for two different teams. Two
+  // teams that are both pre-game or both post-game for the week can trade
+  // freely.
+  const tradeEligible = (uidA, uidB) => hasPlayedActiveWeek(uidA) === hasPlayedActiveWeek(uidB);
 
   const countByType = (typeKeys) => {
     const counts = new Map();
@@ -144,16 +171,30 @@
     URL.revokeObjectURL(url);
   };
 
-  const renderRow = (position, slots, isMine) => {
+  const pokemonInPendingTrade = (teamUid, pokemonId) =>
+    pendingTrades.some(
+      (t) =>
+        (t.fromUid === teamUid && t.give.some((item) => item.pokemonId === pokemonId)) ||
+        (t.toUid === teamUid && t.receive.some((item) => item.pokemonId === pokemonId))
+    );
+
+  const renderRow = (position, slots, isMine, teamUid) => {
     const pick = slots[position];
     const isOut = pick && currentWeek !== null && pick.outForWeek === currentWeek;
     let middle;
     if (pick) {
-      middle = `<span class="roster-row-filled">
+      const locked = pokemonInPendingTrade(teamUid, pick.pokemonId);
+      const canPropose = !isMine && currentUser && draftIsComplete() && !locked;
+      middle = `<span class="roster-row-filled${canPropose ? " roster-row-filled--tradeable" : ""}"${
+        canPropose
+          ? ` data-trade-target="1" data-uid="${escapeHtml(teamUid)}" data-slot="${escapeHtml(position)}" data-id="${pick.pokemonId}" data-name="${escapeHtml(pick.pokemonName)}" title="Click to propose a trade for this Pokémon"`
+          : ""
+      }>
           <img class="roster-row-sprite" src="${spriteUrl(pick.pokemonId)}" alt="${escapeHtml(pick.pokemonName)}" loading="lazy" />
           ${escapeHtml(pick.pokemonName)}
         </span>
-        ${isMine ? `<button type="button" class="roster-remove-btn" data-slot="${escapeHtml(position)}" data-id="${pick.pokemonId}" data-name="${escapeHtml(pick.pokemonName)}" title="Remove from roster">✕</button>` : ""}`;
+        ${isMine ? `<button type="button" class="roster-remove-btn" data-slot="${escapeHtml(position)}" data-id="${pick.pokemonId}" data-name="${escapeHtml(pick.pokemonName)}" title="Remove from roster">✕</button>` : ""}
+        ${!isMine && locked ? `<span class="roster-row-empty" style="flex: 0;">(trade pending)</span>` : ""}`;
     } else if (isMine && draftIsComplete()) {
       middle = `<span class="roster-row-empty">— empty — (sign a free agent from the <a href="pokemon-dex.html">Pokédex</a>)</span>`;
     } else if (isMine) {
@@ -186,10 +227,10 @@
       .map((team) => {
         const isMine = currentUser && team.ownerUid === currentUser.uid;
         const slots = team.slots || {};
-        const offenseRows = groups.offense.map((p) => renderRow(p, slots, isMine)).join("");
-        const defenseRows = groups.defense.map((p) => renderRow(p, slots, isMine)).join("");
-        const kickerRows = groups.specialTeams.map((p) => renderRow(p, slots, isMine)).join("");
-        const benchRows = (groups.bench || []).map((p) => renderRow(p, slots, isMine)).join("");
+        const offenseRows = groups.offense.map((p) => renderRow(p, slots, isMine, team.uid)).join("");
+        const defenseRows = groups.defense.map((p) => renderRow(p, slots, isMine, team.uid)).join("");
+        const kickerRows = groups.specialTeams.map((p) => renderRow(p, slots, isMine, team.uid)).join("");
+        const benchRows = (groups.bench || []).map((p) => renderRow(p, slots, isMine, team.uid)).join("");
         const exportBtn = isAdminViewer
           ? `<button type="button" class="btn btn-secondary export-team-btn" data-uid="${escapeHtml(team.uid)}">Export</button>`
           : "";
@@ -237,7 +278,181 @@
         removeFromRoster(btn.dataset.slot, Number(btn.dataset.id), btn.dataset.name)
       );
     });
+    listEl.querySelectorAll("[data-trade-target]").forEach((el) => {
+      el.addEventListener("click", () => {
+        const team = teams.find((t) => t.uid === el.dataset.uid);
+        if (team) openTradeModal(team, { position: el.dataset.slot, pokemonId: Number(el.dataset.id), pokemonName: el.dataset.name });
+      });
+    });
   };
+
+  // --- Propose trade modal ---
+  //
+  // Destination slots for whatever each side ends up receiving are only
+  // decided inside the accept transaction (pokemon-myteam.js), never here -
+  // a pending proposal doesn't touch anyone's roster yet, so there's
+  // nothing to assign a slot for until it's actually accepted.
+
+  const tradeModalEl = document.getElementById("trade-modal");
+  const tradeOtherNameEl = document.getElementById("trade-other-team-name");
+  const tradeMessageEl = document.getElementById("trade-message");
+  const tradeReceiveGridEl = document.getElementById("trade-receive-grid");
+  const tradeGiveGridEl = document.getElementById("trade-give-grid");
+  const tradeSendBtnEl = document.getElementById("trade-send-btn");
+  const tradeCancelBtnEl = document.getElementById("trade-cancel-btn");
+
+  let tradeOtherTeam = null;
+  let tradeReceiveSelected = new Map(); // pokemonId -> {position, pokemonId, pokemonName}
+  let tradeGiveSelected = new Map();
+
+  const showTradeMessage = (text, isError) => {
+    tradeMessageEl.hidden = false;
+    tradeMessageEl.className = `status${isError ? " error" : ""}`;
+    tradeMessageEl.textContent = text;
+  };
+
+  const filledSlotsOf = (team) =>
+    (config.pokemonPositions || [])
+      .map((position) => ({ position, pick: (team.slots || {})[position] }))
+      .filter((entry) => entry.pick);
+
+  const renderTradePickGrid = (el, team, selectedMap, disabledIds) => {
+    const entries = filledSlotsOf(team);
+    el.innerHTML = entries
+      .map(({ position, pick }) => {
+        const checked = selectedMap.has(pick.pokemonId);
+        const disabled = disabledIds && disabledIds.has(pick.pokemonId);
+        return `<label class="trade-pick-item${disabled ? " trade-pick-item--disabled" : ""}">
+                  <input type="checkbox" data-id="${pick.pokemonId}" data-position="${escapeHtml(position)}" data-name="${escapeHtml(pick.pokemonName)}" ${checked ? "checked" : ""} ${disabled ? "disabled" : ""} />
+                  <img class="roster-row-sprite" src="${spriteUrl(pick.pokemonId)}" alt="" loading="lazy" />
+                  <span>${escapeHtml(pick.pokemonName)} <span class="roster-row-position">(${escapeHtml(position)})</span></span>
+                </label>`;
+      })
+      .join("");
+    el.querySelectorAll('input[type="checkbox"]').forEach((input) => {
+      input.addEventListener("change", () => {
+        const id = Number(input.dataset.id);
+        if (input.checked) {
+          selectedMap.set(id, { position: input.dataset.position, pokemonId: id, pokemonName: input.dataset.name });
+        } else {
+          selectedMap.delete(id);
+        }
+        validateTradeSelection();
+      });
+    });
+  };
+
+  const validateTradeSelection = () => {
+    tradeMessageEl.hidden = true;
+    tradeSendBtnEl.disabled = false;
+
+    if (!tradeReceiveSelected.size || !tradeGiveSelected.size) {
+      tradeSendBtnEl.disabled = true;
+      return;
+    }
+
+    if (!tradeEligible(currentUser.uid, tradeOtherTeam.uid)) {
+      showTradeMessage(
+        "This trade is blocked for now - one of your teams has already played this week and the other hasn't.",
+        true
+      );
+      tradeSendBtnEl.disabled = true;
+      return;
+    }
+
+    const myTeamData = latestTeams.find((t) => t.uid === currentUser.uid);
+    const myEmptySlots = (config.pokemonPositions || []).filter((p) => !(myTeamData.slots || {})[p]).length;
+    const myCapacity = tradeGiveSelected.size + myEmptySlots;
+    if (tradeReceiveSelected.size > myCapacity) {
+      showTradeMessage(
+        `You don't have enough open roster slots - receiving ${tradeReceiveSelected.size} needs ${tradeReceiveSelected.size - myCapacity} more open slot(s) than you currently have.`,
+        true
+      );
+      tradeSendBtnEl.disabled = true;
+      return;
+    }
+
+    const theirEmptySlots = (config.pokemonPositions || []).filter((p) => !(tradeOtherTeam.slots || {})[p]).length;
+    const theirCapacity = tradeReceiveSelected.size + theirEmptySlots;
+    if (tradeGiveSelected.size > theirCapacity) {
+      showTradeMessage(
+        `${tradeOtherTeam.teamName} doesn't have enough open roster slots to receive this many Pokémon.`,
+        true
+      );
+      tradeSendBtnEl.disabled = true;
+    }
+  };
+
+  const openTradeModal = (otherTeam, preselected) => {
+    if (!currentUser) return;
+    tradeOtherTeam = otherTeam;
+    tradeReceiveSelected = new Map();
+    tradeGiveSelected = new Map();
+    if (preselected) {
+      tradeReceiveSelected.set(preselected.pokemonId, preselected);
+    }
+    tradeOtherNameEl.textContent = otherTeam.teamName || "Unnamed Team";
+    tradeMessageEl.hidden = true;
+
+    const myTeamData = latestTeams.find((t) => t.uid === currentUser.uid);
+    const lockedForOther = new Set(
+      filledSlotsOf(otherTeam)
+        .filter(({ pick }) => pokemonInPendingTrade(otherTeam.uid, pick.pokemonId))
+        .map(({ pick }) => pick.pokemonId)
+    );
+    const lockedForMe = new Set(
+      filledSlotsOf(myTeamData)
+        .filter(({ pick }) => pokemonInPendingTrade(myTeamData.uid, pick.pokemonId))
+        .map(({ pick }) => pick.pokemonId)
+    );
+    renderTradePickGrid(tradeReceiveGridEl, otherTeam, tradeReceiveSelected, lockedForOther);
+    renderTradePickGrid(tradeGiveGridEl, myTeamData, tradeGiveSelected, lockedForMe);
+    validateTradeSelection();
+    tradeModalEl.hidden = false;
+  };
+
+  const closeTradeModal = () => {
+    tradeModalEl.hidden = true;
+    tradeOtherTeam = null;
+  };
+
+  tradeCancelBtnEl.addEventListener("click", closeTradeModal);
+
+  async function sendTradeProposal() {
+    if (!currentUser || !tradeOtherTeam) return;
+    const myTeamData = latestTeams.find((t) => t.uid === currentUser.uid);
+    const give = [...tradeGiveSelected.values()];
+    const receive = [...tradeReceiveSelected.values()];
+
+    try {
+      await db.collection("trades").add({
+        fromUid: currentUser.uid,
+        fromTeamName: myTeamData.teamName || "Unnamed Team",
+        toUid: tradeOtherTeam.uid,
+        toTeamName: tradeOtherTeam.teamName || "Unnamed Team",
+        give,
+        receive,
+        status: "pending",
+        createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+        resolvedAt: null,
+      });
+
+      const giveNames = give.map((p) => p.pokemonName).join(", ");
+      const receiveNames = receive.map((p) => p.pokemonName).join(", ");
+      await db.collection("chatMessages").add({
+        uid: currentUser.uid,
+        system: true,
+        text: `${myTeamData.teamName} proposes a trade to ${tradeOtherTeam.teamName}: ${giveNames} for ${receiveNames}`,
+        createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+      });
+
+      closeTradeModal();
+    } catch (error) {
+      showTradeMessage(error.message, true);
+    }
+  }
+
+  tradeSendBtnEl.addEventListener("click", sendTradeProposal);
 
   async function toggleTeamHidden(uid, currentlyHidden) {
     try {
@@ -276,13 +491,28 @@
   let unsubscribeDraftState = null;
   let unsubscribeMatchups = null;
   let unsubscribeTrainingLog = null;
+  let unsubscribeTrades = null;
   let latestTeams = [];
+  let pendingTrades = [];
 
   const subscribe = () => {
-    [unsubscribeTeams, unsubscribeDrafted, unsubscribeSeason, unsubscribeDraftState, unsubscribeMatchups, unsubscribeTrainingLog].forEach(
-      (unsubscribe) => unsubscribe && unsubscribe()
-    );
-    unsubscribeTeams = unsubscribeDrafted = unsubscribeSeason = unsubscribeDraftState = unsubscribeMatchups = unsubscribeTrainingLog = null;
+    [
+      unsubscribeTeams,
+      unsubscribeDrafted,
+      unsubscribeSeason,
+      unsubscribeDraftState,
+      unsubscribeMatchups,
+      unsubscribeTrainingLog,
+      unsubscribeTrades,
+    ].forEach((unsubscribe) => unsubscribe && unsubscribe());
+    unsubscribeTeams =
+      unsubscribeDrafted =
+      unsubscribeSeason =
+      unsubscribeDraftState =
+      unsubscribeMatchups =
+      unsubscribeTrainingLog =
+      unsubscribeTrades =
+        null;
 
     if (!currentUser) {
       listEl.innerHTML = "";
@@ -324,7 +554,8 @@
       .doc("current")
       .onSnapshot(
         (doc) => {
-          currentWeek = doc.exists ? doc.data().currentWeek ?? null : null;
+          seasonState = doc.exists ? doc.data() : null;
+          currentWeek = seasonState ? seasonState.currentWeek ?? null : null;
           renderTeams(latestTeams);
         },
         () => {}
@@ -341,17 +572,26 @@
         () => {}
       );
 
-    // Only the admin's export button needs these - skip the extra reads
-    // for everyone else.
-    if (isAdmin()) {
-      unsubscribeMatchups = db.collection("matchups").onSnapshot((snapshot) => {
-        matchups = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
-      }, () => {});
+    // matchups is needed by everyone now (trade eligibility), not just the
+    // admin export button.
+    unsubscribeMatchups = db.collection("matchups").onSnapshot((snapshot) => {
+      matchups = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+      renderTeams(latestTeams);
+    }, () => {});
 
+    if (isAdmin()) {
       unsubscribeTrainingLog = db.collection("trainingLog").onSnapshot((snapshot) => {
         trainingLog = snapshot.docs.map((doc) => doc.data());
       }, () => {});
     }
+
+    unsubscribeTrades = db
+      .collection("trades")
+      .where("status", "==", "pending")
+      .onSnapshot((snapshot) => {
+        pendingTrades = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+        renderTeams(latestTeams);
+      }, () => {});
   };
 
   auth.onAuthStateChanged((user) => {

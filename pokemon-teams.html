@@ -30,6 +30,7 @@
         <div class="brand-group">
           <a class="brand" href="index.html">Roselium Games</a>
           <a class="pokemon-nav-badge active" href="pokemon-league.html"><span class="pokemon-nav-badge-icon" aria-hidden="true"></span>Fantasy Pokéball</a>
+          <a class="trade-notification-badge" id="trade-notification-badge" href="pokemon-myteam.html#trades" hidden>🔔 <span id="trade-notification-count"></span></a>
         </div>
         <div class="nav-links">
           <a href="index.html">Home</a>
@@ -62,6 +63,22 @@
       <p class="status" id="teams-status">Loading rosters…</p>
       <div class="page-stack" id="teams-list"></div>
     </main>
+
+    <div class="slot-picker-modal" id="trade-modal" hidden>
+      <div class="card slot-picker-panel trade-modal-panel">
+        <h2>Propose Trade with <span id="trade-other-team-name"></span></h2>
+        <p class="status" id="trade-message" hidden></p>
+
+        <h3>You'll receive</h3>
+        <div class="trade-pick-grid" id="trade-receive-grid"></div>
+
+        <h3>You'll give</h3>
+        <div class="trade-pick-grid" id="trade-give-grid"></div>
+
+        <button type="button" class="btn" id="trade-send-btn">Send Proposal</button>
+        <button type="button" class="btn btn-secondary" id="trade-cancel-btn" style="margin-top: 0.5rem;">Cancel</button>
+      </div>
+    </div>
 
     <footer class="site-footer">
       <p>Roselium Games • community-managed records for tactical play nights</p>

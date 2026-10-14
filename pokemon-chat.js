@@ -8,6 +8,8 @@
   const sidebarEl = document.getElementById("chat-sidebar");
   const closeBtn = document.getElementById("chat-close-btn");
   const clearSystemBtn = document.getElementById("chat-clear-system-btn");
+  const tradeBadgeEl = document.getElementById("trade-notification-badge");
+  const tradeBadgeCountEl = document.getElementById("trade-notification-count");
   const messagesEl = document.getElementById("chat-messages");
   const formEl = document.getElementById("chat-form");
   const inputEl = document.getElementById("chat-input");
@@ -152,7 +154,42 @@
       );
   };
 
-  auth.onAuthStateChanged(() => subscribe());
+  // Pending-trade notification badge - every page, next to the Fantasy
+  // Pokeball header badge (the chat toggle itself is hidden on desktop, so
+  // tying this to it specifically wouldn't actually be visible everywhere).
+  let unsubscribeTradeBadge = null;
+
+  const subscribeTradeBadge = () => {
+    if (unsubscribeTradeBadge) {
+      unsubscribeTradeBadge();
+      unsubscribeTradeBadge = null;
+    }
+    if (!tradeBadgeEl) return;
+    if (!auth.currentUser) {
+      tradeBadgeEl.hidden = true;
+      return;
+    }
+    // Single equality filter, filtered client-side for toUid - avoids
+    // needing a composite index for the two-field combination.
+    unsubscribeTradeBadge = db
+      .collection("trades")
+      .where("status", "==", "pending")
+      .onSnapshot(
+        (snapshot) => {
+          const count = snapshot.docs.filter((doc) => doc.data().toUid === auth.currentUser.uid).length;
+          tradeBadgeEl.hidden = count === 0;
+          if (tradeBadgeCountEl) tradeBadgeCountEl.textContent = count;
+        },
+        () => {
+          tradeBadgeEl.hidden = true;
+        }
+      );
+  };
+
+  auth.onAuthStateChanged(() => {
+    subscribe();
+    subscribeTradeBadge();
+  });
 
   formEl.addEventListener("submit", async (event) => {
     event.preventDefault();

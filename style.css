@@ -166,6 +166,32 @@ body[data-page="unmatched"]::before {
   border-color: #2451d6;
 }
 
+.trade-notification-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.4rem 0.75rem;
+  border-radius: 999px;
+  background: #ee1515;
+  border: 2px solid #fff;
+  color: #fff;
+  font-family: "Press Start 2P", "Segoe UI", Arial, sans-serif;
+  font-size: 0.62rem;
+  line-height: 1;
+  text-decoration: none;
+  white-space: nowrap;
+  animation: trade-badge-pulse 1.4s ease-in-out infinite;
+}
+
+.trade-notification-badge:hover {
+  animation-play-state: paused;
+}
+
+@keyframes trade-badge-pulse {
+  0%, 100% { box-shadow: 0 0 6px rgba(238, 21, 21, 0.6); }
+  50% { box-shadow: 0 0 16px rgba(238, 21, 21, 0.95); }
+}
+
 .pokemon-nav-badge-icon {
   width: 12px;
   height: 12px;

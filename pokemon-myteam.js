@@ -18,6 +18,9 @@
   const trainingButtonsEl = document.getElementById("training-buttons");
   const trainingMessageEl = document.getElementById("training-message");
   const myTrainingBadgesEl = document.getElementById("myteam-training-badges");
+  const tradesCardEl = document.getElementById("trades-card");
+  const tradesIncomingAreaEl = document.getElementById("trades-incoming-area");
+  const tradesOutgoingAreaEl = document.getElementById("trades-outgoing-area");
 
   if (!rosterCardEl) return;
 
@@ -65,6 +68,7 @@
   let todayLog = null;
   let seasonState = null;
   let trainingLog = [];
+  let pendingTrades = [];
 
   // --- Training ---
 
@@ -411,10 +415,206 @@
     oppListEl.innerHTML = positions.map((position) => renderOppRow(position, opponentSlots)).join("");
   };
 
+  // --- Trades ---
+
+  // Same "active week" + eligibility logic as the Rosters page (where
+  // trades are proposed) - a trade is blocked only when exactly one of
+  // the two teams has already played its game for the active week.
+  const currentActiveWeek = () => {
+    const unplayed = matchups.filter((m) => m.round === "regular" && m.status !== "final");
+    if (!unplayed.length) return null;
+    return Math.min(...unplayed.map((m) => m.week));
+  };
+
+  const hasPlayedActiveWeek = (uid) => {
+    const week = currentActiveWeek();
+    if (week === null) return false;
+    const matchup = matchups.find((m) => m.week === week && (m.homeUid === uid || m.awayUid === uid));
+    return Boolean(matchup && matchup.status === "final");
+  };
+
+  const tradeEligible = (uidA, uidB) => hasPlayedActiveWeek(uidA) === hasPlayedActiveWeek(uidB);
+
+  const emptySlotCount = (team) => (config.pokemonPositions || []).filter((p) => !(team.slots || {})[p]).length;
+
+  let tradeMessageTimeout = null;
+  const showTradeMessage = (text, isError) => {
+    const el = document.createElement("p");
+    el.className = `status${isError ? " error" : ""}`;
+    el.textContent = text;
+    tradesCardEl.insertBefore(el, tradesCardEl.firstChild.nextSibling);
+    clearTimeout(tradeMessageTimeout);
+    tradeMessageTimeout = setTimeout(() => el.remove(), 6000);
+  };
+
+  const renderTradeCard = (trade, isIncoming) => {
+    const otherName = isIncoming ? trade.fromTeamName : trade.toTeamName;
+    const giveLabel = isIncoming ? "They give" : "You give";
+    const receiveLabel = isIncoming ? "They receive" : "You receive";
+    // From the viewer's own perspective: an incoming trade's "give" (the
+    // proposer's offer) is what the viewer would receive, and vice versa.
+    const viewerReceives = isIncoming ? trade.give : trade.receive;
+    const viewerGives = isIncoming ? trade.receive : trade.give;
+    const listNames = (items) => items.map((p) => escapeHtml(p.pokemonName)).join(", ");
+    const actions = isIncoming
+      ? `<button type="button" class="btn trade-accept-btn" data-id="${trade.id}">Accept</button>
+         <button type="button" class="btn btn-secondary trade-deny-btn" data-id="${trade.id}">Deny</button>`
+      : `<button type="button" class="btn btn-secondary trade-cancel-btn" data-id="${trade.id}">Cancel Proposal</button>`;
+    return `<div class="card trade-pending-card">
+              <p><strong>${isIncoming ? "From" : "To"}:</strong> ${escapeHtml(otherName)}</p>
+              <p><strong>${receiveLabel}:</strong> ${listNames(viewerReceives)}</p>
+              <p><strong>${giveLabel}:</strong> ${listNames(viewerGives)}</p>
+              ${actions}
+            </div>`;
+  };
+
+  const renderTrades = () => {
+    if (!currentUser) {
+      tradesCardEl.hidden = true;
+      return;
+    }
+    const incoming = pendingTrades.filter((t) => t.toUid === currentUser.uid);
+    const outgoing = pendingTrades.filter((t) => t.fromUid === currentUser.uid);
+    tradesCardEl.hidden = incoming.length === 0 && outgoing.length === 0;
+    if (tradesCardEl.hidden) return;
+
+    tradesIncomingAreaEl.innerHTML = incoming.map((t) => renderTradeCard(t, true)).join("");
+    tradesOutgoingAreaEl.innerHTML = outgoing.map((t) => renderTradeCard(t, false)).join("");
+
+    tradesIncomingAreaEl.querySelectorAll(".trade-accept-btn").forEach((btn) => {
+      btn.addEventListener("click", () => acceptTrade(btn.dataset.id));
+    });
+    tradesIncomingAreaEl.querySelectorAll(".trade-deny-btn").forEach((btn) => {
+      btn.addEventListener("click", () => resolveTrade(btn.dataset.id, "rejected"));
+    });
+    tradesOutgoingAreaEl.querySelectorAll(".trade-cancel-btn").forEach((btn) => {
+      btn.addEventListener("click", () => resolveTrade(btn.dataset.id, "cancelled"));
+    });
+  };
+
+  async function resolveTrade(tradeId, status) {
+    try {
+      await db.collection("trades").doc(tradeId).update({ status, resolvedAt: firebase.firestore.FieldValue.serverTimestamp() });
+    } catch (error) {
+      showTradeMessage(error.message, true);
+    }
+  }
+
+  // Destination slots for whatever each side ends up receiving are
+  // assigned here, deterministically - vacated slots first (in the order
+  // offered), then any other open slots for the overflow on an uneven
+  // trade. Positions carry no real restriction anywhere else in this app
+  // either, so there's no "right" slot beyond "an open one."
+  async function acceptTrade(tradeId) {
+    if (!currentUser) return;
+    const trade = pendingTrades.find((t) => t.id === tradeId);
+    if (!trade) return;
+
+    const fromRef = db.collection("teams").doc(trade.fromUid);
+    const toRef = db.collection("teams").doc(trade.toUid);
+    const tradeRef = db.collection("trades").doc(tradeId);
+
+    try {
+      await db.runTransaction(async (tx) => {
+        const [tradeSnap, fromSnap, toSnap] = await Promise.all([tx.get(tradeRef), tx.get(fromRef), tx.get(toRef)]);
+        const freshTrade = tradeSnap.data();
+        if (!freshTrade || freshTrade.status !== "pending") throw new Error("This trade is no longer pending.");
+
+        const fromTeam = fromSnap.data();
+        const toTeam = toSnap.data();
+        if (!fromTeam || !toTeam) throw new Error("One of the teams in this trade no longer exists.");
+
+        if (!tradeEligible(trade.fromUid, trade.toUid)) {
+          throw new Error("This trade is blocked for now - one team has already played this week and the other hasn't.");
+        }
+
+        const give = freshTrade.give; // fromUid's pokemon -> land on toUid's roster
+        const receive = freshTrade.receive; // toUid's pokemon -> land on fromUid's roster
+
+        // Re-verify every traded Pokemon is still exactly where the
+        // proposal said it was - if either roster has changed since (a
+        // free-agent swap, a drag-and-drop move, another trade), this
+        // trade is stale and must be re-proposed rather than silently
+        // moving the wrong thing.
+        const stillThere = (team, items) =>
+          items.every((item) => {
+            const atSlot = (team.slots || {})[item.position];
+            return atSlot && atSlot.pokemonId === item.pokemonId;
+          });
+        if (!stillThere(fromTeam, give) || !stillThere(toTeam, receive)) {
+          throw new Error("This trade is stale - one of the rosters has changed since it was proposed. Ask them to re-propose it.");
+        }
+
+        // Capacity: vacated slots first, then overflow needs open slots.
+        const fromOpen = emptySlotCount(fromTeam);
+        const toOpen = emptySlotCount(toTeam);
+        if (receive.length > give.length + fromOpen) {
+          throw new Error(`${fromTeam.teamName} doesn't have enough open roster slots to complete this trade.`);
+        }
+        if (give.length > receive.length + toOpen) {
+          throw new Error(`${toTeam.teamName} doesn't have enough open roster slots to complete this trade.`);
+        }
+
+        const assignDestinations = (team, vacatedPositions, incomingItems) => {
+          const slots = team.slots || {};
+          const destinations = [...vacatedPositions];
+          (config.pokemonPositions || []).forEach((p) => {
+            if (!slots[p] && !destinations.includes(p)) destinations.push(p);
+          });
+          const assignments = new Map();
+          incomingItems.forEach((item, i) => assignments.set(item.pokemonId, destinations[i]));
+          return assignments;
+        };
+
+        // toTeam vacates the slots named in `receive` (what it's giving away).
+        const toVacated = receive.map((i) => i.position);
+        const toDest = assignDestinations(toTeam, toVacated, give);
+        const fromVacated = give.map((i) => i.position);
+        const fromDest = assignDestinations(fromTeam, fromVacated, receive);
+
+        const fromSlotUpdates = {};
+        const toSlotUpdates = {};
+        fromVacated.forEach((position) => (fromSlotUpdates[`slots.${position}`] = null));
+        toVacated.forEach((position) => (toSlotUpdates[`slots.${position}`] = null));
+        give.forEach((item) => {
+          const destPosition = toDest.get(item.pokemonId);
+          toSlotUpdates[`slots.${destPosition}`] = { pokemonId: item.pokemonId, pokemonName: item.pokemonName, traded: true };
+          tx.update(db.collection("draftedPokemon").doc(String(item.pokemonId)), {
+            uid: trade.toUid,
+            teamName: toTeam.teamName,
+            slot: destPosition,
+          });
+        });
+        receive.forEach((item) => {
+          const destPosition = fromDest.get(item.pokemonId);
+          fromSlotUpdates[`slots.${destPosition}`] = { pokemonId: item.pokemonId, pokemonName: item.pokemonName, traded: true };
+          tx.update(db.collection("draftedPokemon").doc(String(item.pokemonId)), {
+            uid: trade.fromUid,
+            teamName: fromTeam.teamName,
+            slot: destPosition,
+          });
+        });
+
+        tx.update(fromRef, fromSlotUpdates);
+        tx.update(toRef, toSlotUpdates);
+        tx.update(tradeRef, { status: "accepted", resolvedAt: firebase.firestore.FieldValue.serverTimestamp() });
+        tx.set(db.collection("chatMessages").doc(), {
+          uid: currentUser.uid,
+          system: true,
+          text: `${fromTeam.teamName} and ${toTeam.teamName} completed a trade: ${give.map((i) => i.pokemonName).join(", ")} for ${receive.map((i) => i.pokemonName).join(", ")}`,
+          createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+        });
+      });
+    } catch (error) {
+      showTradeMessage(error.message, true);
+    }
+  }
+
   const renderAll = () => {
     renderMyRoster();
     renderNextMatchup();
     renderTraining();
+    renderTrades();
   };
 
   // --- Live listeners ---
@@ -424,12 +624,13 @@
   let unsubscribeTodayLog = null;
   let unsubscribeSeason = null;
   let unsubscribeTrainingLog = null;
+  let unsubscribeTrades = null;
 
   const subscribe = () => {
-    [unsubscribeTeams, unsubscribeMatchups, unsubscribeSeason, unsubscribeTodayLog, unsubscribeTrainingLog].forEach(
+    [unsubscribeTeams, unsubscribeMatchups, unsubscribeSeason, unsubscribeTodayLog, unsubscribeTrainingLog, unsubscribeTrades].forEach(
       (unsubscribe) => unsubscribe && unsubscribe()
     );
-    unsubscribeTeams = unsubscribeMatchups = unsubscribeSeason = unsubscribeTodayLog = unsubscribeTrainingLog = null;
+    unsubscribeTeams = unsubscribeMatchups = unsubscribeSeason = unsubscribeTodayLog = unsubscribeTrainingLog = unsubscribeTrades = null;
     todayLog = null;
 
     if (!currentUser) {
@@ -439,6 +640,7 @@
       rosterCardEl.hidden = true;
       matchupCardEl.hidden = true;
       trainingCardEl.hidden = true;
+      tradesCardEl.hidden = true;
       return;
     }
 
@@ -491,6 +693,14 @@
       },
       () => {}
     );
+
+    unsubscribeTrades = db
+      .collection("trades")
+      .where("status", "==", "pending")
+      .onSnapshot((snapshot) => {
+        pendingTrades = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+        renderAll();
+      }, () => {});
 
     unsubscribeSeason = db
       .collection("seasonState")
