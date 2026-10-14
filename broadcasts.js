@@ -2,6 +2,9 @@
 // maintained: add one entry here, in the same commit as uploading the
 // actual mp3 into audio/, each time a new episode is ready. Order in this
 // array doesn't matter - every page that reads it sorts by date itself.
+// Also post the announcement to config.discordBroadcastWebhookUrl's
+// channel by hand at the same time - that's a separate manual step too,
+// not something any site code triggers automatically.
 //
 // type is one of "preview" | "thursday_recap" | "week_summary" (see
 // broadcastTypeLabels below for how each displays). title is optional -

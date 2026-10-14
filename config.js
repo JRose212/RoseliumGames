@@ -96,6 +96,13 @@ window.siteConfig = {
   // "" to disable.
   discordWebhookUrl: "https://discord.com/api/webhooks/1560029114906443787/G4kdRTUO-smng_vuodGEcDHmLa7KN_F1bi4vSe4I8AxUZybusZhUWEQXAgnxybJFN-QB",
 
+  // A separate webhook, posted to its own dedicated Discord channel,
+  // announcing new broadcast episodes (see broadcasts.js). Not called from
+  // any site code - publishing a new episode is a manual step (upload the
+  // mp3, add an entry here, commit), so the announcement happens the same
+  // way: by hand, at publish time, not from a live site event.
+  discordBroadcastWebhookUrl: "https://discord.com/api/webhooks/1560033449048416316/Jx4lRD4VJ8aSiHKb_uHx18FXz4XznXDniYXttzRlPfAdOt834QlQ7vLCgmn2nuEOvzuH",
+
   trainingInfoBlurb:
     'Train your Team daily to enhance their abilities in their upcoming matchup. You are allowed to do one training session per day so choose wisely between "Pass Defense", "Run Defense", "Pass Offense", "Run Offense", "Film Session", "Team Bonding". Each training type provides different benefits to your team to edge out your opponent. Training more than your opponent for the week does not guarantee you win the matchup but it does help tip the scales. Determine your best training regiment and log in daily to get them right.\n\nLosing a matchup grants you a bonus practice session for the upcoming week, so be sure to use them. Bonus training sessions stack per week until your team wins a game.',
 
