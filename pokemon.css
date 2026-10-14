@@ -1411,6 +1411,30 @@ body[data-page^="pokemon-"] .app-content {
   height: 14px;
 }
 
+.discord-link-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 1rem;
+  margin-left: 0.75rem;
+  padding: 0.6rem 1.1rem;
+  border-radius: 999px;
+  background: #5865f2;
+  border: 2px solid #fff;
+  color: #fff;
+  font-weight: 700;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  text-decoration: none;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.discord-link-btn:hover {
+  transform: translateY(-1px) scale(1.03);
+  box-shadow: 0 8px 20px rgba(88, 101, 242, 0.5);
+}
+
 .rules-modal {
   position: fixed;
   inset: 0;
