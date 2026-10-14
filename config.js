@@ -100,6 +100,6 @@ window.siteConfig = {
   // shown. The real enforcement is isAdmin() in firestore.rules, which
   // has to hardcode this same uid separately since rules can't read this file.
   adminUid: "x9IEoSPGiDfg2xeYpLIX34Muqmh2",
-  autodraftTimeoutMs: 30 * 1000, // 30 seconds - live draft night
+  autodraftTimeoutMs: 20 * 1000, // 20 seconds - live draft night
   regularSeasonWeeks: 13,
 };

@@ -164,7 +164,7 @@
   const nameForId = (id) => fullList.find((entry) => entry.id === id)?.name || `#${id}`;
 
   const newDeadline = () =>
-    firebase.firestore.Timestamp.fromMillis(Date.now() + (config.autodraftTimeoutMs || 2 * 60 * 1000));
+    firebase.firestore.Timestamp.fromMillis(Date.now() + (config.autodraftTimeoutMs || 20 * 1000));
 
   const myTurn = () => draftState && draftState.status === "drafting" && currentUser && draftState.currentUid === currentUser.uid;
 

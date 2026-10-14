@@ -401,7 +401,7 @@
           currentUid: pickOrder[0],
           currentRound: 1,
           pickDeadlineAt: firebase.firestore.Timestamp.fromMillis(
-            Date.now() + (config.autodraftTimeoutMs || 2 * 60 * 1000)
+            Date.now() + (config.autodraftTimeoutMs || 20 * 1000)
           ),
           startedAt: firebase.firestore.FieldValue.serverTimestamp(),
           startedBy: auth.currentUser.uid,
