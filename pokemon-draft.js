@@ -108,6 +108,23 @@
     return detail;
   };
 
+  const fetchTypeMemberIds = async (typeName) => {
+    const cacheKey = `pokedex:type:${typeName}:v1`;
+    const cached = readCache(cacheKey, listTtl);
+    if (cached) return new Set(cached);
+    const response = await fetch(`${apiBase}/type/${typeName}`, { cache: "no-store" });
+    if (!response.ok) throw new Error(`Unable to load type "${typeName}" (${response.status})`);
+    const payload = await response.json();
+    const ids = payload.pokemon
+      .map((entry) => {
+        const match = entry.pokemon.url.match(/\/pokemon\/(\d+)\/?$/);
+        return match ? Number(match[1]) : null;
+      })
+      .filter(Boolean);
+    writeCache(cacheKey, ids);
+    return new Set(ids);
+  };
+
   // heightM/weightKg are stored metric (that's what PokeAPI returns), but
   // displayed in feet/inches and pounds.
   const formatImperial = (heightM, weightKg) => {
@@ -603,9 +620,13 @@
   };
 
   let searchDebounce = null;
+  let activeTypeIds = null; // null = no type filter active
   const applySearch = () => {
     const query = searchEl.value.trim().toLowerCase();
-    const filtered = query ? fullList.filter((entry) => entry.name.includes(query)) : fullList;
+    let filtered = query ? fullList.filter((entry) => entry.name.includes(query)) : fullList;
+    if (activeTypeIds) {
+      filtered = filtered.filter((entry) => activeTypeIds.has(entry.id));
+    }
     renderPickerGrid(filtered.slice(0, 500));
   };
 
@@ -613,6 +634,30 @@
     clearTimeout(searchDebounce);
     searchDebounce = setTimeout(applySearch, 150);
   });
+
+  const typeFilterEl = document.getElementById("picker-type-filter");
+  if (typeFilterEl) {
+    typeFilterEl.addEventListener("change", async () => {
+      const typeName = typeFilterEl.value;
+      if (!typeName) {
+        activeTypeIds = null;
+        applySearch();
+        return;
+      }
+      try {
+        pickerStatusEl.hidden = false;
+        pickerStatusEl.className = "status";
+        pickerStatusEl.textContent = `Loading ${typeName} type…`;
+        activeTypeIds = await fetchTypeMemberIds(typeName);
+        pickerStatusEl.hidden = true;
+        applySearch();
+      } catch (error) {
+        pickerStatusEl.hidden = false;
+        pickerStatusEl.className = "status error";
+        pickerStatusEl.textContent = `Unable to load that type. ${error.message}`;
+      }
+    });
+  }
 
   // --- Slot picker modal ---
 
