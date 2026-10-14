@@ -1385,6 +1385,7 @@ body[data-page^="pokemon-"] .app-content {
 
 .rules-link-btn {
   display: inline-flex;
+  justify-self: start;
   align-items: center;
   gap: 0.5rem;
   margin-top: 1rem;
@@ -1413,6 +1414,7 @@ body[data-page^="pokemon-"] .app-content {
 
 .discord-link-btn {
   display: inline-flex;
+  justify-self: start;
   align-items: center;
   gap: 0.5rem;
   margin-top: 1rem;

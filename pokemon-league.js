@@ -62,6 +62,7 @@
   const authPanelEl = document.getElementById("auth-panel");
   const statusSummaryEl = document.getElementById("league-status-summary");
   const startDraftAreaEl = document.getElementById("start-draft-area");
+  const draftOrderAreaEl = document.getElementById("draft-order-area");
   const managerListEl = document.getElementById("manager-list");
 
   const escapeHtml = (value) => {
@@ -273,13 +274,55 @@
       return;
     }
 
+    const hasOrder = Boolean(latestDraftState.draftOrder && latestDraftState.draftOrder.length);
+
     if (!isAdmin) {
       startDraftAreaEl.innerHTML = `<p class="status">${latestTeams.length} managers signed up - the admin will start the draft when ready.</p>`;
       return;
     }
 
-    startDraftAreaEl.innerHTML = `<button type="button" class="btn" id="start-draft-btn">Start Draft (${latestTeams.length} managers)</button><p class="status" id="start-draft-message" hidden></p>`;
+    const orderButtonLabel = hasOrder ? "Regenerate Draft Order" : "Generate Draft Order";
+    startDraftAreaEl.innerHTML = `
+      <button type="button" class="btn btn-secondary" id="generate-order-btn">${orderButtonLabel}</button>
+      <button type="button" class="btn" id="start-draft-btn">Start Draft (${latestTeams.length} managers)</button>
+      <p class="status" id="start-draft-message" hidden></p>
+    `;
+    document.getElementById("generate-order-btn").addEventListener("click", generateDraftOrder);
     document.getElementById("start-draft-btn").addEventListener("click", startDraft);
+  };
+
+  const renderDraftOrderArea = () => {
+    if (!draftOrderAreaEl) return;
+    const order = latestDraftState && latestDraftState.draftOrder;
+    if (!order || !order.length) {
+      draftOrderAreaEl.innerHTML = "";
+      return;
+    }
+
+    const nameByUid = {};
+    latestTeams.forEach((team) => {
+      nameByUid[team.uid] = team.teamName || "Unnamed Team";
+    });
+    const myUid = auth.currentUser && auth.currentUser.uid;
+
+    const rows = order
+      .map((uid, index) => {
+        const isMe = uid === myUid;
+        const name = escapeHtml(nameByUid[uid] || "Unknown manager");
+        return `<li class="manager-item"${isMe ? ' style="font-weight: bold;"' : ""}><span class="manager-item-name">${index + 1}. ${name}${isMe ? " (You)" : ""}</span></li>`;
+      })
+      .join("");
+
+    const statusNote =
+      latestDraftState.status === "pending"
+        ? "This is the order the draft will start in once the admin clicks Start Draft."
+        : "";
+
+    draftOrderAreaEl.innerHTML = `
+      <h3 style="margin-top: 1rem;">Draft Order (Round 1)</h3>
+      <p class="status">Snake draft - order reverses every round, so whoever picks last here picks first in Round 2.${statusNote ? " " + statusNote : ""}</p>
+      <ul class="manager-list">${rows}</ul>
+    `;
   };
 
   // Firestore listeners that error out (e.g. because auth hadn't resolved
@@ -304,6 +347,7 @@
       managerListEl.innerHTML = `<li class="manager-item">Sign in to see who's joined.</li>`;
       statusSummaryEl.textContent = "Sign in to see league status.";
       startDraftAreaEl.innerHTML = "";
+      draftOrderAreaEl.innerHTML = "";
       myTeam = null;
       return;
     }
@@ -329,6 +373,7 @@
           latestTeams = snapshot.docs.map((doc) => ({ uid: doc.id, ...doc.data() })).filter((team) => !team.hidden);
           renderManagerList();
           renderStartDraftArea();
+          renderDraftOrderArea();
         },
         (error) => {
           managerListEl.innerHTML = `<li class="manager-item status error">Unable to load managers: ${escapeHtml(error.message)}</li>`;
@@ -353,6 +398,7 @@
             statusSummaryEl.textContent = "The draft is complete.";
           }
           renderStartDraftArea();
+          renderDraftOrderArea();
           if (auth.currentUser) renderSignedIn(auth.currentUser);
         },
         (error) => {
@@ -390,7 +436,11 @@
     return result;
   };
 
-  async function startDraft() {
+  // Lets the admin lock in and publish the round-1 order before draft
+  // night, separately from actually starting the clock - status stays
+  // "pending" so nothing else about the draft changes yet. startDraft()
+  // below reuses this order instead of reshuffling if one is already set.
+  async function generateDraftOrder() {
     const messageEl = document.getElementById("start-draft-message");
     const showMessage = (text, isError) => {
       if (!messageEl) return;
@@ -402,6 +452,42 @@
     try {
       const teamsSnapshot = await db.collection("teams").orderBy("createdAt").get();
       const uids = shuffle(teamsSnapshot.docs.filter((doc) => !doc.data().hidden).map((doc) => doc.id));
+
+      const stateRef = db.collection("draftState").doc("current");
+      await db.runTransaction(async (tx) => {
+        const snap = await tx.get(stateRef);
+        if (!snap.exists || snap.data().status !== "pending") {
+          throw new Error("The draft order can only be set before the draft starts.");
+        }
+        tx.update(stateRef, {
+          draftOrder: uids,
+          draftOrderSetAt: firebase.firestore.FieldValue.serverTimestamp(),
+        });
+      });
+      showMessage("Draft order generated - visible to everyone below.", false);
+    } catch (error) {
+      showMessage(error.message, true);
+    }
+  }
+
+  async function startDraft() {
+    const messageEl = document.getElementById("start-draft-message");
+    const showMessage = (text, isError) => {
+      if (!messageEl) return;
+      messageEl.hidden = false;
+      messageEl.textContent = text;
+      messageEl.className = `status${isError ? " error" : ""}`;
+    };
+
+    try {
+      // Reuse the order from Generate Draft Order if the admin already set
+      // one, so the published round-1 order is exactly what's used - only
+      // falls back to a fresh shuffle here if no order was pre-generated.
+      let uids = latestDraftState && latestDraftState.draftOrder;
+      if (!uids || !uids.length) {
+        const teamsSnapshot = await db.collection("teams").orderBy("createdAt").get();
+        uids = shuffle(teamsSnapshot.docs.filter((doc) => !doc.data().hidden).map((doc) => doc.id));
+      }
       const positions = config.pokemonPositions || [];
       const pickOrder = buildSnakePickOrder(uids, positions);
 
@@ -491,6 +577,8 @@
           completedAt: null,
           startedAt: null,
           startedBy: null,
+          draftOrder: [],
+          draftOrderSetAt: null,
         },
       });
 
