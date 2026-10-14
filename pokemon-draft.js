@@ -184,7 +184,7 @@
 
   // --- League state ---
 
-  const MAX_RANKINGS = 30;
+  const MAX_RANKINGS = 50;
   let fullList = [];
   let draftState = null;
   let teamsByUid = new Map();
