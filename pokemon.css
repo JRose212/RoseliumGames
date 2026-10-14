@@ -779,6 +779,25 @@ body[data-page^="pokemon-"] .jump-nav a {
   margin-right: 0.5rem;
 }
 
+/* Broadcasts (League Home's latest-episode card, Schedule's archive) */
+
+.broadcast-card audio,
+.broadcast-archive-item audio {
+  margin-top: 0.5rem;
+}
+
+.broadcast-archive-item {
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border);
+}
+
+.broadcast-archive-item:first-child {
+  margin-top: 0.5rem;
+  padding-top: 0;
+  border-top: none;
+}
+
 .roster-remove-btn {
   width: 22px;
   height: 22px;

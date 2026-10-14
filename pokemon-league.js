@@ -38,6 +38,25 @@
   if (location.hash === "#rules") openModal();
 })();
 
+// Latest broadcast card - also standalone, reading the hand-maintained
+// window.broadcasts list from broadcasts.js. No Firebase/auth dependency,
+// so it shows for signed-out visitors too.
+(function () {
+  const cardEl = document.getElementById("latest-broadcast-card");
+  const titleEl = document.getElementById("latest-broadcast-title");
+  const playerEl = document.getElementById("latest-broadcast-player");
+  if (!cardEl || !titleEl || !playerEl) return;
+
+  const broadcasts = window.broadcasts || [];
+  if (!broadcasts.length) return;
+
+  const typeLabels = window.broadcastTypeLabels || {};
+  const latest = [...broadcasts].sort((a, b) => b.date.localeCompare(a.date))[0];
+  titleEl.textContent = latest.title || `Week ${latest.week}: ${typeLabels[latest.type] || latest.type}`;
+  playerEl.src = latest.file;
+  cardEl.hidden = false;
+})();
+
 (function () {
   const config = window.siteConfig || {};
   const authPanelEl = document.getElementById("auth-panel");

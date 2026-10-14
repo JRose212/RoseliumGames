@@ -11,6 +11,7 @@
     <link rel="stylesheet" href="style.css" />
     <link rel="stylesheet" href="pokemon.css" />
     <script src="config.js"></script>
+    <script src="broadcasts.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -61,6 +62,12 @@
       </nav>
 
       <p class="status" id="schedule-status">Loading…</p>
+
+      <a id="broadcasts"></a>
+      <section class="card" id="broadcasts-archive-card" hidden>
+        <h2>🎙️ Broadcasts Archive</h2>
+        <div id="broadcasts-archive-list"></div>
+      </section>
 
       <section class="card" id="generate-schedule-card" hidden>
         <h2 id="generate-schedule-heading">Generate the schedule</h2>

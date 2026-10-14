@@ -1,3 +1,36 @@
+// Broadcasts archive - standalone, same as League Home's latest-episode
+// card: reads window.broadcasts directly, no Firebase/auth dependency, so
+// it shows for signed-out visitors too.
+(function () {
+  const cardEl = document.getElementById("broadcasts-archive-card");
+  const listEl = document.getElementById("broadcasts-archive-list");
+  if (!cardEl || !listEl) return;
+
+  const broadcasts = window.broadcasts || [];
+  if (!broadcasts.length) return;
+
+  const escapeHtml = (value) =>
+    String(value)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/\"/g, "&quot;")
+      .replace(/'/g, "&#39;");
+
+  const typeLabels = window.broadcastTypeLabels || {};
+  const sorted = [...broadcasts].sort((a, b) => b.date.localeCompare(a.date));
+  listEl.innerHTML = sorted
+    .map((b) => {
+      const title = b.title || `Week ${b.week}: ${typeLabels[b.type] || b.type}`;
+      return `<div class="broadcast-archive-item">
+                <p>${escapeHtml(title)} <span class="matchup-day">${escapeHtml(b.date)}</span></p>
+                <audio controls src="${escapeHtml(b.file)}" style="width: 100%;"></audio>
+              </div>`;
+    })
+    .join("");
+  cardEl.hidden = false;
+})();
+
 (function () {
   const config = window.siteConfig || {};
   const statusEl = document.getElementById("schedule-status");

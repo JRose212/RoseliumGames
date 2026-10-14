@@ -11,6 +11,7 @@
     <link rel="stylesheet" href="style.css" />
     <link rel="stylesheet" href="pokemon.css" />
     <script src="config.js"></script>
+    <script src="broadcasts.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -60,6 +61,13 @@
           <span class="pokemon-nav-badge-icon" aria-hidden="true"></span>
           League Rules &amp; Information
         </a>
+      </section>
+
+      <section class="card broadcast-card" id="latest-broadcast-card" hidden>
+        <h2>🎙️ Latest Broadcast</h2>
+        <p id="latest-broadcast-title"></p>
+        <audio controls id="latest-broadcast-player" style="width: 100%;"></audio>
+        <p class="status" id="latest-broadcast-archive-link"><a href="pokemon-schedule.html#broadcasts">Hear past episodes →</a></p>
       </section>
 
       <nav class="jump-nav card" aria-label="Fantasy league navigation">
