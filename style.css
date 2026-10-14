@@ -183,6 +183,10 @@ body[data-page="unmatched"]::before {
   animation: trade-badge-pulse 1.4s ease-in-out infinite;
 }
 
+.trade-notification-badge[hidden] {
+  display: none;
+}
+
 .trade-notification-badge:hover {
   animation-play-state: paused;
 }
