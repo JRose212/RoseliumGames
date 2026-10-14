@@ -299,6 +299,10 @@
       return;
     }
 
+    const isAdmin = Boolean(
+      auth.currentUser && config.adminUid && config.adminUid !== "YOUR_ADMIN_UID" && auth.currentUser.uid === config.adminUid
+    );
+
     const nameByUid = {};
     latestTeams.forEach((team) => {
       nameByUid[team.uid] = team.teamName || "Unnamed Team";
@@ -318,12 +322,75 @@
         ? "This is the order the draft will start in once the admin clicks Start Draft."
         : "";
 
+    // Admin-only manual reordering, for the rare case a manager needs to
+    // swap spots before the draft actually starts (illness, scheduling,
+    // etc.) - only usable while status is still "pending", since once
+    // Start Draft has run this field no longer drives anything.
+    const swapToolHtml =
+      isAdmin && latestDraftState.status === "pending"
+        ? `
+          <div class="auth-form" style="margin-top: 0.75rem; max-width: 320px;">
+            <label for="swap-pos-a">Swap pick #</label>
+            <input type="number" id="swap-pos-a" min="1" max="${order.length}" placeholder="e.g. 14" />
+            <label for="swap-pos-b">with pick #</label>
+            <input type="number" id="swap-pos-b" min="1" max="${order.length}" placeholder="e.g. 8" />
+            <button type="button" class="btn btn-secondary" id="swap-order-btn">Swap</button>
+          </div>
+          <p class="status" id="swap-order-message" hidden></p>
+        `
+        : "";
+
     draftOrderAreaEl.innerHTML = `
       <h3 style="margin-top: 1rem;">Draft Order (Round 1)</h3>
       <p class="status">Snake draft - order reverses every round, so whoever picks last here picks first in Round 2.${statusNote ? " " + statusNote : ""}</p>
       <ul class="manager-list">${rows}</ul>
+      ${swapToolHtml}
     `;
+
+    if (isAdmin && latestDraftState.status === "pending") {
+      document.getElementById("swap-order-btn").addEventListener("click", swapDraftOrderPositions);
+    }
   };
+
+  async function swapDraftOrderPositions() {
+    const messageEl = document.getElementById("swap-order-message");
+    const showMessage = (text, isError) => {
+      if (!messageEl) return;
+      messageEl.hidden = false;
+      messageEl.textContent = text;
+      messageEl.className = `status${isError ? " error" : ""}`;
+    };
+
+    const order = latestDraftState && latestDraftState.draftOrder;
+    const a = parseInt(document.getElementById("swap-pos-a").value, 10);
+    const b = parseInt(document.getElementById("swap-pos-b").value, 10);
+
+    if (!order || !a || !b || a < 1 || b < 1 || a > order.length || b > order.length) {
+      showMessage(`Enter two pick numbers between 1 and ${order ? order.length : "?"}.`, true);
+      return;
+    }
+    if (a === b) {
+      showMessage("Pick numbers must be different.", true);
+      return;
+    }
+
+    const newOrder = order.slice();
+    [newOrder[a - 1], newOrder[b - 1]] = [newOrder[b - 1], newOrder[a - 1]];
+
+    try {
+      const stateRef = db.collection("draftState").doc("current");
+      await db.runTransaction(async (tx) => {
+        const snap = await tx.get(stateRef);
+        if (!snap.exists || snap.data().status !== "pending") {
+          throw new Error("The draft order can only be edited before the draft starts.");
+        }
+        tx.update(stateRef, { draftOrder: newOrder });
+      });
+      showMessage(`Swapped pick ${a} and pick ${b}.`, false);
+    } catch (error) {
+      showMessage(error.message, true);
+    }
+  }
 
   // Firestore listeners that error out (e.g. because auth hadn't resolved
   // yet) don't retry on their own, so these are torn down and restarted
