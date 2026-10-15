@@ -567,6 +567,40 @@ body[data-page^="pokemon-"] .jump-nav a {
 
 /* Stats & Analytics (pokemon-stats.html) */
 
+.box-score-row {
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border);
+}
+
+.box-score-row:first-of-type {
+  margin-top: 0.5rem;
+  padding-top: 0;
+  border-top: none;
+}
+
+.box-score-row-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.box-score-row-header .matchup-score {
+  color: var(--accent-strong);
+  font-weight: 700;
+}
+
+.box-score-short-summary {
+  margin: 0.4rem 0 0;
+  color: var(--text);
+}
+
+.box-score-row .roster-set {
+  margin-top: 0.6rem;
+}
+
 .box-score-sides {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));

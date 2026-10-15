@@ -149,14 +149,40 @@
     const box = boxScoresByMatchupId.get(matchup.id);
     const scoreText =
       matchup.homeScore != null && matchup.awayScore != null ? `Final ${matchup.homeScore}-${matchup.awayScore}` : "Final";
-    const body = box
+
+    const shortSummaryHtml = matchup.shortSummary
+      ? `<p class="box-score-short-summary">${escapeHtml(matchup.shortSummary)}</p>`
+      : "";
+
+    const driveSummaryHtml = matchup.driveSummary
+      ? `
+        <details class="roster-set">
+          <summary class="roster-set-title">Drive Summary</summary>
+          <div class="roster-set-group"><p>${escapeHtml(matchup.driveSummary).replace(/\n/g, "<br>")}</p></div>
+        </details>
+      `
+      : "";
+
+    const boxScoreBody = box
       ? `<div class="box-score-sides">${sideTableHtml(teamName(matchup.homeUid), box.home)}${sideTableHtml(teamName(matchup.awayUid), box.away)}</div>`
       : `<p class="status">No box score entered for this game yet.</p>`;
-    return `
+    const boxScoreHtml = `
       <details class="roster-set">
-        <summary class="roster-set-title">${escapeHtml(teamName(matchup.homeUid))} vs ${escapeHtml(teamName(matchup.awayUid))}<span class="roster-set-count">${escapeHtml(scoreText)}</span></summary>
-        <div class="roster-set-group">${body}</div>
+        <summary class="roster-set-title">Box Score</summary>
+        <div class="roster-set-group">${boxScoreBody}</div>
       </details>
+    `;
+
+    return `
+      <div class="box-score-row">
+        <div class="box-score-row-header">
+          <span class="matchup-teams">${escapeHtml(teamName(matchup.homeUid))} vs ${escapeHtml(teamName(matchup.awayUid))}</span>
+          <span class="matchup-score">${escapeHtml(scoreText)}</span>
+        </div>
+        ${shortSummaryHtml}
+        ${driveSummaryHtml}
+        ${boxScoreHtml}
+      </div>
     `;
   };
 
