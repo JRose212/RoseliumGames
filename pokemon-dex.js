@@ -1,7 +1,6 @@
 (function () {
   const config = window.siteConfig || {};
   const statusEl = document.getElementById("dex-status");
-  const faLimitStatusEl = document.getElementById("fa-limit-status");
   const gridEl = document.getElementById("dex-grid");
   const searchEl = document.getElementById("dex-search");
   const typeFilterEl = document.getElementById("dex-type-filter");
@@ -13,7 +12,6 @@
   const faModalCancelEl = document.getElementById("fa-sign-cancel-btn");
   const legendaryIds = new Set(config.legendaryPokemonIds || []);
   const positions = config.pokemonPositions || [];
-  const MAX_SIGNINGS_PER_WEEK = 2;
 
   if (!gridEl) return;
 
@@ -143,33 +141,9 @@
 
   const seasonHasStarted = () => Boolean(seasonState);
 
-  const signingsUsedThisWeek = () => {
-    if (!myTeam || !seasonState) return 0;
-    const fa = myTeam.freeAgency || {};
-    return fa.week === seasonState.currentWeek ? fa.signings || 0 : 0;
-  };
-
   const canSignFreeAgents = () => Boolean(currentUser && myTeam && seasonHasStarted());
 
   const isSignable = (id) => canSignFreeAgents() && !legendaryIds.has(id) && !draftedMap.has(id);
-
-  const renderFaLimitStatus = () => {
-    if (!faLimitStatusEl) return;
-    if (!currentUser) {
-      faLimitStatusEl.hidden = true;
-      return;
-    }
-    if (!seasonHasStarted()) {
-      faLimitStatusEl.hidden = false;
-      faLimitStatusEl.className = "status";
-      faLimitStatusEl.textContent = "Free agency opens once the season starts.";
-      return;
-    }
-    const used = signingsUsedThisWeek();
-    faLimitStatusEl.hidden = false;
-    faLimitStatusEl.className = "status";
-    faLimitStatusEl.textContent = `Free agent signings used this week: ${used}/${MAX_SIGNINGS_PER_WEEK}`;
-  };
 
   const applyDraftedOverlay = () => {
     gridEl.querySelectorAll(".poke-card").forEach((card) => {
@@ -203,7 +177,6 @@
       }
     });
     renderSelectionUI();
-    renderFaLimitStatus();
   };
 
   if (db && auth) {
@@ -285,12 +258,10 @@
     }
     card.classList.add("poke-card--selected");
     if (!card.querySelector(".poke-card-draft-btn")) {
-      const limitReached = signingsUsedThisWeek() >= MAX_SIGNINGS_PER_WEEK;
       const btn = document.createElement("button");
       btn.type = "button";
       btn.className = "btn poke-card-draft-btn";
-      btn.textContent = limitReached ? "Weekly Limit Reached" : "Sign Free Agent";
-      btn.disabled = limitReached;
+      btn.textContent = "Sign Free Agent";
       btn.addEventListener("click", (event) => {
         event.stopPropagation();
         openFreeAgentSignModal(selectedSignId, selectedSignName);
@@ -367,14 +338,7 @@
         if (!team || !team.slots) throw new Error("Team not found.");
         if (newDraftedSnap.exists) throw new Error("That Pokémon was just signed by someone else.");
 
-        const state = seasonState;
-        if (!state) throw new Error("Free agency opens once the season starts.");
-
-        const fa = team.freeAgency || {};
-        const signingsSoFar = fa.week === state.currentWeek ? fa.signings || 0 : 0;
-        if (signingsSoFar >= MAX_SIGNINGS_PER_WEEK) {
-          throw new Error("You've already used both free agent signings this week.");
-        }
+        if (!seasonState) throw new Error("Free agency opens once the season starts.");
 
         const dropped = team.slots[slot];
         if (dropped) tx.delete(db.collection("draftedPokemon").doc(String(dropped.pokemonId)));
@@ -390,8 +354,6 @@
         });
         tx.update(teamRef, {
           [`slots.${slot}`]: { pokemonId, pokemonName, freeAgent: true },
-          "freeAgency.week": state.currentWeek,
-          "freeAgency.signings": signingsSoFar + 1,
         });
         announceText = dropped
           ? `${team.teamName} dropped ${dropped.pokemonName} for ${pokemonName}`
