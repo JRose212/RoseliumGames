@@ -150,10 +150,6 @@
     const scoreText =
       matchup.homeScore != null && matchup.awayScore != null ? `Final ${matchup.homeScore}-${matchup.awayScore}` : "Final";
 
-    const shortSummaryHtml = matchup.shortSummary
-      ? `<p class="box-score-short-summary">${escapeHtml(matchup.shortSummary)}</p>`
-      : "";
-
     const driveSummaryHtml = matchup.driveSummary
       ? `
         <details class="roster-set">
@@ -179,7 +175,6 @@
           <span class="matchup-teams">${escapeHtml(teamName(matchup.homeUid))} vs ${escapeHtml(teamName(matchup.awayUid))}</span>
           <span class="matchup-score">${escapeHtml(scoreText)}</span>
         </div>
-        ${shortSummaryHtml}
         ${driveSummaryHtml}
         ${boxScoreHtml}
       </div>

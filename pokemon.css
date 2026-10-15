@@ -592,11 +592,6 @@ body[data-page^="pokemon-"] .jump-nav a {
   font-weight: 700;
 }
 
-.box-score-short-summary {
-  margin: 0.4rem 0 0;
-  color: var(--text);
-}
-
 .box-score-row .roster-set {
   margin-top: 0.6rem;
 }
@@ -689,6 +684,13 @@ body[data-page^="pokemon-"] .jump-nav a {
   gap: 1rem;
   flex-wrap: wrap;
   padding: 1rem 1.25rem;
+}
+
+.matchup-summary {
+  flex-basis: 100%;
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.85rem;
 }
 
 .matchup-day {

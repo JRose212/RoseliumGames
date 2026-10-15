@@ -583,12 +583,16 @@
             const exportBtn = isAdmin()
               ? `<button type="button" class="btn btn-secondary export-matchup-btn" data-id="${m.id}">Export</button>`
               : "";
+            const summaryLine = m.status === "final" && m.shortSummary
+              ? `<p class="matchup-summary">${escapeHtml(m.shortSummary)}</p>`
+              : "";
             return `<div class="card matchup-card">
                       <span class="matchup-day">${dayLabel[m.day] || m.day}, ${formatMatchupDate(m.date)}</span>
                       <span class="matchup-teams">${matchupLabel(m)}</span>
                       <span class="matchup-score">${scoreText}</span>
                       ${declareBtn}
                       ${exportBtn}
+                      ${summaryLine}
                     </div>`;
           })
           .join("");
