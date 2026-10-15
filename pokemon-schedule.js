@@ -58,7 +58,8 @@
   const resultAwayLabelEl = document.getElementById("result-away-label");
   const resultHomeScoreEl = document.getElementById("result-home-score");
   const resultAwayScoreEl = document.getElementById("result-away-score");
-  const resultSummaryEl = document.getElementById("result-summary");
+  const resultDriveSummaryEl = document.getElementById("result-drive-summary");
+  const resultShortSummaryEl = document.getElementById("result-short-summary");
   const resultInjuryAreaEl = document.getElementById("result-injury-area");
   const boxScoreInputEl = document.getElementById("box-score-input");
   const boxScoreMessageEl = document.getElementById("box-score-message");
@@ -324,7 +325,8 @@
             homeScore: null,
             awayScore: null,
             winnerUid: null,
-            summary: "",
+            driveSummary: "",
+            shortSummary: "",
             status: "scheduled",
           });
         });
@@ -640,7 +642,8 @@
     resultAwayLabelEl.textContent = `${teamName(matchup.awayUid)} score`;
     resultHomeScoreEl.value = matchup.homeScore ?? "";
     resultAwayScoreEl.value = matchup.awayScore ?? "";
-    resultSummaryEl.value = matchup.summary || "";
+    resultDriveSummaryEl.value = matchup.driveSummary || "";
+    resultShortSummaryEl.value = matchup.shortSummary || "";
     resultMessageEl.hidden = true;
     resultInjuryAreaEl.innerHTML =
       rosterInjuryChecklist(matchup.homeUid, teamName(matchup.homeUid)) +
@@ -724,7 +727,8 @@
         homeScore,
         awayScore,
         winnerUid,
-        summary: resultSummaryEl.value.trim(),
+        driveSummary: resultDriveSummaryEl.value.trim(),
+        shortSummary: resultShortSummaryEl.value.trim(),
         status: "final",
       });
       teamUpdates.forEach((fields, uid) => {
@@ -850,7 +854,8 @@
         homeScore: null,
         awayScore: null,
         winnerUid: null,
-        summary: "",
+        driveSummary: "",
+        shortSummary: "",
         status: "scheduled",
       });
     });
@@ -875,7 +880,8 @@
         homeScore: null,
         awayScore: null,
         winnerUid: null,
-        summary: "",
+        driveSummary: "",
+        shortSummary: "",
         status: "scheduled",
       });
     });
@@ -896,7 +902,8 @@
       homeScore: null,
       awayScore: null,
       winnerUid: null,
-      summary: "",
+      driveSummary: "",
+      shortSummary: "",
       status: "scheduled",
     });
     await db.collection("seasonState").doc("current").set({ currentWeek: 16 }, { merge: true });
