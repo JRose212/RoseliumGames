@@ -10,7 +10,7 @@
 // broadcastTypeLabels below for how each displays). title is optional -
 // leave it out to get an auto-generated "Week N: <type label>".
 window.broadcasts = [
-  // { type: "preview", week: 1, file: "audio/week01-preview.mp3", date: "2026-10-15" },
+  { type: "preview", week: 1, file: "audio/week01-preview.mp3", title: "Fantasy Pokeball Season Preview — Week 1", date: "2026-10-14" },
 ];
 
 window.broadcastTypeLabels = {
