@@ -798,6 +798,12 @@ body[data-page^="pokemon-"] .jump-nav a {
   border-top: none;
 }
 
+.broadcast-archive-heading {
+  margin-top: 1.5rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border);
+}
+
 .roster-remove-btn {
   width: 22px;
   height: 22px;

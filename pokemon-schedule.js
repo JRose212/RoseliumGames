@@ -3,8 +3,10 @@
 // it shows for signed-out visitors too.
 (function () {
   const cardEl = document.getElementById("broadcasts-archive-card");
+  const latestEl = document.getElementById("broadcasts-latest");
+  const archiveHeadingEl = document.getElementById("broadcasts-archive-heading");
   const listEl = document.getElementById("broadcasts-archive-list");
-  if (!cardEl || !listEl) return;
+  if (!cardEl || !latestEl || !listEl) return;
 
   const broadcasts = window.broadcasts || [];
   if (!broadcasts.length) return;
@@ -19,15 +21,20 @@
 
   const typeLabels = window.broadcastTypeLabels || {};
   const sorted = [...broadcasts].sort((a, b) => b.date.localeCompare(a.date));
-  listEl.innerHTML = sorted
-    .map((b) => {
-      const title = b.title || `Week ${b.week}: ${typeLabels[b.type] || b.type}`;
-      return `<div class="broadcast-archive-item">
-                <p>${escapeHtml(title)} <span class="matchup-day">${escapeHtml(b.date)}</span></p>
-                <audio controls src="${escapeHtml(b.file)}" style="width: 100%;"></audio>
-              </div>`;
-    })
-    .join("");
+  const episodeHtml = (b) => {
+    const title = b.title || `Week ${b.week}: ${typeLabels[b.type] || b.type}`;
+    return `<div class="broadcast-archive-item">
+              <p>${escapeHtml(title)} <span class="matchup-day">${escapeHtml(b.date)}</span></p>
+              <audio controls src="${escapeHtml(b.file)}" style="width: 100%;"></audio>
+            </div>`;
+  };
+
+  const [latest, ...rest] = sorted;
+  latestEl.innerHTML = episodeHtml(latest);
+  if (rest.length) {
+    archiveHeadingEl.hidden = false;
+    listEl.innerHTML = rest.map(episodeHtml).join("");
+  }
   cardEl.hidden = false;
 })();
 
