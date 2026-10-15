@@ -271,9 +271,10 @@
                 <span class="myteam-slot-empty">— empty —</span>
               </div>`;
     }
-    return `<div class="myteam-slot myteam-slot--filled${isOut ? " myteam-slot--out" : ""}" draggable="true" data-position="${escapeHtml(
-      position
-    )}">
+    const isSelected = position === selectedPosition;
+    return `<div class="myteam-slot myteam-slot--filled${isOut ? " myteam-slot--out" : ""}${
+      isSelected ? " myteam-slot--selected" : ""
+    }" draggable="true" data-position="${escapeHtml(position)}">
               <span class="myteam-slot-position">${escapeHtml(position)}</span>
               <img class="myteam-slot-sprite" src="${largeSpriteUrl(pick.pokemonId)}" alt="${escapeHtml(pick.pokemonName)}" loading="lazy" />
               <span class="myteam-slot-name">${escapeHtml(pick.pokemonName)}</span>
@@ -282,6 +283,12 @@
   };
 
   let draggedPosition = null;
+  // Click/tap alternative to drag-and-drop (native HTML5 DnD doesn't work
+  // well on mobile touch). Tap a filled slot to select it, then tap any
+  // other slot to swap - tapping the selected slot again deselects. A real
+  // drag gesture never fires a click on the same element afterward, so this
+  // coexists with wireDragAndDrop below without double-firing.
+  let selectedPosition = null;
 
   const wireDragAndDrop = (gridEl) => {
     gridEl.querySelectorAll(".myteam-slot").forEach((slotEl) => {
@@ -318,6 +325,33 @@
     });
   };
 
+  const wireClickToSwap = (gridEl) => {
+    gridEl.querySelectorAll(".myteam-slot").forEach((slotEl) => {
+      slotEl.addEventListener("click", () => {
+        const position = slotEl.dataset.position;
+        const isFilled = slotEl.classList.contains("myteam-slot--filled");
+
+        if (selectedPosition === null) {
+          if (!isFilled) return;
+          selectedPosition = position;
+          renderMyRoster();
+          return;
+        }
+
+        if (position === selectedPosition) {
+          selectedPosition = null;
+          renderMyRoster();
+          return;
+        }
+
+        const fromPosition = selectedPosition;
+        selectedPosition = null;
+        renderMyRoster();
+        swapSlots(fromPosition, position);
+      });
+    });
+  };
+
   const renderMyRoster = () => {
     if (!currentUser) {
       rosterCardEl.hidden = true;
@@ -335,6 +369,7 @@
     const groupRender = (gridEl, positions) => {
       gridEl.innerHTML = positions.map((position) => renderSlot(position, slots)).join("");
       wireDragAndDrop(gridEl);
+      wireClickToSwap(gridEl);
     };
 
     groupRender(offenseGridEl, groups.offense || []);

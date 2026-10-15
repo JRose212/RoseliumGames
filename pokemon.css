@@ -1132,6 +1132,7 @@ body[data-page^="pokemon-"] .app-content {
   border: 2px solid var(--border);
   background: rgba(199, 211, 222, 0.05);
   text-align: center;
+  cursor: pointer;
 }
 
 .myteam-slot--filled {
@@ -1145,6 +1146,11 @@ body[data-page^="pokemon-"] .app-content {
 .myteam-slot--dragover {
   border-color: var(--accent-strong);
   box-shadow: 0 0 0 3px rgba(255, 203, 5, 0.45);
+}
+
+.myteam-slot--selected {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(47, 111, 237, 0.55);
 }
 
 .myteam-slot--out {
