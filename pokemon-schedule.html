@@ -57,6 +57,7 @@
         <a href="pokemon-teams.html">Rosters</a>
         <a href="pokemon-draft.html">Draft Room</a>
         <a href="pokemon-schedule.html" class="active">Schedule</a>
+        <a href="pokemon-stats.html">Stats</a>
         <a href="pokemon-feedback.html">Feedback</a>
       </nav>
 
@@ -149,6 +150,14 @@
         <div style="display:flex; gap:0.5rem; margin-top: 1rem;">
           <button type="button" class="btn" id="result-submit-btn">Save Result</button>
           <button type="button" class="btn btn-secondary" id="result-cancel-btn">Cancel</button>
+        </div>
+
+        <h3 style="margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid var(--border);">Box Score</h3>
+        <p>Paste the box score JSON for this game (see the Stats page for the schema). Optional, and separate from the result above - add it whenever it's ready.</p>
+        <textarea id="box-score-input" rows="8" style="width: 100%; padding:0.6rem 0.8rem;border-radius:2px;border:1px solid var(--border);background:var(--surface-strong);color:var(--text);font:inherit;font-family:monospace;font-size:0.8rem;"></textarea>
+        <p class="status" id="box-score-message" hidden></p>
+        <div style="display:flex; gap:0.5rem; margin-top: 0.75rem;">
+          <button type="button" class="btn btn-secondary" id="box-score-save-btn">Save Box Score</button>
         </div>
       </div>
     </div>

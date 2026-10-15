@@ -151,6 +151,15 @@ service cloud.firestore {
       allow delete: if isAdmin();
     }
 
+    // Per-game box score stats (keyed by matchupId), pasted in by the admin
+    // as JSON on the Schedule page - same access shape as matchups, since
+    // it's the same kind of admin-entered per-game record.
+    match /boxScores/{matchupId} {
+      allow read: if isSignedIn();
+      allow create, update: if isAdmin();
+      allow delete: if isAdmin();
+    }
+
     // League chat. Anyone signed in can read/post; only the admin can
     // delete (moderation) - nobody can edit a sent message.
     match /chatMessages/{messageId} {

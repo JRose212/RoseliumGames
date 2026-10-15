@@ -565,6 +565,77 @@ body[data-page^="pokemon-"] .jump-nav a {
   letter-spacing: 0.05em;
 }
 
+/* Stats & Analytics (pokemon-stats.html) */
+
+.box-score-sides {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 1rem;
+}
+
+.box-score-side h4 {
+  margin: 0 0 0.4rem;
+  color: var(--accent-strong);
+  text-transform: uppercase;
+  font-size: 0.75rem;
+  letter-spacing: 0.05em;
+}
+
+.leaderboard-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 1rem;
+  margin-top: 0.75rem;
+}
+
+.leaderboard-card {
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  padding: 0.85rem 1rem;
+  background: rgba(199, 211, 222, 0.05);
+}
+
+.leaderboard-card h3 {
+  margin: 0 0 0.5rem;
+  font-size: 0.85rem;
+}
+
+.leaderboard-card ol {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.35rem;
+}
+
+.leaderboard-card li {
+  display: grid;
+  grid-template-columns: 1.4rem 1fr auto;
+  gap: 0.5rem;
+  align-items: baseline;
+  font-size: 0.82rem;
+}
+
+.leaderboard-card li::before {
+  content: counter(leaderboard-rank);
+  counter-increment: leaderboard-rank;
+  color: var(--muted);
+}
+
+.leaderboard-card ol {
+  counter-reset: leaderboard-rank;
+}
+
+.leaderboard-team {
+  color: var(--muted);
+  font-size: 0.72rem;
+}
+
+.leaderboard-value {
+  font-weight: 700;
+  color: var(--accent-strong);
+}
+
 .matchup-week-heading {
   margin: 1.5rem 0 0.6rem;
   color: var(--accent-strong);

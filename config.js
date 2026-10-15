@@ -117,4 +117,69 @@ window.siteConfig = {
   adminUid: "x9IEoSPGiDfg2xeYpLIX34Muqmh2",
   autodraftTimeoutMs: 20 * 1000, // 20 seconds - live draft night
   regularSeasonWeeks: 13,
+
+  // Box score stats (Stats & Analytics page). One flat stat shape covers
+  // every position - boxScoreStatFields says which of those keys are
+  // relevant to show for a given roster slot, so e.g. a QB's row doesn't
+  // display "0 sacks". Bench slots are deliberately left out - only
+  // starters get box score stats, same as real fantasy football.
+  boxScoreStatFields: {
+    QB: ["passYds", "passTD", "int", "rushYds"],
+    RB: ["rushYds", "rushTD", "receptions", "recYds"],
+    FB: ["rushYds", "rushTD", "receptions", "recYds"],
+    WR1: ["receptions", "recYds", "recTD"],
+    WR2: ["receptions", "recYds", "recTD"],
+    TE: ["receptions", "recYds", "recTD"],
+    LT: ["pancakes"],
+    RT: ["pancakes"],
+    LG: ["pancakes"],
+    RG: ["pancakes"],
+    C: ["pancakes"],
+    DE: ["tackles", "sacks", "tfl"],
+    DT: ["tackles", "sacks", "tfl"],
+    NT: ["tackles", "sacks", "tfl"],
+    ILB1: ["tackles", "sacks", "tfl"],
+    ILB2: ["tackles", "sacks", "tfl"],
+    OLB1: ["tackles", "sacks", "tfl"],
+    OLB2: ["tackles", "sacks", "tfl"],
+    CB1: ["tackles", "int", "passDeflections"],
+    CB2: ["tackles", "int", "passDeflections"],
+    FS: ["tackles", "int", "passDeflections"],
+    SS: ["tackles", "int", "passDeflections"],
+    K: ["fgMade", "fgAtt", "long", "xpMade"],
+  },
+  boxScoreStatLabels: {
+    passYds: "Pass Yds",
+    passTD: "Pass TD",
+    int: "INT",
+    rushYds: "Rush Yds",
+    rushTD: "Rush TD",
+    receptions: "Rec",
+    recYds: "Rec Yds",
+    recTD: "Rec TD",
+    tackles: "Tackles",
+    sacks: "Sacks",
+    tfl: "TFL",
+    passDeflections: "PD",
+    pancakes: "Pancakes",
+    fgMade: "FG Made",
+    fgAtt: "FG Att",
+    long: "Long",
+    xpMade: "XP Made",
+  },
+  // Season leaderboard categories (Stats & Analytics page) - a curated
+  // subset of the stat keys above, summed across every box score.
+  boxScoreLeaderboardCategories: [
+    { key: "passYds", label: "Passing Yards" },
+    { key: "passTD", label: "Passing TDs" },
+    { key: "rushYds", label: "Rushing Yards" },
+    { key: "rushTD", label: "Rushing TDs" },
+    { key: "receptions", label: "Receptions" },
+    { key: "recYds", label: "Receiving Yards" },
+    { key: "recTD", label: "Receiving TDs" },
+    { key: "tackles", label: "Tackles" },
+    { key: "sacks", label: "Sacks" },
+    { key: "int", label: "Interceptions" },
+    { key: "fgMade", label: "Field Goals Made" },
+  ],
 };

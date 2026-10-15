@@ -60,6 +60,9 @@
   const resultAwayScoreEl = document.getElementById("result-away-score");
   const resultSummaryEl = document.getElementById("result-summary");
   const resultInjuryAreaEl = document.getElementById("result-injury-area");
+  const boxScoreInputEl = document.getElementById("box-score-input");
+  const boxScoreMessageEl = document.getElementById("box-score-message");
+  const boxScoreSaveBtnEl = document.getElementById("box-score-save-btn");
   const resultMessageEl = document.getElementById("result-message");
   const resultSubmitBtnEl = document.getElementById("result-submit-btn");
   const resultCancelBtnEl = document.getElementById("result-cancel-btn");
@@ -643,6 +646,23 @@
       rosterInjuryChecklist(matchup.homeUid, teamName(matchup.homeUid)) +
       rosterInjuryChecklist(matchup.awayUid, teamName(matchup.awayUid));
     resultModalEl.hidden = false;
+
+    boxScoreMessageEl.hidden = true;
+    boxScoreInputEl.value = "Loading existing box score (if any)…";
+    boxScoreInputEl.disabled = true;
+    db.collection("boxScores")
+      .doc(matchupId)
+      .get()
+      .then((doc) => {
+        if (pendingMatchupId !== matchupId) return; // modal moved on to a different game
+        boxScoreInputEl.disabled = false;
+        boxScoreInputEl.value = doc.exists ? JSON.stringify({ home: doc.data().home, away: doc.data().away }, null, 2) : "";
+      })
+      .catch(() => {
+        if (pendingMatchupId !== matchupId) return;
+        boxScoreInputEl.disabled = false;
+        boxScoreInputEl.value = "";
+      });
   };
 
   const closeResultModal = () => {
@@ -727,6 +747,66 @@
   }
 
   resultSubmitBtnEl.addEventListener("click", submitResult);
+
+  const showBoxScoreMessage = (text, isError) => {
+    boxScoreMessageEl.hidden = false;
+    boxScoreMessageEl.className = `status${isError ? " error" : ""}`;
+    boxScoreMessageEl.textContent = text;
+  };
+
+  // Validates loosely on purpose - this is admin-pasted JSON from an LLM,
+  // not user input needing strict defense. Just enough checking to catch a
+  // malformed paste before it reaches Firestore: both sides present as
+  // arrays, every entry has a slot that's a real non-bench position and a
+  // pokemonName, and stats (if present) is a plain object.
+  const validateBoxScoreSide = (side, label) => {
+    if (!Array.isArray(side)) throw new Error(`"${label}" must be an array.`);
+    const validSlots = config.pokemonPositions || [];
+    const benchSlots = new Set((config.positionGroups && config.positionGroups.bench) || []);
+    side.forEach((entry, i) => {
+      if (!entry || typeof entry !== "object") throw new Error(`${label}[${i}] isn't an object.`);
+      if (!entry.slot || !validSlots.includes(entry.slot)) throw new Error(`${label}[${i}] has an invalid "slot": ${entry.slot}`);
+      if (benchSlots.has(entry.slot)) throw new Error(`${label}[${i}] is a bench slot (${entry.slot}) - only starters get box score stats.`);
+      if (!entry.pokemonName) throw new Error(`${label}[${i}] is missing "pokemonName".`);
+      if (entry.stats && typeof entry.stats !== "object") throw new Error(`${label}[${i}].stats must be an object.`);
+    });
+  };
+
+  async function saveBoxScore() {
+    if (!pendingMatchupId) return;
+    const raw = boxScoreInputEl.value.trim();
+    if (!raw) {
+      showBoxScoreMessage("Paste the box score JSON first.", true);
+      return;
+    }
+    let parsed;
+    try {
+      parsed = JSON.parse(raw);
+    } catch (error) {
+      showBoxScoreMessage(`Invalid JSON: ${error.message}`, true);
+      return;
+    }
+    try {
+      validateBoxScoreSide(parsed.home, "home");
+      validateBoxScoreSide(parsed.away, "away");
+    } catch (error) {
+      showBoxScoreMessage(error.message, true);
+      return;
+    }
+    try {
+      await db.collection("boxScores").doc(pendingMatchupId).set({
+        home: parsed.home,
+        away: parsed.away,
+        enteredAt: firebase.firestore.FieldValue.serverTimestamp(),
+        enteredBy: auth.currentUser.uid,
+      });
+      showBoxScoreMessage("Box score saved.", false);
+    } catch (error) {
+      showBoxScoreMessage(error.message, true);
+    }
+  }
+
+  if (boxScoreSaveBtnEl) boxScoreSaveBtnEl.addEventListener("click", saveBoxScore);
 
   // --- Playoffs ---
 
