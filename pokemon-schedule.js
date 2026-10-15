@@ -59,6 +59,10 @@
   const resetSeasonCardEl = document.getElementById("reset-season-card");
   const resetSeasonBtnEl = document.getElementById("reset-season-btn");
   const resetSeasonMessageEl = document.getElementById("reset-season-message");
+  const resetTrainingCardEl = document.getElementById("reset-training-card");
+  const trainingCutoffEl = document.getElementById("training-cutoff-date");
+  const resetTrainingBtnEl = document.getElementById("reset-training-btn");
+  const resetTrainingMessageEl = document.getElementById("reset-training-message");
 
   if (!weeksEl) return;
 
@@ -194,6 +198,65 @@
   }
 
   if (resetSeasonBtnEl) resetSeasonBtnEl.addEventListener("click", resetSeason);
+
+  // Wipes every team's training streak/banked bonus sessions and deletes
+  // any trainingLog entries dated before the cutoff - separate from
+  // resetSeason() above, since training can need a reset (e.g. clearing
+  // out pre-season test activity once the real season goes live) without
+  // touching the schedule at all. Logs on/after the cutoff are left alone:
+  // trainingSinceLastGame() has no previous matchup to anchor to before a
+  // team's first game, so any stale pre-cutoff log would otherwise show up
+  // as training for that first matchup.
+  async function resetTraining() {
+    const cutoff = trainingCutoffEl.value;
+    if (!cutoff) {
+      resetTrainingMessageEl.hidden = false;
+      resetTrainingMessageEl.className = "status error";
+      resetTrainingMessageEl.textContent = "Pick a cutoff date first.";
+      return;
+    }
+    if (
+      !window.confirm(
+        `This clears every team's training streak and banked bonus sessions, and permanently deletes any training log entries before ${cutoff}. Continue?`
+      )
+    ) {
+      return;
+    }
+    try {
+      const [logsSnapshot, teamsSnapshot] = await Promise.all([
+        db.collection("trainingLog").get(),
+        db.collection("teams").get(),
+      ]);
+      const staleLogRefs = logsSnapshot.docs.filter((doc) => doc.data().date < cutoff).map((doc) => doc.ref);
+
+      const ops = [
+        ...staleLogRefs.map((ref) => ({ ref, type: "delete" })),
+        ...teamsSnapshot.docs.map((doc) => ({
+          ref: doc.ref,
+          type: "update",
+          data: { training: firebase.firestore.FieldValue.delete() },
+        })),
+      ];
+      for (let i = 0; i < ops.length; i += 450) {
+        const batch = db.batch();
+        ops.slice(i, i + 450).forEach((op) => {
+          if (op.type === "delete") batch.delete(op.ref);
+          else batch.update(op.ref, op.data);
+        });
+        await batch.commit();
+      }
+
+      resetTrainingMessageEl.hidden = false;
+      resetTrainingMessageEl.className = "status";
+      resetTrainingMessageEl.textContent = `Done - cleared training for ${teamsSnapshot.docs.length} teams and removed ${staleLogRefs.length} log entries before ${cutoff}.`;
+    } catch (error) {
+      resetTrainingMessageEl.hidden = false;
+      resetTrainingMessageEl.className = "status error";
+      resetTrainingMessageEl.textContent = error.message;
+    }
+  }
+
+  if (resetTrainingBtnEl) resetTrainingBtnEl.addEventListener("click", resetTraining);
 
   async function generateSchedule() {
     const dateValue = startDateEl.value;
@@ -840,6 +903,7 @@
       statusEl.innerHTML = `Sign in on the <a href="pokemon-league.html">League Home</a> page to view the schedule.`;
       generateCardEl.hidden = true;
       resetSeasonCardEl.hidden = true;
+      resetTrainingCardEl.hidden = true;
       standingsCardEl.hidden = true;
       playoffAdminCardEl.hidden = true;
       bracketCardEl.hidden = true;
@@ -848,6 +912,12 @@
     }
 
     statusEl.hidden = true;
+    resetTrainingCardEl.hidden = !isAdmin();
+    if (isAdmin() && trainingCutoffEl && !trainingCutoffEl.value) {
+      const now = new Date();
+      const pad = (n) => String(n).padStart(2, "0");
+      trainingCutoffEl.value = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
+    }
 
     unsubscribeTeams = db.collection("teams").onSnapshot(
       (snapshot) => {

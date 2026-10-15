@@ -88,6 +88,17 @@
         <p class="status" id="reset-season-message" hidden></p>
       </section>
 
+      <section class="card" id="reset-training-card" hidden>
+        <h2>Reset Training</h2>
+        <p>Clears every team's training streak and banked bonus sessions, and deletes any training log entries from before the date below - useful for wiping out pre-season/test training once the real season goes live.</p>
+        <form class="auth-form" id="reset-training-form">
+          <label for="training-cutoff-date">Keep training on/after</label>
+          <input type="date" id="training-cutoff-date" />
+          <button type="button" class="btn btn-secondary" id="reset-training-btn">Reset Training</button>
+        </form>
+        <p class="status" id="reset-training-message" hidden></p>
+      </section>
+
       <section class="card" id="standings-card" hidden>
         <h2>Standings</h2>
         <div class="table-wrap">
