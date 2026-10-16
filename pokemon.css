@@ -584,7 +584,7 @@ body[data-page^="pokemon-"] .jump-nav a {
 
 .leaderboard-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
   gap: 1rem;
   margin-top: 0.75rem;
 }
@@ -594,6 +594,7 @@ body[data-page^="pokemon-"] .jump-nav a {
   border-radius: 3px;
   padding: 0.85rem 1rem;
   background: rgba(199, 211, 222, 0.05);
+  min-width: 0;
 }
 
 .leaderboard-card h3 {
@@ -611,16 +612,25 @@ body[data-page^="pokemon-"] .jump-nav a {
 
 .leaderboard-card li {
   display: grid;
-  grid-template-columns: 1.4rem 1fr auto auto;
-  gap: 0.5rem;
+  grid-template-columns: 1.1rem minmax(0, 1.2fr) minmax(0, 1fr) auto;
+  gap: 0.4rem;
   align-items: baseline;
-  font-size: 0.82rem;
+  font-size: 0.8rem;
 }
 
 .leaderboard-card li::before {
   content: counter(leaderboard-rank);
   counter-increment: leaderboard-rank;
   color: var(--muted);
+}
+
+.leaderboard-name,
+.leaderboard-team,
+.leaderboard-value {
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .leaderboard-card ol {
