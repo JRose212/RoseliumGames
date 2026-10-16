@@ -3,9 +3,8 @@
   const statusEl = document.getElementById("stats-status");
   const leaderboardsCardEl = document.getElementById("leaderboards-card");
   const leaderboardsAreaEl = document.getElementById("leaderboards-area");
-  const weeksEl = document.getElementById("box-scores-weeks");
 
-  if (!weeksEl) return;
+  if (!leaderboardsAreaEl) return;
 
   const escapeHtml = (value) => {
     return String(value)
@@ -26,10 +25,7 @@
   const auth = firebase.auth();
   const db = firebase.firestore();
 
-  const statFields = config.boxScoreStatFields || {};
-  const statLabels = config.boxScoreStatLabels || {};
   const leaderboardCategories = config.boxScoreLeaderboardCategories || [];
-  const positionOrder = config.pokemonPositions || [];
 
   let currentUser = null;
   let teamsByUid = new Map();
@@ -38,10 +34,11 @@
 
   const teamName = (uid) => teamsByUid.get(uid)?.teamName || "Unknown team";
 
-  // --- Leaderboards: summed live from every box score on the page, same
-  // "compute from the raw collection, don't store aggregates" approach the
-  // rest of the site already uses for standings. ---
-
+  // Leaderboards only - per-game summaries and box scores live on the
+  // Schedule page itself, right on each matchup's own row. This page is
+  // purely the season-wide aggregate, summed live from every box score
+  // (same "compute from the raw collection, don't store aggregates"
+  // approach the rest of the site already uses for standings).
   const renderLeaderboards = () => {
     if (!leaderboardCategories.length) {
       leaderboardsCardEl.hidden = true;
@@ -76,9 +73,13 @@
 
     const hasAnyData = leaderboardCategories.some((cat) => totals[cat.key].size > 0);
     if (!hasAnyData) {
+      statusEl.hidden = false;
+      statusEl.className = "status";
+      statusEl.textContent = "No box scores recorded yet - leaderboards show up here once games have stats.";
       leaderboardsCardEl.hidden = true;
       return;
     }
+    statusEl.hidden = true;
 
     leaderboardsAreaEl.innerHTML = leaderboardCategories
       .map((cat) => {
@@ -105,111 +106,6 @@
     leaderboardsCardEl.hidden = false;
   };
 
-  // --- Per-game box score tables ---
-
-  const formatStatLine = (slot, stats) => {
-    const fields = statFields[slot] || [];
-    const parts = fields
-      .map((key) => {
-        const value = Number((stats || {})[key]) || 0;
-        if (!value) return null;
-        return `${value} ${statLabels[key] || key}`;
-      })
-      .filter(Boolean);
-    return parts.length ? parts.join(", ") : "—";
-  };
-
-  const sideTableHtml = (label, side) => {
-    const bySlot = new Map((side || []).map((entry) => [entry.slot, entry]));
-    const rows = positionOrder
-      .filter((slot) => bySlot.has(slot))
-      .map((slot) => {
-        const entry = bySlot.get(slot);
-        return `<tr>
-                  <td>${escapeHtml(slot)}</td>
-                  <td>${escapeHtml(entry.pokemonName)}</td>
-                  <td>${escapeHtml(formatStatLine(slot, entry.stats))}</td>
-                </tr>`;
-      })
-      .join("");
-    return `
-      <div class="box-score-side">
-        <h4>${escapeHtml(label)}</h4>
-        <div class="table-wrap">
-          <table class="standings-table">
-            <thead><tr><th>Pos</th><th>Pokémon</th><th>Stats</th></tr></thead>
-            <tbody>${rows}</tbody>
-          </table>
-        </div>
-      </div>
-    `;
-  };
-
-  const matchupRowHtml = (matchup) => {
-    const box = boxScoresByMatchupId.get(matchup.id);
-    const scoreText =
-      matchup.homeScore != null && matchup.awayScore != null ? `Final ${matchup.homeScore}-${matchup.awayScore}` : "Final";
-
-    const driveSummaryHtml = matchup.driveSummary
-      ? `
-        <details class="roster-set">
-          <summary class="roster-set-title">Drive Summary</summary>
-          <div class="roster-set-group"><p>${escapeHtml(matchup.driveSummary).replace(/\n/g, "<br>")}</p></div>
-        </details>
-      `
-      : "";
-
-    const boxScoreBody = box
-      ? `<div class="box-score-sides">${sideTableHtml(teamName(matchup.homeUid), box.home)}${sideTableHtml(teamName(matchup.awayUid), box.away)}</div>`
-      : `<p class="status">No box score entered for this game yet.</p>`;
-    const boxScoreHtml = `
-      <details class="roster-set">
-        <summary class="roster-set-title">Box Score</summary>
-        <div class="roster-set-group">${boxScoreBody}</div>
-      </details>
-    `;
-
-    return `
-      <div class="box-score-row">
-        <div class="box-score-row-header">
-          <span class="matchup-teams">${escapeHtml(teamName(matchup.homeUid))} vs ${escapeHtml(teamName(matchup.awayUid))}</span>
-          <span class="matchup-score">${escapeHtml(scoreText)}</span>
-        </div>
-        ${driveSummaryHtml}
-        ${boxScoreHtml}
-      </div>
-    `;
-  };
-
-  const renderWeeks = () => {
-    const finalMatchups = matchups.filter((m) => m.status === "final").sort((a, b) => a.week - b.week);
-    if (!finalMatchups.length) {
-      weeksEl.innerHTML = `<p class="status">No completed games yet - box scores show up here once results are declared on the Schedule page.</p>`;
-      return;
-    }
-    const byWeek = new Map();
-    finalMatchups.forEach((m) => {
-      if (!byWeek.has(m.week)) byWeek.set(m.week, []);
-      byWeek.get(m.week).push(m);
-    });
-    weeksEl.innerHTML = [...byWeek.entries()]
-      .sort((a, b) => a[0] - b[0])
-      .map(
-        ([week, weekMatchups]) => `
-          <section class="card">
-            <h2>Week ${week}</h2>
-            ${weekMatchups.map(matchupRowHtml).join("")}
-          </section>
-        `
-      )
-      .join("");
-  };
-
-  const renderAll = () => {
-    renderLeaderboards();
-    renderWeeks();
-  };
-
   let unsubscribeTeams = null;
   let unsubscribeMatchups = null;
   let unsubscribeBoxScores = null;
@@ -223,16 +119,17 @@
       statusEl.className = "status";
       statusEl.innerHTML = `Sign in on the <a href="pokemon-league.html">League Home</a> page to view stats.`;
       leaderboardsCardEl.hidden = true;
-      weeksEl.innerHTML = "";
       return;
     }
 
-    statusEl.hidden = true;
+    statusEl.hidden = false;
+    statusEl.className = "status";
+    statusEl.textContent = "Loading…";
 
     unsubscribeTeams = db.collection("teams").onSnapshot(
       (snapshot) => {
         teamsByUid = new Map(snapshot.docs.map((doc) => [doc.id, doc.data()]));
-        renderAll();
+        renderLeaderboards();
       },
       () => {}
     );
@@ -240,7 +137,7 @@
     unsubscribeMatchups = db.collection("matchups").onSnapshot(
       (snapshot) => {
         matchups = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
-        renderAll();
+        renderLeaderboards();
       },
       () => {}
     );
@@ -248,7 +145,7 @@
     unsubscribeBoxScores = db.collection("boxScores").onSnapshot(
       (snapshot) => {
         boxScoresByMatchupId = new Map(snapshot.docs.map((doc) => [doc.id, doc.data()]));
-        renderAll();
+        renderLeaderboards();
       },
       () => {}
     );

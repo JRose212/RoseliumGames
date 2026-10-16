@@ -114,11 +114,57 @@
   let matchups = [];
   let seasonState = null;
   let trainingLog = [];
+  let boxScoresByMatchupId = new Map();
 
   const isAdmin = () =>
     Boolean(currentUser && config.adminUid && config.adminUid !== "YOUR_ADMIN_UID" && currentUser.uid === config.adminUid);
 
   const teamName = (uid) => teamsByUid.get(uid)?.teamName || "Unknown team";
+
+  // --- Box score display helpers (duplicated from pokemon-stats.js by this
+  // repo's one-file-per-page convention) ---
+
+  const boxScoreStatFields = config.boxScoreStatFields || {};
+  const boxScoreStatLabels = config.boxScoreStatLabels || {};
+  const boxScorePositionOrder = config.pokemonPositions || [];
+
+  const formatBoxScoreStatLine = (slot, stats) => {
+    const fields = boxScoreStatFields[slot] || [];
+    const parts = fields
+      .map((key) => {
+        const value = Number((stats || {})[key]) || 0;
+        if (!value) return null;
+        return `${value} ${boxScoreStatLabels[key] || key}`;
+      })
+      .filter(Boolean);
+    return parts.length ? parts.join(", ") : "—";
+  };
+
+  const boxScoreSideTableHtml = (label, side) => {
+    const bySlot = new Map((side || []).map((entry) => [entry.slot, entry]));
+    const rows = boxScorePositionOrder
+      .filter((slot) => bySlot.has(slot))
+      .map((slot) => {
+        const entry = bySlot.get(slot);
+        return `<tr>
+                  <td>${escapeHtml(slot)}</td>
+                  <td>${escapeHtml(entry.pokemonName)}</td>
+                  <td>${escapeHtml(formatBoxScoreStatLine(slot, entry.stats))}</td>
+                </tr>`;
+      })
+      .join("");
+    return `
+      <div class="box-score-side">
+        <h4>${escapeHtml(label)}</h4>
+        <div class="table-wrap">
+          <table class="standings-table">
+            <thead><tr><th>Pos</th><th>Pokémon</th><th>Stats</th></tr></thead>
+            <tbody>${rows}</tbody>
+          </table>
+        </div>
+      </div>
+    `;
+  };
 
   // --- Round-robin schedule generation ---
 
@@ -586,6 +632,28 @@
             const summaryLine = m.status === "final" && m.shortSummary
               ? `<p class="matchup-summary">${escapeHtml(m.shortSummary)}</p>`
               : "";
+
+            const driveSummaryHtml = m.status === "final" && m.driveSummary
+              ? `
+                <details class="roster-set matchup-expand">
+                  <summary class="roster-set-title">Drive Summary</summary>
+                  <div class="roster-set-group"><p>${escapeHtml(m.driveSummary).replace(/\n/g, "<br>")}</p></div>
+                </details>
+              `
+              : "";
+
+            const box = m.status === "final" ? boxScoresByMatchupId.get(m.id) : null;
+            const boxScoreHtml = box
+              ? `
+                <details class="roster-set matchup-expand">
+                  <summary class="roster-set-title">Box Score</summary>
+                  <div class="roster-set-group">
+                    <div class="box-score-sides">${boxScoreSideTableHtml(teamName(m.homeUid), box.home)}${boxScoreSideTableHtml(teamName(m.awayUid), box.away)}</div>
+                  </div>
+                </details>
+              `
+              : "";
+
             return `<div class="card matchup-card">
                       <span class="matchup-day">${dayLabel[m.day] || m.day}, ${formatMatchupDate(m.date)}</span>
                       <span class="matchup-teams">${matchupLabel(m)}</span>
@@ -593,6 +661,8 @@
                       ${declareBtn}
                       ${exportBtn}
                       ${summaryLine}
+                      ${driveSummaryHtml}
+                      ${boxScoreHtml}
                     </div>`;
           })
           .join("");
@@ -981,6 +1051,7 @@
   let unsubscribeMatchups = null;
   let unsubscribeSeason = null;
   let unsubscribeTrainingLog = null;
+  let unsubscribeBoxScores = null;
 
   const renderAll = () => {
     renderStandings();
@@ -990,10 +1061,10 @@
   };
 
   const subscribe = () => {
-    [unsubscribeTeams, unsubscribeMatchups, unsubscribeSeason, unsubscribeTrainingLog].forEach(
+    [unsubscribeTeams, unsubscribeMatchups, unsubscribeSeason, unsubscribeTrainingLog, unsubscribeBoxScores].forEach(
       (unsubscribe) => unsubscribe && unsubscribe()
     );
-    unsubscribeTeams = unsubscribeMatchups = unsubscribeSeason = unsubscribeTrainingLog = null;
+    unsubscribeTeams = unsubscribeMatchups = unsubscribeSeason = unsubscribeTrainingLog = unsubscribeBoxScores = null;
 
     if (!currentUser) {
       statusEl.hidden = false;
@@ -1037,6 +1108,14 @@
       (snapshot) => {
         matchups = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
         updateGenerateCardVisibility();
+        renderAll();
+      },
+      () => {}
+    );
+
+    unsubscribeBoxScores = db.collection("boxScores").onSnapshot(
+      (snapshot) => {
+        boxScoresByMatchupId = new Map(snapshot.docs.map((doc) => [doc.id, doc.data()]));
         renderAll();
       },
       () => {}
