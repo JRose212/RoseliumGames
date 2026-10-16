@@ -95,7 +95,7 @@
               ${entries
                 .map(
                   (e) =>
-                    `<li><span class="leaderboard-name">${escapeHtml(e.pokemonName)}</span><span class="leaderboard-team">${escapeHtml(e.team)}</span><span class="leaderboard-value">${e.total}</span></li>`
+                    `<li><span class="leaderboard-name">${escapeHtml(e.pokemonName)}</span><span class="leaderboard-value">${e.total}</span><span class="leaderboard-team">${escapeHtml(e.team)}</span></li>`
                 )
                 .join("")}
             </ol>

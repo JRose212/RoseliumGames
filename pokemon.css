@@ -612,7 +612,7 @@ body[data-page^="pokemon-"] .jump-nav a {
 
 .leaderboard-card li {
   display: grid;
-  grid-template-columns: 1.1rem minmax(0, 1.2fr) minmax(0, 1fr) auto;
+  grid-template-columns: 1.1rem minmax(0, 1.2fr) auto minmax(0, 1fr);
   gap: 0.4rem;
   align-items: baseline;
   font-size: 0.8rem;
