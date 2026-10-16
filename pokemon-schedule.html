@@ -102,6 +102,19 @@
         <p class="status" id="reset-training-message" hidden></p>
       </section>
 
+      <section class="card" id="swap-matchup-days-card" hidden>
+        <h2>Swap Matchup Days</h2>
+        <p>Pick two matchups and swap which day/date each is played on - the teams playing in each matchup don't change, only which slot (Thursday/Sunday/Monday) they're in. Useful for manually fixing a day's assignment without regenerating the whole schedule.</p>
+        <form class="auth-form" id="swap-matchup-days-form">
+          <label for="swap-matchup-a">Matchup A</label>
+          <select id="swap-matchup-a"></select>
+          <label for="swap-matchup-b">Matchup B</label>
+          <select id="swap-matchup-b"></select>
+          <button type="button" class="btn btn-secondary" id="swap-matchup-days-btn">Swap Days</button>
+        </form>
+        <p class="status" id="swap-matchup-days-message" hidden></p>
+      </section>
+
       <section class="card" id="standings-card" hidden>
         <h2>Standings</h2>
         <div class="table-wrap">

@@ -74,6 +74,11 @@
   const trainingCutoffEl = document.getElementById("training-cutoff-date");
   const resetTrainingBtnEl = document.getElementById("reset-training-btn");
   const resetTrainingMessageEl = document.getElementById("reset-training-message");
+  const swapMatchupDaysCardEl = document.getElementById("swap-matchup-days-card");
+  const swapMatchupAEl = document.getElementById("swap-matchup-a");
+  const swapMatchupBEl = document.getElementById("swap-matchup-b");
+  const swapMatchupDaysBtnEl = document.getElementById("swap-matchup-days-btn");
+  const swapMatchupDaysMessageEl = document.getElementById("swap-matchup-days-message");
 
   if (!weeksEl) return;
 
@@ -314,6 +319,85 @@
   }
 
   if (resetTrainingBtnEl) resetTrainingBtnEl.addEventListener("click", resetTraining);
+
+  // --- Swap two matchups' day/date (admin-only manual fix, e.g. a team
+  // getting stuck in the Thursday slot too often from the round-robin
+  // generator) - the teams in each matchup are untouched, only which
+  // day/date each one is slotted into. ---
+
+  const renderSwapMatchupOptions = () => {
+    if (!swapMatchupAEl || !swapMatchupBEl) return;
+    if (!matchups.length) {
+      swapMatchupAEl.innerHTML = "";
+      swapMatchupBEl.innerHTML = "";
+      return;
+    }
+    const byWeek = new Map();
+    matchups.forEach((m) => {
+      if (!byWeek.has(m.week)) byWeek.set(m.week, []);
+      byWeek.get(m.week).push(m);
+    });
+    const optionsHtml = [...byWeek.entries()]
+      .sort((a, b) => a[0] - b[0])
+      .map(([week, weekMatchups]) => {
+        const options = weekMatchups
+          .slice()
+          .sort((a, b) => (dayOrder[a.day] ?? 99) - (dayOrder[b.day] ?? 99))
+          .map(
+            (m) =>
+              `<option value="${m.id}">${escapeHtml(dayLabel[m.day] || m.day)} - ${escapeHtml(teamName(m.homeUid))} vs ${escapeHtml(teamName(m.awayUid))}${m.status === "final" ? " (Final)" : ""}</option>`
+          )
+          .join("");
+        return `<optgroup label="Week ${week}">${options}</optgroup>`;
+      })
+      .join("");
+    const prevA = swapMatchupAEl.value;
+    const prevB = swapMatchupBEl.value;
+    swapMatchupAEl.innerHTML = optionsHtml;
+    swapMatchupBEl.innerHTML = optionsHtml;
+    if (matchups.some((m) => m.id === prevA)) swapMatchupAEl.value = prevA;
+    if (matchups.some((m) => m.id === prevB)) swapMatchupBEl.value = prevB;
+  };
+
+  async function swapMatchupDays() {
+    const showMessage = (text, isError) => {
+      swapMatchupDaysMessageEl.hidden = false;
+      swapMatchupDaysMessageEl.className = `status${isError ? " error" : ""}`;
+      swapMatchupDaysMessageEl.textContent = text;
+    };
+
+    const idA = swapMatchupAEl.value;
+    const idB = swapMatchupBEl.value;
+    if (!idA || !idB || idA === idB) {
+      showMessage("Pick two different matchups to swap.", true);
+      return;
+    }
+    const a = matchups.find((m) => m.id === idA);
+    const b = matchups.find((m) => m.id === idB);
+    if (!a || !b) {
+      showMessage("Couldn't find one of those matchups.", true);
+      return;
+    }
+    if (!seasonState || !seasonState.startDate) {
+      showMessage("Season start date isn't set.", true);
+      return;
+    }
+
+    try {
+      const startDate = seasonState.startDate.toDate();
+      const newDateA = firebase.firestore.Timestamp.fromDate(dateForDay(startDate, a.week, b.day));
+      const newDateB = firebase.firestore.Timestamp.fromDate(dateForDay(startDate, b.week, a.day));
+      const batch = db.batch();
+      batch.update(db.collection("matchups").doc(a.id), { day: b.day, date: newDateA });
+      batch.update(db.collection("matchups").doc(b.id), { day: a.day, date: newDateB });
+      await batch.commit();
+      showMessage("Swapped.", false);
+    } catch (error) {
+      showMessage(error.message, true);
+    }
+  }
+
+  if (swapMatchupDaysBtnEl) swapMatchupDaysBtnEl.addEventListener("click", swapMatchupDays);
 
   async function generateSchedule() {
     const dateValue = startDateEl.value;
@@ -1058,6 +1142,7 @@
     renderWeeks();
     renderPlayoffAdmin();
     renderBracket();
+    if (isAdmin()) renderSwapMatchupOptions();
   };
 
   const subscribe = () => {
@@ -1073,6 +1158,7 @@
       generateCardEl.hidden = true;
       resetSeasonCardEl.hidden = true;
       resetTrainingCardEl.hidden = true;
+      swapMatchupDaysCardEl.hidden = true;
       standingsCardEl.hidden = true;
       playoffAdminCardEl.hidden = true;
       bracketCardEl.hidden = true;
@@ -1082,6 +1168,7 @@
 
     statusEl.hidden = true;
     resetTrainingCardEl.hidden = !isAdmin();
+    swapMatchupDaysCardEl.hidden = !isAdmin();
     if (isAdmin() && trainingCutoffEl && !trainingCutoffEl.value) {
       const now = new Date();
       const pad = (n) => String(n).padStart(2, "0");
