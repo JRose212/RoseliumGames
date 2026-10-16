@@ -11,6 +11,7 @@
 // leave it out to get an auto-generated "Week N: <type label>".
 window.broadcasts = [
   { type: "preview", week: 1, file: "audio/week01-preview.mp3", title: "Fantasy Pokeball Season Preview — Week 1", date: "2026-10-14" },
+  { type: "thursday_recap", week: 1, file: "audio/week01-thursday-recap.mp3", title: "Week 1: Thursday Night Primetime Recap", date: "2026-10-15" },
 ];
 
 window.broadcastTypeLabels = {
