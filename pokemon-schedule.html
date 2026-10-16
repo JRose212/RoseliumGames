@@ -104,8 +104,10 @@
 
       <section class="card" id="swap-matchup-days-card" hidden>
         <h2>Swap Matchup Days</h2>
-        <p>Pick two matchups and swap which day/date each is played on - the teams playing in each matchup don't change, only which slot (Thursday/Sunday/Monday) they're in. Useful for manually fixing a day's assignment without regenerating the whole schedule.</p>
+        <p>Pick two matchups from the same week and swap which day/date each is played on - the teams playing in each matchup don't change, only which slot (Thursday/Sunday/Monday) they're in. Useful for manually fixing a day's assignment without regenerating the whole schedule.</p>
         <form class="auth-form" id="swap-matchup-days-form">
+          <label for="swap-matchup-week">Week</label>
+          <select id="swap-matchup-week"></select>
           <label for="swap-matchup-a">Matchup A</label>
           <select id="swap-matchup-a"></select>
           <label for="swap-matchup-b">Matchup B</label>

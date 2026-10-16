@@ -75,6 +75,7 @@
   const resetTrainingBtnEl = document.getElementById("reset-training-btn");
   const resetTrainingMessageEl = document.getElementById("reset-training-message");
   const swapMatchupDaysCardEl = document.getElementById("swap-matchup-days-card");
+  const swapMatchupWeekEl = document.getElementById("swap-matchup-week");
   const swapMatchupAEl = document.getElementById("swap-matchup-a");
   const swapMatchupBEl = document.getElementById("swap-matchup-b");
   const swapMatchupDaysBtnEl = document.getElementById("swap-matchup-days-btn");
@@ -325,39 +326,59 @@
   // generator) - the teams in each matchup are untouched, only which
   // day/date each one is slotted into. ---
 
+  // Matchup A/B are scoped to one week at a time (picked via the week
+  // dropdown) - there's never any list of matchups spanning multiple
+  // weeks to choose from, so a cross-week swap isn't something the UI can
+  // even offer. swapMatchupDays() below still re-checks this before
+  // writing, as a backstop.
   const renderSwapMatchupOptions = () => {
-    if (!swapMatchupAEl || !swapMatchupBEl) return;
+    if (!swapMatchupWeekEl || !swapMatchupAEl || !swapMatchupBEl) return;
     if (!matchups.length) {
+      swapMatchupWeekEl.innerHTML = "";
       swapMatchupAEl.innerHTML = "";
       swapMatchupBEl.innerHTML = "";
       return;
     }
+
     const byWeek = new Map();
     matchups.forEach((m) => {
       if (!byWeek.has(m.week)) byWeek.set(m.week, []);
       byWeek.get(m.week).push(m);
     });
-    const optionsHtml = [...byWeek.entries()]
-      .sort((a, b) => a[0] - b[0])
-      .map(([week, weekMatchups]) => {
-        const options = weekMatchups
-          .slice()
-          .sort((a, b) => (dayOrder[a.day] ?? 99) - (dayOrder[b.day] ?? 99))
-          .map(
-            (m) =>
-              `<option value="${m.id}">${escapeHtml(dayLabel[m.day] || m.day)} - ${escapeHtml(teamName(m.homeUid))} vs ${escapeHtml(teamName(m.awayUid))}${m.status === "final" ? " (Final)" : ""}</option>`
-          )
-          .join("");
-        return `<optgroup label="Week ${week}">${options}</optgroup>`;
-      })
+    // Only weeks with at least 2 matchups have anything to swap.
+    const weeksWithMultiple = [...byWeek.keys()].filter((week) => byWeek.get(week).length > 1).sort((a, b) => a - b);
+
+    const prevWeek = swapMatchupWeekEl.value ? Number(swapMatchupWeekEl.value) : null;
+    swapMatchupWeekEl.innerHTML = weeksWithMultiple.map((week) => `<option value="${week}">Week ${week}</option>`).join("");
+    const selectedWeek = weeksWithMultiple.includes(prevWeek) ? prevWeek : weeksWithMultiple[0];
+    if (selectedWeek !== undefined) swapMatchupWeekEl.value = selectedWeek;
+
+    const weekMatchups = selectedWeek !== undefined ? byWeek.get(selectedWeek) || [] : [];
+    const optionsHtml = weekMatchups
+      .slice()
+      .sort((a, b) => (dayOrder[a.day] ?? 99) - (dayOrder[b.day] ?? 99))
+      .map(
+        (m) =>
+          `<option value="${m.id}">${escapeHtml(dayLabel[m.day] || m.day)} - ${escapeHtml(teamName(m.homeUid))} vs ${escapeHtml(teamName(m.awayUid))}${m.status === "final" ? " (Final)" : ""}</option>`
+      )
       .join("");
     const prevA = swapMatchupAEl.value;
     const prevB = swapMatchupBEl.value;
     swapMatchupAEl.innerHTML = optionsHtml;
     swapMatchupBEl.innerHTML = optionsHtml;
-    if (matchups.some((m) => m.id === prevA)) swapMatchupAEl.value = prevA;
-    if (matchups.some((m) => m.id === prevB)) swapMatchupBEl.value = prevB;
+    if (weekMatchups.some((m) => m.id === prevA)) swapMatchupAEl.value = prevA;
+    if (weekMatchups.some((m) => m.id === prevB)) swapMatchupBEl.value = prevB;
   };
+
+  if (swapMatchupWeekEl) {
+    swapMatchupWeekEl.addEventListener("change", () => {
+      // Force A/B to repopulate for the newly-selected week instead of
+      // keeping a stale selection from the previous week.
+      swapMatchupAEl.value = "";
+      swapMatchupBEl.value = "";
+      renderSwapMatchupOptions();
+    });
+  }
 
   async function swapMatchupDays() {
     const showMessage = (text, isError) => {
@@ -376,6 +397,10 @@
     const b = matchups.find((m) => m.id === idB);
     if (!a || !b) {
       showMessage("Couldn't find one of those matchups.", true);
+      return;
+    }
+    if (a.week !== b.week) {
+      showMessage("Matchups must be from the same week.", true);
       return;
     }
     if (!seasonState || !seasonState.startDate) {
