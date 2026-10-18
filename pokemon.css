@@ -1778,8 +1778,20 @@ body[data-page^="pokemon-"] .app-content {
 }
 
 .type-radar-type-label {
-  font-size: 8px;
+  font-size: 9px;
   fill: var(--muted);
+}
+
+/* The popup's labeled chart scales down to fit narrow phone screens
+   (the modal panel itself can be under 300px wide there) - the SVG's
+   viewBox keeps every label positioned with room to spare regardless of
+   final rendered size, so shrinking it never re-introduces clipping. */
+.type-radar--labeled {
+  width: 100%;
+  height: auto;
+  max-width: 340px;
+  display: block;
+  margin: 0 auto;
 }
 
 .type-radar-ring {

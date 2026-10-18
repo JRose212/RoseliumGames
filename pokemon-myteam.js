@@ -151,7 +151,10 @@
     const n = typeWheelOrder.length;
     if (!n) return null;
     const center = size / 2;
-    const radius = labeled ? size / 2 - 34 : size / 2 - 14;
+    // The labeled (popup) version needs real margin between the data
+    // shape and the canvas edge for full type names (up to 8 characters,
+    // e.g. "fighting") not to clip - 34px wasn't nearly enough.
+    const radius = labeled ? size / 2 - 60 : size / 2 - 14;
     const max = Math.max(0, ...typeWheelOrder.map((t) => counts[t] || 0));
     if (max === 0) return null;
 
@@ -191,7 +194,7 @@
     const labels = labeled
       ? typeWheelOrder
           .map((t, i) => {
-            const [x, y] = pointFor(i, max * 1.32);
+            const [x, y] = pointFor(i, max * 1.1);
             return `<text x="${x.toFixed(1)}" y="${y.toFixed(1)}" class="type-radar-type-label" text-anchor="middle" dominant-baseline="middle">${escapeHtml(
               t
             )}</text>`;
@@ -199,7 +202,7 @@
           .join("")
       : "";
 
-    return `<svg class="type-radar" viewBox="0 0 ${size} ${size}" width="${size}" height="${size}">
+    return `<svg class="type-radar${labeled ? " type-radar--labeled" : ""}" viewBox="0 0 ${size} ${size}" width="${size}" height="${size}">
       ${rings}${spokes}<polygon points="${polygon}" class="type-radar-shape" />${dots}${labels}
     </svg>`;
   };
