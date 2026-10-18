@@ -147,17 +147,13 @@
     return counts;
   };
 
-  const typeRadarSvg = (counts, caption, size = 180) => {
+  const typeRadarSvgMarkup = (counts, size, labeled) => {
     const n = typeWheelOrder.length;
-    if (!n) return "";
+    if (!n) return null;
     const center = size / 2;
-    const radius = size / 2 - 14;
+    const radius = labeled ? size / 2 - 34 : size / 2 - 14;
     const max = Math.max(0, ...typeWheelOrder.map((t) => counts[t] || 0));
-    if (max === 0) {
-      return `<div class="type-radar-wrap"><p class="type-radar-empty">No Pokémon yet</p>${
-        caption ? `<span class="type-radar-caption">${escapeHtml(caption)}</span>` : ""
-      }</div>`;
-    }
+    if (max === 0) return null;
 
     const pointFor = (i, value) => {
       const angle = (Math.PI * 2 * i) / n - Math.PI / 2;
@@ -186,21 +182,113 @@
       .map((t, i) => {
         const [x, y] = dataPoints[i];
         const count = counts[t] || 0;
-        return `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="3.5" class="type-radar-point type-radar-point--${t}"><title>${escapeHtml(
+        return `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${labeled ? 4.5 : 3.5}" class="type-radar-point type-radar-point--${t}" data-type="${t}" data-count="${count}"><title>${escapeHtml(
           t
         )}: ${count}</title></circle>`;
       })
       .join("");
 
+    const labels = labeled
+      ? typeWheelOrder
+          .map((t, i) => {
+            const [x, y] = pointFor(i, max * 1.32);
+            return `<text x="${x.toFixed(1)}" y="${y.toFixed(1)}" class="type-radar-type-label" text-anchor="middle" dominant-baseline="middle">${escapeHtml(
+              t
+            )}</text>`;
+          })
+          .join("")
+      : "";
+
+    return `<svg class="type-radar" viewBox="0 0 ${size} ${size}" width="${size}" height="${size}">
+      ${rings}${spokes}<polygon points="${polygon}" class="type-radar-shape" />${dots}${labels}
+    </svg>`;
+  };
+
+  const capitalize = (s) => (s ? s.charAt(0).toUpperCase() + s.slice(1) : s);
+
+  const typeRadarChartHtml = (counts, caption, smallSize = 150) => {
+    const small = typeRadarSvgMarkup(counts, smallSize, false);
+    if (!small) {
+      return `<div class="type-radar-wrap"><p class="type-radar-empty">No Pokémon yet</p>${
+        caption ? `<span class="type-radar-caption">${escapeHtml(caption)}</span>` : ""
+      }</div>`;
+    }
     return `<div class="type-radar-wrap">
-      <svg class="type-radar" viewBox="0 0 ${size} ${size}" width="${size}" height="${size}">
-        ${rings}
-        ${spokes}
-        <polygon points="${polygon}" class="type-radar-shape" />
-        ${dots}
-      </svg>
+      <div class="type-radar-surface">${small}</div>
       ${caption ? `<span class="type-radar-caption">${escapeHtml(caption)}</span>` : ""}
     </div>`;
+  };
+
+  // Hover (desktop) expands the chart in place and shows the specific
+  // type under the pointer; click toggles the same expanded state and
+  // locks it open (for touch, which has no hover) until clicked again or
+  // closed with the X. Dot clicks while already expanded just update the
+  // label instead of collapsing - but before expansion, a stray click on
+  // a (tiny) dot still bubbles up and expands normally, so the compact
+  // chart's small dots never "eat" a tap that was meant to expand it.
+  const wireTypeRadarInteractivity = (wrapEl, counts, caption, smallSize = 150, bigSize = 320) => {
+    const surfaceEl = wrapEl.querySelector(".type-radar-surface");
+    if (!surfaceEl) return;
+    const max = Math.max(0, ...typeWheelOrder.map((t) => counts[t] || 0));
+    if (max === 0) return;
+
+    let locked = false;
+
+    const renderSmall = () => {
+      wrapEl.classList.remove("type-radar-wrap--expanded");
+      surfaceEl.innerHTML = typeRadarSvgMarkup(counts, smallSize, false) || "";
+    };
+
+    const renderBig = () => {
+      surfaceEl.innerHTML = `
+        <button type="button" class="type-radar-close-btn" aria-label="Close">✕</button>
+        ${typeRadarSvgMarkup(counts, bigSize, true)}
+        <p class="type-radar-hover-label"></p>
+        ${caption ? `<span class="type-radar-caption">${escapeHtml(caption)}</span>` : ""}
+      `;
+      const closeBtn = surfaceEl.querySelector(".type-radar-close-btn");
+      if (closeBtn) {
+        closeBtn.addEventListener("click", (event) => {
+          event.stopPropagation();
+          locked = false;
+          renderSmall();
+        });
+      }
+    };
+
+    wrapEl.addEventListener("mouseenter", () => {
+      if (locked) return;
+      wrapEl.classList.add("type-radar-wrap--expanded");
+      renderBig();
+    });
+    wrapEl.addEventListener("mouseleave", () => {
+      if (locked) return;
+      renderSmall();
+    });
+    wrapEl.addEventListener("click", (event) => {
+      if (event.target.closest(".type-radar-close-btn")) return;
+      if (locked) {
+        locked = false;
+        renderSmall();
+      } else {
+        locked = true;
+        wrapEl.classList.add("type-radar-wrap--expanded");
+        renderBig();
+      }
+    });
+    surfaceEl.addEventListener("mouseover", (event) => {
+      const dot = event.target.closest(".type-radar-point");
+      const labelEl = surfaceEl.querySelector(".type-radar-hover-label");
+      if (!dot || !labelEl) return;
+      labelEl.textContent = `${capitalize(dot.dataset.type)}: ${dot.dataset.count}`;
+    });
+    surfaceEl.addEventListener("click", (event) => {
+      const dot = event.target.closest(".type-radar-point");
+      if (!dot || !wrapEl.classList.contains("type-radar-wrap--expanded")) return;
+      event.stopPropagation();
+      const labelEl = surfaceEl.querySelector(".type-radar-hover-label");
+      if (labelEl) labelEl.textContent = `${capitalize(dot.dataset.type)}: ${dot.dataset.count}`;
+    });
   };
 
   // --- Pokemon detail popup (click an opponent's Pokemon) ---
@@ -581,8 +669,18 @@
 
     const offensePicks = (groups.offense || []).map((p) => slots[p]).filter(Boolean);
     const defensePicks = (groups.defense || []).map((p) => slots[p]).filter(Boolean);
-    if (offenseRadarEl) typeCountsForPicks(offensePicks).then((counts) => (offenseRadarEl.innerHTML = typeRadarSvg(counts, null, 140)));
-    if (defenseRadarEl) typeCountsForPicks(defensePicks).then((counts) => (defenseRadarEl.innerHTML = typeRadarSvg(counts, null, 140)));
+    if (offenseRadarEl) {
+      typeCountsForPicks(offensePicks).then((counts) => {
+        offenseRadarEl.innerHTML = typeRadarChartHtml(counts, null, 140);
+        wireTypeRadarInteractivity(offenseRadarEl.querySelector(".type-radar-wrap"), counts, null, 140);
+      });
+    }
+    if (defenseRadarEl) {
+      typeCountsForPicks(defensePicks).then((counts) => {
+        defenseRadarEl.innerHTML = typeRadarChartHtml(counts, null, 140);
+        wireTypeRadarInteractivity(defenseRadarEl.querySelector(".type-radar-wrap"), counts, null, 140);
+      });
+    }
   };
 
   async function swapSlots(fromPosition, toPosition) {
@@ -682,7 +780,11 @@
       const oppDefensePicks = (groups.defense || []).map((p) => opponentSlots[p]).filter(Boolean);
       oppRadarsEl.innerHTML = "";
       Promise.all([typeCountsForPicks(oppOffensePicks), typeCountsForPicks(oppDefensePicks)]).then(([offCounts, defCounts]) => {
-        oppRadarsEl.innerHTML = typeRadarSvg(offCounts, "Offense", 130) + typeRadarSvg(defCounts, "Defense", 130);
+        oppRadarsEl.innerHTML =
+          typeRadarChartHtml(offCounts, "Offense", 130) + typeRadarChartHtml(defCounts, "Defense", 130);
+        const wraps = oppRadarsEl.querySelectorAll(".type-radar-wrap");
+        if (wraps[0]) wireTypeRadarInteractivity(wraps[0], offCounts, "Offense", 130);
+        if (wraps[1]) wireTypeRadarInteractivity(wraps[1], defCounts, "Defense", 130);
       });
     }
   };
