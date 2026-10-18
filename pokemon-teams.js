@@ -36,6 +36,133 @@
     return `<span class="${cls} team-avatar-placeholder">${escapeHtml(name.charAt(0) || "?")}</span>`;
   };
 
+  // --- PokeAPI detail caching + type-composition radar chart (duplicated
+  // per this repo's one-file-per-page convention). ---
+
+  const readCache = (key, ttlMs) => {
+    try {
+      const raw = localStorage.getItem(key);
+      if (!raw) return null;
+      const parsed = JSON.parse(raw);
+      if (Date.now() - parsed.fetchedAt > ttlMs) return null;
+      return parsed.data;
+    } catch (error) {
+      return null;
+    }
+  };
+
+  const writeCache = (key, data) => {
+    try {
+      localStorage.setItem(key, JSON.stringify({ fetchedAt: Date.now(), data }));
+    } catch (error) {
+      // Non-fatal.
+    }
+  };
+
+  const detailTtl = config.pokemonDetailCacheTtlMs || 90 * 24 * 60 * 60 * 1000;
+  const apiBase = config.pokeApiBaseUrl || "https://pokeapi.co/api/v2";
+
+  const fetchDetail = async (id) => {
+    const cacheKey = `pokedex:detail:${id}:v2`;
+    const cached = readCache(cacheKey, detailTtl);
+    if (cached) return cached;
+    const response = await fetch(`${apiBase}/pokemon/${id}`, { cache: "no-store" });
+    if (!response.ok) throw new Error(`Unable to load Pokémon #${id} (${response.status})`);
+    const payload = await response.json();
+    const detail = {
+      id,
+      name: payload.name,
+      sprite: payload.sprites?.front_default || "",
+      types: (payload.types || []).map((t) => t.type.name),
+      heightM: payload.height / 10,
+      weightKg: payload.weight / 10,
+    };
+    writeCache(cacheKey, detail);
+    return detail;
+  };
+
+  const typeWheelOrder = config.typeWheelOrder || [];
+
+  // picks: array of filled slot values ({pokemonId, ...}) for one
+  // position group. A dual-type Pokemon counts toward both of its types.
+  const typeCountsForPicks = async (picks) => {
+    const counts = {};
+    typeWheelOrder.forEach((t) => (counts[t] = 0));
+    await Promise.all(
+      picks.map(async (pick) => {
+        try {
+          const detail = await fetchDetail(pick.pokemonId);
+          (detail.types || []).forEach((t) => {
+            if (counts[t] !== undefined) counts[t] += 1;
+          });
+        } catch (error) {
+          // Skip Pokemon whose detail fails to load.
+        }
+      })
+    );
+    return counts;
+  };
+
+  // Per-team, per-group scale: the furthest point on the wheel is that
+  // group's own highest type count, not a fixed/shared value - a team
+  // with 5 Ice-types maxes its wheel the same way one with 10 Fire-types
+  // maxes its own.
+  const typeRadarSvg = (counts, caption, size = 180) => {
+    const n = typeWheelOrder.length;
+    if (!n) return "";
+    const center = size / 2;
+    const radius = size / 2 - 14;
+    const max = Math.max(0, ...typeWheelOrder.map((t) => counts[t] || 0));
+    if (max === 0) {
+      return `<div class="type-radar-wrap"><p class="type-radar-empty">No Pokémon yet</p>${
+        caption ? `<span class="type-radar-caption">${escapeHtml(caption)}</span>` : ""
+      }</div>`;
+    }
+
+    const pointFor = (i, value) => {
+      const angle = (Math.PI * 2 * i) / n - Math.PI / 2;
+      const r = (value / max) * radius;
+      return [center + r * Math.cos(angle), center + r * Math.sin(angle)];
+    };
+
+    const rings = [0.33, 0.66, 1]
+      .map((frac) => {
+        const pts = typeWheelOrder.map((t, i) => pointFor(i, max * frac).map((v) => v.toFixed(1)).join(",")).join(" ");
+        return `<polygon points="${pts}" class="type-radar-ring" />`;
+      })
+      .join("");
+
+    const spokes = typeWheelOrder
+      .map((t, i) => {
+        const [x, y] = pointFor(i, max);
+        return `<line x1="${center}" y1="${center}" x2="${x.toFixed(1)}" y2="${y.toFixed(1)}" class="type-radar-spoke" />`;
+      })
+      .join("");
+
+    const dataPoints = typeWheelOrder.map((t, i) => pointFor(i, counts[t] || 0));
+    const polygon = dataPoints.map((p) => p.map((v) => v.toFixed(1)).join(",")).join(" ");
+
+    const dots = typeWheelOrder
+      .map((t, i) => {
+        const [x, y] = dataPoints[i];
+        const count = counts[t] || 0;
+        return `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="3.5" class="type-radar-point type-radar-point--${t}"><title>${escapeHtml(
+          t
+        )}: ${count}</title></circle>`;
+      })
+      .join("");
+
+    return `<div class="type-radar-wrap">
+      <svg class="type-radar" viewBox="0 0 ${size} ${size}" width="${size}" height="${size}">
+        ${rings}
+        ${spokes}
+        <polygon points="${polygon}" class="type-radar-shape" />
+        ${dots}
+      </svg>
+      ${caption ? `<span class="type-radar-caption">${escapeHtml(caption)}</span>` : ""}
+    </div>`;
+  };
+
   const trainingBadgesHtml = (training) => {
     const t = training || {};
     const streak = t.currentStreak || 0;
@@ -262,10 +389,12 @@
                   <div class="roster-columns">
                     <div class="roster-column">
                       <h3 class="roster-column-heading">Offense</h3>
+                      <div class="type-radar-slot" data-radar-uid="${escapeHtml(team.uid)}" data-radar-group="offense"></div>
                       <ul class="roster-list">${offenseRows}</ul>
                     </div>
                     <div class="roster-column">
                       <h3 class="roster-column-heading">Defense</h3>
+                      <div class="type-radar-slot" data-radar-uid="${escapeHtml(team.uid)}" data-radar-group="defense"></div>
                       <ul class="roster-list">${defenseRows}</ul>
                     </div>
                   </div>
@@ -282,6 +411,17 @@
                 </section>`;
       })
       .join("");
+
+    listEl.querySelectorAll(".type-radar-slot").forEach((el) => {
+      const team = visibleTeams.find((t) => t.uid === el.dataset.radarUid);
+      if (!team) return;
+      const slots = team.slots || {};
+      const positions = groups[el.dataset.radarGroup === "offense" ? "offense" : "defense"] || [];
+      const picks = positions.map((p) => slots[p]).filter(Boolean);
+      typeCountsForPicks(picks).then((counts) => {
+        el.innerHTML = typeRadarSvg(counts, null, 150);
+      });
+    });
 
     if (isAdminViewer) {
       listEl.querySelectorAll(".export-team-btn").forEach((btn) => {

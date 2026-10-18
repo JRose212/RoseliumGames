@@ -4,6 +4,9 @@
   const rosterCardEl = document.getElementById("myteam-roster-card");
   const offenseGridEl = document.getElementById("myteam-offense-grid");
   const defenseGridEl = document.getElementById("myteam-defense-grid");
+  const offenseRadarEl = document.getElementById("myteam-offense-radar");
+  const defenseRadarEl = document.getElementById("myteam-defense-radar");
+  const oppRadarsEl = document.getElementById("myteam-opp-radars");
   const specialGridEl = document.getElementById("myteam-special-grid");
   const benchGridEl = document.getElementById("myteam-bench-grid");
   const matchupCardEl = document.getElementById("myteam-matchup-card");
@@ -120,6 +123,85 @@
 
   const typeBadgesHtml = (types) =>
     (types || []).map((type) => `<span class="type-badge type-badge--${escapeHtml(type)}">${escapeHtml(type)}</span>`).join("");
+
+  // --- Type-composition radar chart (duplicated from pokemon-teams.js by
+  // this repo's one-file-per-page convention) ---
+
+  const typeWheelOrder = config.typeWheelOrder || [];
+
+  const typeCountsForPicks = async (picks) => {
+    const counts = {};
+    typeWheelOrder.forEach((t) => (counts[t] = 0));
+    await Promise.all(
+      picks.map(async (pick) => {
+        try {
+          const detail = await fetchDetail(pick.pokemonId);
+          (detail.types || []).forEach((t) => {
+            if (counts[t] !== undefined) counts[t] += 1;
+          });
+        } catch (error) {
+          // Skip Pokemon whose detail fails to load.
+        }
+      })
+    );
+    return counts;
+  };
+
+  const typeRadarSvg = (counts, caption, size = 180) => {
+    const n = typeWheelOrder.length;
+    if (!n) return "";
+    const center = size / 2;
+    const radius = size / 2 - 14;
+    const max = Math.max(0, ...typeWheelOrder.map((t) => counts[t] || 0));
+    if (max === 0) {
+      return `<div class="type-radar-wrap"><p class="type-radar-empty">No Pokémon yet</p>${
+        caption ? `<span class="type-radar-caption">${escapeHtml(caption)}</span>` : ""
+      }</div>`;
+    }
+
+    const pointFor = (i, value) => {
+      const angle = (Math.PI * 2 * i) / n - Math.PI / 2;
+      const r = (value / max) * radius;
+      return [center + r * Math.cos(angle), center + r * Math.sin(angle)];
+    };
+
+    const rings = [0.33, 0.66, 1]
+      .map((frac) => {
+        const pts = typeWheelOrder.map((t, i) => pointFor(i, max * frac).map((v) => v.toFixed(1)).join(",")).join(" ");
+        return `<polygon points="${pts}" class="type-radar-ring" />`;
+      })
+      .join("");
+
+    const spokes = typeWheelOrder
+      .map((t, i) => {
+        const [x, y] = pointFor(i, max);
+        return `<line x1="${center}" y1="${center}" x2="${x.toFixed(1)}" y2="${y.toFixed(1)}" class="type-radar-spoke" />`;
+      })
+      .join("");
+
+    const dataPoints = typeWheelOrder.map((t, i) => pointFor(i, counts[t] || 0));
+    const polygon = dataPoints.map((p) => p.map((v) => v.toFixed(1)).join(",")).join(" ");
+
+    const dots = typeWheelOrder
+      .map((t, i) => {
+        const [x, y] = dataPoints[i];
+        const count = counts[t] || 0;
+        return `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="3.5" class="type-radar-point type-radar-point--${t}"><title>${escapeHtml(
+          t
+        )}: ${count}</title></circle>`;
+      })
+      .join("");
+
+    return `<div class="type-radar-wrap">
+      <svg class="type-radar" viewBox="0 0 ${size} ${size}" width="${size}" height="${size}">
+        ${rings}
+        ${spokes}
+        <polygon points="${polygon}" class="type-radar-shape" />
+        ${dots}
+      </svg>
+      ${caption ? `<span class="type-radar-caption">${escapeHtml(caption)}</span>` : ""}
+    </div>`;
+  };
 
   // --- Pokemon detail popup (click an opponent's Pokemon) ---
 
@@ -496,6 +578,11 @@
     groupRender(defenseGridEl, groups.defense || []);
     groupRender(specialGridEl, groups.specialTeams || []);
     groupRender(benchGridEl, groups.bench || []);
+
+    const offensePicks = (groups.offense || []).map((p) => slots[p]).filter(Boolean);
+    const defensePicks = (groups.defense || []).map((p) => slots[p]).filter(Boolean);
+    if (offenseRadarEl) typeCountsForPicks(offensePicks).then((counts) => (offenseRadarEl.innerHTML = typeRadarSvg(counts, null, 140)));
+    if (defenseRadarEl) typeCountsForPicks(defensePicks).then((counts) => (defenseRadarEl.innerHTML = typeRadarSvg(counts, null, 140)));
   };
 
   async function swapSlots(fromPosition, toPosition) {
@@ -560,6 +647,7 @@
       matchupMetaEl.textContent = "No upcoming matchup scheduled yet.";
       oppHeadingEl.innerHTML = `Opponent<span class="training-badges" id="myteam-opp-training-badges"></span>`;
       oppListEl.innerHTML = "";
+      if (oppRadarsEl) oppRadarsEl.innerHTML = "";
       matchupTrainingEl.innerHTML = "";
       return;
     }
@@ -588,6 +676,15 @@
     const positions = config.pokemonPositions || [];
     oppListEl.innerHTML = positions.map((position) => renderOppRow(position, opponentSlots)).join("");
     wireOppRowClicks();
+
+    if (oppRadarsEl) {
+      const oppOffensePicks = (groups.offense || []).map((p) => opponentSlots[p]).filter(Boolean);
+      const oppDefensePicks = (groups.defense || []).map((p) => opponentSlots[p]).filter(Boolean);
+      oppRadarsEl.innerHTML = "";
+      Promise.all([typeCountsForPicks(oppOffensePicks), typeCountsForPicks(oppDefensePicks)]).then(([offCounts, defCounts]) => {
+        oppRadarsEl.innerHTML = typeRadarSvg(offCounts, "Offense", 130) + typeRadarSvg(defCounts, "Defense", 130);
+      });
+    }
   };
 
   // --- Trades ---

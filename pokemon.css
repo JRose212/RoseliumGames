@@ -1742,3 +1742,77 @@ body[data-page^="pokemon-"] .app-content {
 .roster-row-filled--clickable {
   cursor: pointer;
 }
+
+/* Type composition radar chart - 18 axes (one per Pokemon type) is too
+   many to label with text without clutter, so each axis point is a
+   colored dot (matching that type's .type-badge color) with a hover
+   tooltip instead of a permanent label. */
+
+.type-radar-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.type-radar-row {
+  display: flex;
+  gap: 1.5rem;
+  justify-content: center;
+  flex-wrap: wrap;
+  margin: 0.75rem 0;
+}
+
+.type-radar-caption {
+  font-size: 0.68rem;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.type-radar-ring {
+  fill: none;
+  stroke: var(--border);
+  stroke-width: 1;
+}
+
+.type-radar-spoke {
+  stroke: var(--border);
+  stroke-width: 1;
+}
+
+.type-radar-shape {
+  fill: rgba(47, 111, 237, 0.35);
+  stroke: var(--accent);
+  stroke-width: 1.5;
+}
+
+.type-radar-point {
+  stroke: var(--bg);
+  stroke-width: 1;
+}
+
+.type-radar-point--normal { fill: #8f96a3; }
+.type-radar-point--fire { fill: #d1591f; }
+.type-radar-point--water { fill: #2f6fed; }
+.type-radar-point--electric { fill: #ffcb05; }
+.type-radar-point--grass { fill: #3f8f4f; }
+.type-radar-point--ice { fill: #5fb8c9; }
+.type-radar-point--fighting { fill: #a3272a; }
+.type-radar-point--poison { fill: #7a3e9e; }
+.type-radar-point--ground { fill: #b7914a; }
+.type-radar-point--flying { fill: #7c93d6; }
+.type-radar-point--psychic { fill: #c0477a; }
+.type-radar-point--bug { fill: #7c9420; }
+.type-radar-point--rock { fill: #93873a; }
+.type-radar-point--ghost { fill: #5a4a80; }
+.type-radar-point--dragon { fill: #4b3fc9; }
+.type-radar-point--dark { fill: #4a4440; }
+.type-radar-point--steel { fill: #a8b4c2; }
+.type-radar-point--fairy { fill: #c56f98; }
+
+.type-radar-empty {
+  color: var(--muted);
+  font-size: 0.75rem;
+  text-align: center;
+}

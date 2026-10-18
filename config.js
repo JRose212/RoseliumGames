@@ -184,4 +184,25 @@ window.siteConfig = {
     { key: "defTD", label: "Defensive TDs" },
     { key: "fgMade", label: "Field Goals Made" },
   ],
+
+  // Fixed circular axis order for the type-composition radar charts (My
+  // Team, Rosters). Computed once offline via simulated annealing: scored
+  // every pair of types by "tension" (attack multiplier A-on-B plus B-on-
+  // A, so e.g. Water/Fire = 2 + 0.5 = 2.5), then searched for the
+  // ordering that puts high-tension pairs as far apart on the wheel as
+  // possible. It can't be perfect - type effectiveness has cycles (Fire
+  // beats Grass beats Water beats Fire), so not every rivalry can be
+  // directly opposite - but most of the strongest rivalries land roughly
+  // opposite or at least off to the side: Psychic/Bug, Water/Ground,
+  // Fighting/Steel, Bug/Dark, Ice/Ground, Ground/Steel, and Grass/Rock all
+  // land 90%+ of the way to fully opposite. A few strong pairs (Fire/
+  // Ground, Water/Rock, Bug/Rock) end up closer together than ideal -
+  // there just isn't room on one 18-point wheel to separate every strong
+  // rivalry, so this is the best tradeoff the search found, not a perfect
+  // mapping.
+  typeWheelOrder: [
+    "ghost", "poison", "rock", "normal", "ice", "water", "steel", "dark",
+    "psychic", "electric", "grass", "dragon", "fire", "flying", "ground",
+    "fairy", "fighting", "bug",
+  ],
 };
