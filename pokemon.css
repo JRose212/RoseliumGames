@@ -1746,16 +1746,15 @@ body[data-page^="pokemon-"] .app-content {
 /* Type composition radar chart - 18 axes (one per Pokemon type) is too
    many to label with text permanently without clutter, so the compact
    chart just shows colored dots (matching each type's .type-badge
-   color). Hovering (desktop) or tapping (mobile) expands it in place -
-   .type-radar-surface is the positioning anchor, swapped between a
-   compact SVG and a larger labeled one by JS, as an absolutely
-   positioned overlay so expanding never reflows surrounding content. */
+   color). Click opens a popup (same pattern as the Pokemon detail
+   popup) with a bigger version that has every type labeled. */
 
 .type-radar-wrap {
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 0.25rem;
+  cursor: pointer;
 }
 
 .type-radar-row {
@@ -1773,54 +1772,9 @@ body[data-page^="pokemon-"] .app-content {
   letter-spacing: 0.04em;
 }
 
-.type-radar-surface {
+.type-radar-modal-panel {
   position: relative;
-  cursor: pointer;
-}
-
-.type-radar-wrap--expanded {
-  position: relative;
-  z-index: 40;
-}
-
-.type-radar-wrap--expanded .type-radar-surface {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  max-width: calc(100vw - 2rem);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.3rem;
-  padding: 1rem;
-  border-radius: 8px;
-  border: 1px solid var(--border);
-  background: var(--surface-strong);
-  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.55);
-}
-
-.type-radar-close-btn {
-  position: absolute;
-  top: 0.4rem;
-  right: 0.4rem;
-  width: 24px;
-  height: 24px;
-  border-radius: 50%;
-  border: 1px solid var(--border);
-  background: var(--surface);
-  color: var(--text);
-  cursor: pointer;
-  font-size: 0.8rem;
-  line-height: 1;
-}
-
-.type-radar-hover-label {
-  min-height: 1.1em;
-  margin: 0;
-  font-size: 0.8rem;
-  font-weight: 700;
-  color: var(--accent-strong);
+  text-align: center;
 }
 
 .type-radar-type-label {

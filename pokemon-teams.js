@@ -166,11 +166,6 @@
     </svg>`;
   };
 
-  const capitalize = (s) => (s ? s.charAt(0).toUpperCase() + s.slice(1) : s);
-
-  // Builds the compact (non-interactive, static) markup - used once per
-  // chart at render time. wireTypeRadarInteractivity (below) then attaches
-  // the hover/click expand behavior to it.
   const typeRadarChartHtml = (counts, caption, smallSize = 150) => {
     const small = typeRadarSvgMarkup(counts, smallSize, false);
     if (!small) {
@@ -178,82 +173,39 @@
         caption ? `<span class="type-radar-caption">${escapeHtml(caption)}</span>` : ""
       }</div>`;
     }
-    return `<div class="type-radar-wrap">
-      <div class="type-radar-surface">${small}</div>
-      ${caption ? `<span class="type-radar-caption">${escapeHtml(caption)}</span>` : ""}
-    </div>`;
+    return `<div class="type-radar-wrap">${small}${
+      caption ? `<span class="type-radar-caption">${escapeHtml(caption)}</span>` : ""
+    }</div>`;
   };
 
-  // Hover (desktop) expands the chart in place and shows the specific
-  // type under the pointer; click toggles the same expanded state and
-  // locks it open (for touch, which has no hover) until clicked again or
-  // closed with the X. Dot clicks while already expanded just update the
-  // label instead of collapsing - but before expansion, a stray click on
-  // a (tiny) dot still bubbles up and expands normally, so the compact
-  // chart's small dots never "eat" a tap that was meant to expand it.
-  const wireTypeRadarInteractivity = (wrapEl, counts, caption, smallSize = 150, bigSize = 320) => {
-    const surfaceEl = wrapEl.querySelector(".type-radar-surface");
-    if (!surfaceEl) return;
+  // Click opens a shared popup (one per page, reused for whichever chart
+  // was clicked) with a bigger version that has every type labeled -
+  // simpler than expanding the chart in place, which fought with page
+  // layout (an expanded chart taking its compact sibling's spot out of
+  // flow shifted everything below it up).
+  const typeRadarModalEl = document.getElementById("type-radar-modal");
+  const typeRadarModalCaptionEl = document.getElementById("type-radar-modal-caption");
+  const typeRadarModalChartEl = document.getElementById("type-radar-modal-chart");
+  const typeRadarModalCloseBtnEl = document.getElementById("type-radar-modal-close-btn");
+
+  const closeTypeRadarModal = () => {
+    if (typeRadarModalEl) typeRadarModalEl.hidden = true;
+  };
+  if (typeRadarModalCloseBtnEl) typeRadarModalCloseBtnEl.addEventListener("click", closeTypeRadarModal);
+
+  const openTypeRadarModal = (counts, caption) => {
+    if (!typeRadarModalEl) return;
+    typeRadarModalCaptionEl.textContent = caption || "Type Composition";
+    typeRadarModalChartEl.innerHTML =
+      typeRadarSvgMarkup(counts, 320, true) || `<p class="type-radar-empty">No Pokémon yet</p>`;
+    typeRadarModalEl.hidden = false;
+  };
+
+  const wireTypeRadarClick = (wrapEl, counts, caption) => {
+    if (!wrapEl) return;
     const max = Math.max(0, ...typeWheelOrder.map((t) => counts[t] || 0));
-    if (max === 0) return;
-
-    let locked = false;
-
-    const renderSmall = () => {
-      wrapEl.classList.remove("type-radar-wrap--expanded");
-      surfaceEl.innerHTML = typeRadarSvgMarkup(counts, smallSize, false) || "";
-    };
-
-    const renderBig = () => {
-      surfaceEl.innerHTML = `
-        <button type="button" class="type-radar-close-btn" aria-label="Close">✕</button>
-        ${typeRadarSvgMarkup(counts, bigSize, true)}
-        <p class="type-radar-hover-label"></p>
-        ${caption ? `<span class="type-radar-caption">${escapeHtml(caption)}</span>` : ""}
-      `;
-      const closeBtn = surfaceEl.querySelector(".type-radar-close-btn");
-      if (closeBtn) {
-        closeBtn.addEventListener("click", (event) => {
-          event.stopPropagation();
-          locked = false;
-          renderSmall();
-        });
-      }
-    };
-
-    wrapEl.addEventListener("mouseenter", () => {
-      if (locked) return;
-      wrapEl.classList.add("type-radar-wrap--expanded");
-      renderBig();
-    });
-    wrapEl.addEventListener("mouseleave", () => {
-      if (locked) return;
-      renderSmall();
-    });
-    wrapEl.addEventListener("click", (event) => {
-      if (event.target.closest(".type-radar-close-btn")) return;
-      if (locked) {
-        locked = false;
-        renderSmall();
-      } else {
-        locked = true;
-        wrapEl.classList.add("type-radar-wrap--expanded");
-        renderBig();
-      }
-    });
-    surfaceEl.addEventListener("mouseover", (event) => {
-      const dot = event.target.closest(".type-radar-point");
-      const labelEl = surfaceEl.querySelector(".type-radar-hover-label");
-      if (!dot || !labelEl) return;
-      labelEl.textContent = `${capitalize(dot.dataset.type)}: ${dot.dataset.count}`;
-    });
-    surfaceEl.addEventListener("click", (event) => {
-      const dot = event.target.closest(".type-radar-point");
-      if (!dot || !wrapEl.classList.contains("type-radar-wrap--expanded")) return;
-      event.stopPropagation();
-      const labelEl = surfaceEl.querySelector(".type-radar-hover-label");
-      if (labelEl) labelEl.textContent = `${capitalize(dot.dataset.type)}: ${dot.dataset.count}`;
-    });
+    if (max === 0) return; // nothing to show - leave it non-interactive
+    wrapEl.addEventListener("click", () => openTypeRadarModal(counts, caption));
   };
 
   const trainingBadgesHtml = (training) => {
@@ -511,9 +463,11 @@
       const slots = team.slots || {};
       const positions = groups[el.dataset.radarGroup === "offense" ? "offense" : "defense"] || [];
       const picks = positions.map((p) => slots[p]).filter(Boolean);
+      const groupLabel = el.dataset.radarGroup === "offense" ? "Offense" : "Defense";
+      const caption = `${team.teamName || "Unnamed Team"} — ${groupLabel}`;
       typeCountsForPicks(picks).then((counts) => {
         el.innerHTML = typeRadarChartHtml(counts, null, 150);
-        wireTypeRadarInteractivity(el.querySelector(".type-radar-wrap"), counts, null, 150);
+        wireTypeRadarClick(el.querySelector(".type-radar-wrap"), counts, caption);
       });
     });
 
