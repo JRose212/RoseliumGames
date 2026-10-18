@@ -1233,7 +1233,7 @@ body[data-page^="pokemon-"] .app-content {
 
 .myteam-slot {
   position: relative;
-  aspect-ratio: 1 / 1;
+  min-height: 160px;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -1279,8 +1279,8 @@ body[data-page^="pokemon-"] .app-content {
 }
 
 .myteam-slot-sprite {
-  width: 84px;
-  height: 84px;
+  width: 68px;
+  height: 68px;
   object-fit: contain;
   margin-top: 0.5rem;
 }
@@ -1685,4 +1685,60 @@ body[data-page^="pokemon-"] .app-content {
   align-items: center;
   gap: 0.5rem;
   flex-wrap: wrap;
+}
+
+/* Pokemon detail popup (My Team page - click an opponent's Pokemon) */
+
+.poke-detail-panel {
+  position: relative;
+  text-align: center;
+}
+
+.poke-detail-close-btn {
+  position: absolute;
+  top: 0.75rem;
+  right: 0.75rem;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 1px solid var(--border);
+  background: var(--surface-strong);
+  color: var(--text);
+  cursor: pointer;
+  font-size: 0.9rem;
+  line-height: 1;
+}
+
+.poke-detail-sprite {
+  width: 140px;
+  height: 140px;
+  object-fit: contain;
+  image-rendering: pixelated;
+  margin: 0.5rem auto 0;
+}
+
+.poke-detail-types {
+  margin: 0.5rem 0;
+}
+
+.poke-detail-dims {
+  color: var(--muted);
+}
+
+/* Type/dimensions readout shown directly on My Team's own roster slots */
+
+.myteam-slot-types {
+  display: flex;
+  justify-content: center;
+  gap: 0.25rem;
+  flex-wrap: wrap;
+}
+
+.myteam-slot-dims {
+  color: var(--muted);
+  font-size: 0.65rem;
+}
+
+.roster-row-filled--clickable {
+  cursor: pointer;
 }

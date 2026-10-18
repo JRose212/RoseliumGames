@@ -61,6 +61,97 @@
     `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/${pokemonId}.png`;
   const itemSpriteUrl = (item) => `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/${item}.png`;
 
+  // --- PokeAPI detail (type/height/weight) caching, duplicated from
+  // pokemon-dex.js by this repo's one-file-per-page convention. Uses the
+  // same cache keys, so a browser that already visited the Pokedex often
+  // hits localStorage instead of the network here. ---
+
+  const readCache = (key, ttlMs) => {
+    try {
+      const raw = localStorage.getItem(key);
+      if (!raw) return null;
+      const parsed = JSON.parse(raw);
+      if (Date.now() - parsed.fetchedAt > ttlMs) return null;
+      return parsed.data;
+    } catch (error) {
+      return null;
+    }
+  };
+
+  const writeCache = (key, data) => {
+    try {
+      localStorage.setItem(key, JSON.stringify({ fetchedAt: Date.now(), data }));
+    } catch (error) {
+      // Non-fatal.
+    }
+  };
+
+  const detailTtl = config.pokemonDetailCacheTtlMs || 90 * 24 * 60 * 60 * 1000;
+  const apiBase = config.pokeApiBaseUrl || "https://pokeapi.co/api/v2";
+
+  const fetchDetail = async (id) => {
+    const cacheKey = `pokedex:detail:${id}:v2`;
+    const cached = readCache(cacheKey, detailTtl);
+    if (cached) return cached;
+    const response = await fetch(`${apiBase}/pokemon/${id}`, { cache: "no-store" });
+    if (!response.ok) throw new Error(`Unable to load Pokémon #${id} (${response.status})`);
+    const payload = await response.json();
+    const detail = {
+      id,
+      name: payload.name,
+      sprite: payload.sprites?.front_default || "",
+      types: (payload.types || []).map((t) => t.type.name),
+      heightM: payload.height / 10,
+      weightKg: payload.weight / 10,
+    };
+    writeCache(cacheKey, detail);
+    return detail;
+  };
+
+  // heightM/weightKg are stored metric (what PokeAPI returns), displayed
+  // in feet/inches and pounds.
+  const formatImperial = (heightM, weightKg) => {
+    const totalInches = Math.round(heightM * 39.3701);
+    const feet = Math.floor(totalInches / 12);
+    const inches = totalInches % 12;
+    const lbs = (weightKg * 2.20462).toFixed(1);
+    return `${feet}'${inches}" · ${lbs} lbs`;
+  };
+
+  const typeBadgesHtml = (types) =>
+    (types || []).map((type) => `<span class="type-badge type-badge--${escapeHtml(type)}">${escapeHtml(type)}</span>`).join("");
+
+  // --- Pokemon detail popup (click an opponent's Pokemon) ---
+
+  const pokeDetailModalEl = document.getElementById("poke-detail-modal");
+  const pokeDetailCloseBtnEl = document.getElementById("poke-detail-close-btn");
+  const pokeDetailSpriteEl = document.getElementById("poke-detail-sprite");
+  const pokeDetailNameEl = document.getElementById("poke-detail-name");
+  const pokeDetailTypesEl = document.getElementById("poke-detail-types");
+  const pokeDetailDimsEl = document.getElementById("poke-detail-dims");
+
+  const closePokeDetail = () => {
+    if (pokeDetailModalEl) pokeDetailModalEl.hidden = true;
+  };
+  if (pokeDetailCloseBtnEl) pokeDetailCloseBtnEl.addEventListener("click", closePokeDetail);
+
+  const openPokeDetail = async (pokemonId, pokemonName) => {
+    if (!pokeDetailModalEl) return;
+    pokeDetailNameEl.textContent = pokemonName;
+    pokeDetailSpriteEl.src = largeSpriteUrl(pokemonId);
+    pokeDetailSpriteEl.alt = pokemonName;
+    pokeDetailTypesEl.innerHTML = "";
+    pokeDetailDimsEl.textContent = "Loading…";
+    pokeDetailModalEl.hidden = false;
+    try {
+      const detail = await fetchDetail(pokemonId);
+      pokeDetailTypesEl.innerHTML = typeBadgesHtml(detail.types);
+      pokeDetailDimsEl.textContent = formatImperial(detail.heightM, detail.weightKg);
+    } catch (error) {
+      pokeDetailDimsEl.textContent = "Unable to load details.";
+    }
+  };
+
   const trainingTypes = config.trainingTypes || [];
   const trainingTypeByKey = new Map(trainingTypes.map((t) => [t.key, t]));
 
@@ -287,8 +378,27 @@
               <span class="myteam-slot-position">${escapeHtml(position)}</span>
               <img class="myteam-slot-sprite" src="${largeSpriteUrl(pick.pokemonId)}" alt="${escapeHtml(pick.pokemonName)}" loading="lazy" />
               <span class="myteam-slot-name">${escapeHtml(pick.pokemonName)}</span>
+              <div class="myteam-slot-types" data-poke-id="${pick.pokemonId}"></div>
+              <span class="myteam-slot-dims"></span>
               ${isOut ? `<span class="myteam-out-badge">OUT — Wk ${pick.outForWeek}</span>` : ""}
             </div>`;
+  };
+
+  // Fills in type badges + height/weight for every filled slot in a grid,
+  // once it's in the DOM - this info isn't on the team doc itself (only
+  // pokemonId/pokemonName are), so it's a PokeAPI lookup per slot, same as
+  // the Pokedex page.
+  const loadSlotDetails = (gridEl) => {
+    gridEl.querySelectorAll(".myteam-slot-types[data-poke-id]").forEach((el) => {
+      const id = Number(el.dataset.pokeId);
+      fetchDetail(id)
+        .then((detail) => {
+          el.innerHTML = typeBadgesHtml(detail.types);
+          const dimsEl = el.parentElement.querySelector(".myteam-slot-dims");
+          if (dimsEl) dimsEl.textContent = formatImperial(detail.heightM, detail.weightKg);
+        })
+        .catch(() => {});
+    });
   };
 
   let draggedPosition = null;
@@ -379,6 +489,7 @@
       gridEl.innerHTML = positions.map((position) => renderSlot(position, slots)).join("");
       wireDragAndDrop(gridEl);
       wireClickToSwap(gridEl);
+      loadSlotDetails(gridEl);
     };
 
     groupRender(offenseGridEl, groups.offense || []);
@@ -412,7 +523,7 @@
   const renderOppRow = (position, slots) => {
     const pick = slots[position];
     const middle = pick
-      ? `<span class="roster-row-filled">
+      ? `<span class="roster-row-filled roster-row-filled--clickable" data-poke-id="${pick.pokemonId}" data-poke-name="${escapeHtml(pick.pokemonName)}">
           <img class="roster-row-sprite" src="${smallSpriteUrl(pick.pokemonId)}" alt="${escapeHtml(pick.pokemonName)}" loading="lazy" />
           ${escapeHtml(pick.pokemonName)}
         </span>`
@@ -421,6 +532,12 @@
               <span class="roster-row-position">${escapeHtml(position)}</span>
               ${middle}
             </li>`;
+  };
+
+  const wireOppRowClicks = () => {
+    oppListEl.querySelectorAll(".roster-row-filled--clickable").forEach((el) => {
+      el.addEventListener("click", () => openPokeDetail(Number(el.dataset.pokeId), el.dataset.pokeName));
+    });
   };
 
   const formatMatchupDate = (date) => {
@@ -470,6 +587,7 @@
 
     const positions = config.pokemonPositions || [];
     oppListEl.innerHTML = positions.map((position) => renderOppRow(position, opponentSlots)).join("");
+    wireOppRowClicks();
   };
 
   // --- Trades ---
