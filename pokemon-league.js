@@ -83,6 +83,19 @@
   firebase.initializeApp(config.firebaseConfig);
   const auth = firebase.auth();
   const db = firebase.firestore();
+  const storage = firebase.storage ? firebase.storage() : null;
+
+  // Shared avatar renderer (duplicated per file by this repo's convention)
+  // - a photo if the team has one, otherwise a circle with its first
+  // letter, so every team looks consistent.
+  const teamAvatarHtml = (team, sizeClass = "") => {
+    const name = (team && team.teamName) || "?";
+    const cls = `team-avatar${sizeClass ? ` ${sizeClass}` : ""}`;
+    if (team && team.photoURL) {
+      return `<img class="${cls}" src="${escapeHtml(team.photoURL)}" alt="${escapeHtml(name)}" loading="lazy" />`;
+    }
+    return `<span class="${cls} team-avatar-placeholder">${escapeHtml(name.charAt(0) || "?")}</span>`;
+  };
 
   const emptyRoster = () => {
     const roster = {};
@@ -172,11 +185,25 @@
         <button type="button" class="btn btn-secondary" id="team-name-save-btn">Save Team Name</button>
       </form>
       <p class="status" id="team-name-message" hidden></p>
+
+      <div class="team-photo-row">
+        ${teamAvatarHtml(myTeam, "team-avatar--lg")}
+        <div class="team-photo-controls">
+          <input type="file" id="team-photo-input" accept="image/*" />
+          <button type="button" class="btn btn-secondary" id="team-photo-upload-btn">Upload Photo</button>
+          ${myTeam && myTeam.photoURL ? `<button type="button" class="btn btn-secondary" id="team-photo-remove-btn">Remove Photo</button>` : ""}
+        </div>
+      </div>
+      <p class="status" id="team-photo-message" hidden></p>
+
       ${draftPending ? "" : `<p class="status">Leaving isn't available once the draft has started.</p>`}
       <p class="status" id="leave-league-message" hidden></p>
     `;
     document.getElementById("auth-signout-btn").addEventListener("click", () => auth.signOut());
     document.getElementById("leave-league-btn").addEventListener("click", () => leaveLeague(user));
+    document.getElementById("team-photo-upload-btn").addEventListener("click", () => uploadTeamPhoto(user));
+    const removePhotoBtn = document.getElementById("team-photo-remove-btn");
+    if (removePhotoBtn) removePhotoBtn.addEventListener("click", () => removeTeamPhoto(user));
     document.getElementById("team-name-save-btn").addEventListener("click", () => saveTeamName(user));
   };
 
@@ -196,6 +223,66 @@
     try {
       await db.collection("teams").doc(user.uid).update({ teamName: newName });
       showMessage("Team name saved.", false);
+    } catch (error) {
+      showMessage(error.message, true);
+    }
+  }
+
+  const MAX_PHOTO_BYTES = 5 * 1024 * 1024;
+
+  async function uploadTeamPhoto(user) {
+    const messageEl = document.getElementById("team-photo-message");
+    const showMessage = (text, isError) => {
+      if (!messageEl) return;
+      messageEl.hidden = false;
+      messageEl.textContent = text;
+      messageEl.className = `status${isError ? " error" : ""}`;
+    };
+
+    if (!storage) {
+      showMessage("Photo uploads aren't available right now.", true);
+      return;
+    }
+    const fileInput = document.getElementById("team-photo-input");
+    const file = fileInput && fileInput.files && fileInput.files[0];
+    if (!file) {
+      showMessage("Choose an image first.", true);
+      return;
+    }
+    if (!file.type.startsWith("image/")) {
+      showMessage("That file isn't an image.", true);
+      return;
+    }
+    if (file.size > MAX_PHOTO_BYTES) {
+      showMessage("Image is too large - 5MB max.", true);
+      return;
+    }
+
+    try {
+      showMessage("Uploading…", false);
+      const photoRef = storage.ref(`teamPhotos/${user.uid}`);
+      await photoRef.put(file, { contentType: file.type });
+      const photoURL = await photoRef.getDownloadURL();
+      await db.collection("teams").doc(user.uid).update({ photoURL });
+      showMessage("Photo updated.", false);
+    } catch (error) {
+      showMessage(error.message, true);
+    }
+  }
+
+  async function removeTeamPhoto(user) {
+    const messageEl = document.getElementById("team-photo-message");
+    const showMessage = (text, isError) => {
+      if (!messageEl) return;
+      messageEl.hidden = false;
+      messageEl.textContent = text;
+      messageEl.className = `status${isError ? " error" : ""}`;
+    };
+    if (!storage) return;
+    try {
+      await storage.ref(`teamPhotos/${user.uid}`).delete();
+      await db.collection("teams").doc(user.uid).update({ photoURL: firebase.firestore.FieldValue.delete() });
+      showMessage("Photo removed.", false);
     } catch (error) {
       showMessage(error.message, true);
     }
@@ -240,9 +327,9 @@
     managerListEl.innerHTML = latestTeams
       .map(
         (team) =>
-          `<li class="manager-item"><span class="manager-item-name">${escapeHtml(
+          `<li class="manager-item"><span class="manager-item-identity">${teamAvatarHtml(team)}<span class="manager-item-name">${escapeHtml(
             team.teamName || "Unnamed Team"
-          )}</span></li>`
+          )}</span></span></li>`
       )
       .join("");
   };
@@ -303,17 +390,18 @@
       auth.currentUser && config.adminUid && config.adminUid !== "YOUR_ADMIN_UID" && auth.currentUser.uid === config.adminUid
     );
 
-    const nameByUid = {};
+    const teamByUid = {};
     latestTeams.forEach((team) => {
-      nameByUid[team.uid] = team.teamName || "Unnamed Team";
+      teamByUid[team.uid] = team;
     });
     const myUid = auth.currentUser && auth.currentUser.uid;
 
     const rows = order
       .map((uid, index) => {
         const isMe = uid === myUid;
-        const name = escapeHtml(nameByUid[uid] || "Unknown manager");
-        return `<li class="manager-item"${isMe ? ' style="font-weight: bold;"' : ""}><span class="manager-item-name">${index + 1}. ${name}${isMe ? " (You)" : ""}</span></li>`;
+        const team = teamByUid[uid];
+        const name = escapeHtml((team && team.teamName) || "Unknown manager");
+        return `<li class="manager-item"${isMe ? ' style="font-weight: bold;"' : ""}><span class="manager-item-identity">${teamAvatarHtml(team)}<span class="manager-item-name">${index + 1}. ${name}${isMe ? " (You)" : ""}</span></span></li>`;
       })
       .join("");
 

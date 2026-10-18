@@ -27,6 +27,15 @@
   const spriteUrl = (pokemonId) =>
     `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${pokemonId}.png`;
 
+  const teamAvatarHtml = (team, sizeClass = "") => {
+    const name = (team && team.teamName) || "?";
+    const cls = `team-avatar${sizeClass ? ` ${sizeClass}` : ""}`;
+    if (team && team.photoURL) {
+      return `<img class="${cls}" src="${escapeHtml(team.photoURL)}" alt="${escapeHtml(name)}" loading="lazy" />`;
+    }
+    return `<span class="${cls} team-avatar-placeholder">${escapeHtml(name.charAt(0) || "?")}</span>`;
+  };
+
   const trainingBadgesHtml = (training) => {
     const t = training || {};
     const streak = t.currentStreak || 0;
@@ -249,7 +258,7 @@
           : "";
         const hiddenBadge = team.hidden ? `<span class="training-badge training-badge--hidden">HIDDEN</span>` : "";
         return `<section class="card">
-                  <h2>${escapeHtml(team.teamName || "Unnamed Team")}<span class="training-badges">${trainingBadgesHtml(team.training)}${hiddenBadge}</span>${exportBtn}${hideBtn}</h2>
+                  <h2>${teamAvatarHtml(team)} ${escapeHtml(team.teamName || "Unnamed Team")}<span class="training-badges">${trainingBadgesHtml(team.training)}${hiddenBadge}</span>${exportBtn}${hideBtn}</h2>
                   <div class="roster-columns">
                     <div class="roster-column">
                       <h3 class="roster-column-heading">Offense</h3>

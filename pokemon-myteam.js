@@ -33,6 +33,15 @@
       .replace(/'/g, "&#39;");
   };
 
+  const teamAvatarHtml = (team, sizeClass = "") => {
+    const name = (team && team.teamName) || "?";
+    const cls = `team-avatar${sizeClass ? ` ${sizeClass}` : ""}`;
+    if (team && team.photoURL) {
+      return `<img class="${cls}" src="${escapeHtml(team.photoURL)}" alt="${escapeHtml(name)}" loading="lazy" />`;
+    }
+    return `<span class="${cls} team-avatar-placeholder">${escapeHtml(name.charAt(0) || "?")}</span>`;
+  };
+
   // Best-effort only - never block the real action on this. Called AFTER
   // a transaction commits, never from inside its callback (which Firestore
   // can retry on contention - a fetch() isn't part of the transaction's
@@ -446,7 +455,7 @@
     matchupMetaEl.hidden = false;
     matchupMetaEl.textContent = `Week ${upcoming.week} — ${formatMatchupDate(upcoming.date)}`;
     const opponentName = escapeHtml(opponent ? opponent.teamName || "Unnamed Team" : "Unknown team");
-    oppHeadingEl.innerHTML = `${opponentName}<span class="training-badges">${trainingBadgesHtml(opponent && opponent.training)}</span>`;
+    oppHeadingEl.innerHTML = `${teamAvatarHtml(opponent)} ${opponentName}<span class="training-badges">${trainingBadgesHtml(opponent && opponent.training)}</span>`;
 
     matchupTrainingEl.innerHTML = `
       <div class="matchup-training-side">
@@ -496,6 +505,8 @@
   };
 
   const renderTradeCard = (trade, isIncoming) => {
+    const otherUid = isIncoming ? trade.fromUid : trade.toUid;
+    const otherTeam = teamsByUid.get(otherUid);
     const otherName = isIncoming ? trade.fromTeamName : trade.toTeamName;
     const giveLabel = isIncoming ? "They give" : "You give";
     const receiveLabel = isIncoming ? "They receive" : "You receive";
@@ -509,7 +520,7 @@
          <button type="button" class="btn btn-secondary trade-deny-btn" data-id="${trade.id}">Deny</button>`
       : `<button type="button" class="btn btn-secondary trade-cancel-btn" data-id="${trade.id}">Cancel Proposal</button>`;
     return `<div class="card trade-pending-card">
-              <p><strong>${isIncoming ? "From" : "To"}:</strong> ${escapeHtml(otherName)}</p>
+              <p><strong>${isIncoming ? "From" : "To"}:</strong> ${teamAvatarHtml(otherTeam, "team-avatar--sm")} ${escapeHtml(otherName)}</p>
               <p><strong>${receiveLabel}:</strong> ${listNames(viewerReceives)}</p>
               <p><strong>${giveLabel}:</strong> ${listNames(viewerGives)}</p>
               ${actions}

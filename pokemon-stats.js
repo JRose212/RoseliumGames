@@ -34,6 +34,15 @@
 
   const teamName = (uid) => teamsByUid.get(uid)?.teamName || "Unknown team";
 
+  const teamAvatarHtml = (team, sizeClass = "") => {
+    const name = (team && team.teamName) || "?";
+    const cls = `team-avatar${sizeClass ? ` ${sizeClass}` : ""}`;
+    if (team && team.photoURL) {
+      return `<img class="${cls}" src="${escapeHtml(team.photoURL)}" alt="${escapeHtml(name)}" loading="lazy" />`;
+    }
+    return `<span class="${cls} team-avatar-placeholder">${escapeHtml(name.charAt(0) || "?")}</span>`;
+  };
+
   // Leaderboards only - per-game summaries and box scores live on the
   // Schedule page itself, right on each matchup's own row. This page is
   // purely the season-wide aggregate, summed live from every box score
@@ -62,9 +71,9 @@
             const value = Number(stats[cat.key]) || 0;
             if (!value) return;
             const map = totals[cat.key];
-            const existing = map.get(entry.pokemonName) || { total: 0, team: teamName(uid) };
+            const existing = map.get(entry.pokemonName) || { total: 0, uid };
             existing.total += value;
-            existing.team = teamName(uid);
+            existing.uid = uid;
             map.set(entry.pokemonName, existing);
           });
         });
@@ -93,10 +102,10 @@
             <h3>${escapeHtml(cat.label)}</h3>
             <ol>
               ${entries
-                .map(
-                  (e) =>
-                    `<li><span class="leaderboard-name">${escapeHtml(e.pokemonName)}</span><span class="leaderboard-value">${e.total}</span><span class="leaderboard-team">${escapeHtml(e.team)}</span></li>`
-                )
+                .map((e) => {
+                  const team = teamsByUid.get(e.uid);
+                  return `<li>${teamAvatarHtml(team, "team-avatar--sm")}<span class="leaderboard-name">${escapeHtml(e.pokemonName)}</span><span class="leaderboard-value">${e.total}</span><span class="leaderboard-team">${escapeHtml(teamName(e.uid))}</span></li>`;
+                })
                 .join("")}
             </ol>
           </div>

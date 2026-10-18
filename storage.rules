@@ -1,0 +1,25 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    // Same "literal admin uid" tradeoff as firestore.rules - Storage rules
+    // can't read config.js either.
+    function isAdmin() {
+      return request.auth != null && request.auth.uid == "x9IEoSPGiDfg2xeYpLIX34Muqmh2";
+    }
+
+    // One profile picture per team, keyed by the owning manager's uid.
+    // Read requires sign-in (matches every Firestore collection's posture
+    // in this app) - note this only governs who can ask the SDK to
+    // generate/fetch a download URL in the first place; a URL already
+    // handed out via getDownloadURL() carries its own access token and
+    // keeps working regardless of this rule, same as any Firebase Storage
+    // download URL.
+    match /teamPhotos/{uid} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null && request.auth.uid == uid
+                    && request.resource.size < 5 * 1024 * 1024
+                    && request.resource.contentType.matches('image/.*');
+      allow delete: if (request.auth != null && request.auth.uid == uid) || isAdmin();
+    }
+  }
+}

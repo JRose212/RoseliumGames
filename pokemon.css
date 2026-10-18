@@ -184,6 +184,12 @@ body[data-page^="pokemon-"] .jump-nav a {
   border-bottom: none;
 }
 
+.manager-item-identity {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
 .manager-item-name {
   font-weight: 700;
 }
@@ -565,6 +571,12 @@ body[data-page^="pokemon-"] .jump-nav a {
   letter-spacing: 0.05em;
 }
 
+.standings-team-cell {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
 /* Box score display (Schedule page matchup rows) + Stats & Analytics
    leaderboards (pokemon-stats.html) */
 
@@ -612,9 +624,9 @@ body[data-page^="pokemon-"] .jump-nav a {
 
 .leaderboard-card li {
   display: grid;
-  grid-template-columns: 1.1rem minmax(0, 1.2fr) auto minmax(0, 1fr);
+  grid-template-columns: 1.1rem 1.3rem minmax(0, 1.2fr) auto minmax(0, 1fr);
   gap: 0.4rem;
-  align-items: baseline;
+  align-items: center;
   font-size: 0.8rem;
 }
 
@@ -1618,4 +1630,59 @@ body[data-page^="pokemon-"] .app-content {
   text-transform: uppercase;
   font-size: 0.75rem;
   letter-spacing: 0.05em;
+}
+
+/* Team avatars - shown next to a team name wherever it appears. A plain
+   <img> when the team has uploaded a photo, otherwise a circle with the
+   team name's first letter so every team still has a consistent-looking
+   marker. Default size is 28px; add a size modifier class for other
+   contexts (e.g. the larger turn tracker on the Draft Room). */
+
+.team-avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+  vertical-align: middle;
+}
+
+.team-avatar-placeholder {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--accent);
+  color: var(--bg);
+  font-weight: 700;
+  text-transform: uppercase;
+  font-size: 0.8rem;
+}
+
+.team-avatar--lg {
+  width: 56px;
+  height: 56px;
+  font-size: 1.4rem;
+}
+
+.team-avatar--sm {
+  width: 20px;
+  height: 20px;
+  font-size: 0.65rem;
+}
+
+/* Team photo upload (League Home auth panel) */
+
+.team-photo-row {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  margin-top: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.team-photo-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
 }

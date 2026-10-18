@@ -32,6 +32,15 @@
       .replace(/'/g, "&#39;");
   };
 
+  const teamAvatarHtml = (team, sizeClass = "") => {
+    const name = (team && team.teamName) || "?";
+    const cls = `team-avatar${sizeClass ? ` ${sizeClass}` : ""}`;
+    if (team && team.photoURL) {
+      return `<img class="${cls}" src="${escapeHtml(team.photoURL)}" alt="${escapeHtml(name)}" loading="lazy" />`;
+    }
+    return `<span class="${cls} team-avatar-placeholder">${escapeHtml(name.charAt(0) || "?")}</span>`;
+  };
+
   // Best-effort only - never let a Discord hiccup block the real action.
   // Call this AFTER a transaction has actually committed, never from
   // inside the callback itself - Firestore can retry that callback on
@@ -272,8 +281,11 @@
 
     const total = draftState.pickOrder.length;
     const pickNumber = draftState.currentPickIndex + 1;
-    const onTheClockName = teamsByUid.get(draftState.currentUid)?.teamName || "Unknown manager";
-    turnNameEl.textContent = myTurn() ? "You're on the clock!" : `On the clock: ${onTheClockName}`;
+    const onTheClockTeam = teamsByUid.get(draftState.currentUid);
+    const onTheClockName = onTheClockTeam?.teamName || "Unknown manager";
+    turnNameEl.innerHTML = myTurn()
+      ? "You're on the clock!"
+      : `On the clock: ${teamAvatarHtml(onTheClockTeam)} ${escapeHtml(onTheClockName)}`;
     turnMetaEl.textContent = `Round ${draftState.currentRound} · Pick ${pickNumber} of ${total}`;
   };
 

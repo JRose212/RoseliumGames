@@ -92,6 +92,15 @@
       .replace(/'/g, "&#39;");
   };
 
+  const teamAvatarHtml = (team, sizeClass = "") => {
+    const name = (team && team.teamName) || "?";
+    const cls = `team-avatar${sizeClass ? ` ${sizeClass}` : ""}`;
+    if (team && team.photoURL) {
+      return `<img class="${cls}" src="${escapeHtml(team.photoURL)}" alt="${escapeHtml(name)}" loading="lazy" />`;
+    }
+    return `<span class="${cls} team-avatar-placeholder">${escapeHtml(name.charAt(0) || "?")}</span>`;
+  };
+
   // Best-effort only - never block the real action on this.
   const notifyDiscord = (text) => {
     if (!config.discordWebhookUrl) return;
@@ -146,7 +155,7 @@
     return parts.length ? parts.join(", ") : "—";
   };
 
-  const boxScoreSideTableHtml = (label, side) => {
+  const boxScoreSideTableHtml = (team, side) => {
     const bySlot = new Map((side || []).map((entry) => [entry.slot, entry]));
     const rows = boxScorePositionOrder
       .filter((slot) => bySlot.has(slot))
@@ -161,7 +170,7 @@
       .join("");
     return `
       <div class="box-score-side">
-        <h4>${escapeHtml(label)}</h4>
+        <h4>${teamAvatarHtml(team, "team-avatar--sm")} ${escapeHtml((team && team.teamName) || "Unknown team")}</h4>
         <div class="table-wrap">
           <table class="standings-table">
             <thead><tr><th>Pos</th><th>Pokémon</th><th>Stats</th></tr></thead>
@@ -549,7 +558,7 @@
       .map((s) => {
         const diff = s.pointsFor - s.pointsAgainst;
         return `<tr>
-          <td>${escapeHtml(s.teamName || "Unnamed Team")}</td>
+          <td class="standings-team-cell">${teamAvatarHtml(teamsByUid.get(s.uid), "team-avatar--sm")} ${escapeHtml(s.teamName || "Unnamed Team")}</td>
           <td>${s.wins}</td>
           <td>${s.losses}</td>
           <td>${s.pointsFor}</td>
@@ -611,6 +620,7 @@
 
   const matchupTeamBlock = (uid, currentMatchup, won) => `
     <span class="matchup-team${won ? " winner" : ""}">
+      ${teamAvatarHtml(teamsByUid.get(uid), "team-avatar--sm")}
       <span class="matchup-team-name">${escapeHtml(teamName(uid))}</span>
       ${trainingSpriteRow(uid, currentMatchup)}
     </span>
@@ -757,7 +767,7 @@
                 <details class="roster-set matchup-expand">
                   <summary class="roster-set-title">Box Score</summary>
                   <div class="roster-set-group">
-                    <div class="box-score-sides">${boxScoreSideTableHtml(teamName(m.homeUid), box.home)}${boxScoreSideTableHtml(teamName(m.awayUid), box.away)}</div>
+                    <div class="box-score-sides">${boxScoreSideTableHtml(teamsByUid.get(m.homeUid), box.home)}${boxScoreSideTableHtml(teamsByUid.get(m.awayUid), box.away)}</div>
                   </div>
                 </details>
               `
