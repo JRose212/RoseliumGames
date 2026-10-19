@@ -1876,6 +1876,22 @@ body[data-page^="pokemon-"] .app-content {
   flex-wrap: wrap;
 }
 
+/* Read-only display next to a team's training streak badge (Rosters
+   page) - same sprites/animation as My Team's editable slots, just
+   inline with the heading text instead of in their own boxes. */
+.cheer-slots-row--display {
+  display: inline-flex;
+  align-items: center;
+  margin-left: 0.6rem;
+  vertical-align: middle;
+  gap: 0.3rem;
+}
+
+.cheer-slots-row--display .cheer-slot-sprite {
+  width: 26px;
+  height: 26px;
+}
+
 .cheer-slot {
   width: 36px;
   height: 36px;

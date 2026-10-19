@@ -221,6 +221,21 @@
     return parts.join("");
   };
 
+  // Read-only - the Rosters page just shows whichever cheerleaders a team
+  // has set, no editing here (that's My Team's job). Empty slots are
+  // skipped entirely rather than shown as placeholders.
+  const cheerSpritesHtml = (cheerSlots) => {
+    if (!cheerSlots) return "";
+    const picks = [0, 1, 2, 3, 4].map((i) => cheerSlots[String(i)]).filter(Boolean);
+    if (!picks.length) return "";
+    return `<span class="cheer-slots-row cheer-slots-row--display">${picks
+      .map(
+        (pick) =>
+          `<img class="cheer-slot-sprite" src="${spriteUrl(pick.pokemonId)}" alt="${escapeHtml(pick.pokemonName)}" title="${escapeHtml(pick.pokemonName)}" loading="lazy" />`
+      )
+      .join("")}</span>`;
+  };
+
   if (!config.firebaseConfig || config.firebaseConfig.apiKey === "YOUR_FIREBASE_API_KEY") {
     statusEl.className = "status error";
     statusEl.textContent = "Fantasy League is not configured yet.";
@@ -433,7 +448,7 @@
           : "";
         const hiddenBadge = team.hidden ? `<span class="training-badge training-badge--hidden">HIDDEN</span>` : "";
         return `<section class="card">
-                  <h2>${teamAvatarHtml(team)} ${escapeHtml(team.teamName || "Unnamed Team")}<span class="training-badges">${trainingBadgesHtml(team.training)}${hiddenBadge}</span>${exportBtn}${hideBtn}</h2>
+                  <h2>${teamAvatarHtml(team)} ${escapeHtml(team.teamName || "Unnamed Team")}<span class="training-badges">${trainingBadgesHtml(team.training)}${hiddenBadge}</span>${cheerSpritesHtml(team.cheerSlots)}${exportBtn}${hideBtn}</h2>
                   <div class="roster-columns">
                     <div class="roster-column">
                       <h3 class="roster-column-heading">Offense</h3>
