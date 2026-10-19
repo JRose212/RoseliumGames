@@ -156,7 +156,7 @@
     const labels = labeled
       ? typeWheelOrder
           .map((t, i) => {
-          const [x, y] = pointFor(i, max * 1.1);
+          const [x, y] = pointFor(i, max * 1.18);
             return `<text x="${x.toFixed(1)}" y="${y.toFixed(1)}" class="type-radar-type-label" text-anchor="middle" dominant-baseline="middle">${escapeHtml(
               t
             )}</text>`;
