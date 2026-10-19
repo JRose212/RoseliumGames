@@ -24,6 +24,16 @@
   const tradesCardEl = document.getElementById("trades-card");
   const tradesIncomingAreaEl = document.getElementById("trades-incoming-area");
   const tradesOutgoingAreaEl = document.getElementById("trades-outgoing-area");
+  const cheerAreaEl = document.getElementById("cheer-area");
+  const cheerConfirmModalEl = document.getElementById("cheer-confirm-modal");
+  const cheerConfirmYesBtnEl = document.getElementById("cheer-confirm-yes-btn");
+  const cheerConfirmNoBtnEl = document.getElementById("cheer-confirm-no-btn");
+  const cheerPickModalEl = document.getElementById("cheer-pick-modal");
+  const cheerPickCloseBtnEl = document.getElementById("cheer-pick-close-btn");
+  const cheerPickSearchEl = document.getElementById("cheer-pick-search");
+  const cheerPickGridEl = document.getElementById("cheer-pick-grid");
+  const cheerPickStatusEl = document.getElementById("cheer-pick-status");
+  const cheerPickRemoveAreaEl = document.getElementById("cheer-pick-remove-area");
 
   if (!rosterCardEl) return;
 
@@ -90,7 +100,25 @@
   };
 
   const detailTtl = config.pokemonDetailCacheTtlMs || 90 * 24 * 60 * 60 * 1000;
+  const listTtl = config.pokemonListCacheTtlMs || 30 * 24 * 60 * 60 * 1000;
   const apiBase = config.pokeApiBaseUrl || "https://pokeapi.co/api/v2";
+  const legendaryIds = new Set(config.legendaryPokemonIds || []);
+
+  const fetchList = async () => {
+    const cached = readCache("pokedex:list:v1", listTtl);
+    if (cached) return cached;
+    const response = await fetch(`${apiBase}/pokemon?limit=1025`, { cache: "no-store" });
+    if (!response.ok) throw new Error(`Unable to load Pokédex list (${response.status})`);
+    const payload = await response.json();
+    const list = payload.results
+      .map((entry) => {
+        const match = entry.url.match(/\/pokemon\/(\d+)\/?$/);
+        return match ? { id: Number(match[1]), name: entry.name } : null;
+      })
+      .filter(Boolean);
+    writeCache("pokedex:list:v1", list);
+    return list;
+  };
 
   const fetchDetail = async (id) => {
     const cacheKey = `pokedex:detail:${id}:v2`;
@@ -424,6 +452,8 @@
     trainingButtonsEl.querySelectorAll(".training-btn:not([disabled])").forEach((btn) => {
       btn.addEventListener("click", () => logTraining(btn.dataset.key));
     });
+
+    renderCheerArea(myTeam);
   };
 
   async function logTraining(typeKey) {
@@ -486,6 +516,149 @@
       .split("\n\n")
       .map((para) => `<p>${escapeHtml(para)}</p>`)
       .join("");
+  }
+
+  // --- Cheerleaders: a purely cosmetic for-fun extra. A team that opts
+  // in gets 5 small slots (teams/{uid}.cheerSlots, a map keyed "0".."4"
+  // so each slot can be written independently via dot-notation - a plain
+  // array can't be patched by index in Firestore) that can hold any
+  // Pokemon not currently drafted - doesn't touch the real roster, the
+  // draft, or scoring in any way. ---
+
+  let pendingCheerSlot = null;
+
+  const renderCheerArea = (myTeam) => {
+    if (!cheerAreaEl) return;
+    if (!myTeam.cheerSlots) {
+      cheerAreaEl.innerHTML = `<button type="button" class="cheer-toggle-btn" id="cheer-add-btn">Add cheerleaders?</button>`;
+      const btn = document.getElementById("cheer-add-btn");
+      if (btn) btn.addEventListener("click", () => (cheerConfirmModalEl.hidden = false));
+      return;
+    }
+    const slots = myTeam.cheerSlots;
+    cheerAreaEl.innerHTML = `<div class="cheer-slots-row">${[0, 1, 2, 3, 4]
+      .map((i) => {
+        const pick = slots[String(i)];
+        return pick
+          ? `<button type="button" class="cheer-slot" data-slot="${i}" title="${escapeHtml(pick.pokemonName)}"><img class="cheer-slot-sprite" src="${smallSpriteUrl(pick.pokemonId)}" alt="${escapeHtml(pick.pokemonName)}" loading="lazy" /></button>`
+          : `<button type="button" class="cheer-slot" data-slot="${i}" title="Add a cheerleader"><span class="cheer-slot-empty">+</span></button>`;
+      })
+      .join("")}</div>`;
+    cheerAreaEl.querySelectorAll(".cheer-slot").forEach((btn) => {
+      btn.addEventListener("click", () => openCheerPickModal(Number(btn.dataset.slot), slots[btn.dataset.slot] || null));
+    });
+  };
+
+  if (cheerConfirmYesBtnEl) {
+    cheerConfirmYesBtnEl.addEventListener("click", async () => {
+      if (!currentUser) return;
+      try {
+        await db.collection("teams").doc(currentUser.uid).update({
+          cheerSlots: { 0: null, 1: null, 2: null, 3: null, 4: null },
+        });
+      } catch (error) {
+        window.alert(`Unable to add cheerleaders: ${error.message}`);
+      }
+      cheerConfirmModalEl.hidden = true;
+    });
+  }
+  if (cheerConfirmNoBtnEl) {
+    cheerConfirmNoBtnEl.addEventListener("click", () => (cheerConfirmModalEl.hidden = true));
+  }
+
+  let cheerPickList = null; // lazy-loaded full Pokedex name/id list
+  let cheerDraftedIds = new Set(); // refreshed each time the picker opens
+
+  const openCheerPickModal = async (slotIndex, currentPick) => {
+    if (!cheerPickModalEl) return;
+    pendingCheerSlot = slotIndex;
+    cheerPickSearchEl.value = "";
+    cheerPickGridEl.innerHTML = "";
+    cheerPickStatusEl.hidden = false;
+    cheerPickStatusEl.className = "status";
+    cheerPickStatusEl.textContent = "Loading…";
+    cheerPickRemoveAreaEl.innerHTML = currentPick
+      ? `<button type="button" class="btn btn-secondary" id="cheer-remove-btn" style="margin-bottom:0.75rem;">Remove ${escapeHtml(
+          currentPick.pokemonName
+        )}</button>`
+      : "";
+    cheerPickModalEl.hidden = false;
+
+    const removeBtn = document.getElementById("cheer-remove-btn");
+    if (removeBtn) removeBtn.addEventListener("click", () => saveCheerSlot(slotIndex, null));
+
+    try {
+      const [list, draftedSnapshot] = await Promise.all([
+        cheerPickList ? Promise.resolve(cheerPickList) : fetchList(),
+        db.collection("draftedPokemon").get(),
+      ]);
+      cheerPickList = list;
+      cheerDraftedIds = new Set(draftedSnapshot.docs.map((doc) => Number(doc.id)));
+      cheerPickStatusEl.hidden = true;
+      cheerPickStatusEl.textContent = "";
+      renderCheerPickResults("");
+    } catch (error) {
+      cheerPickStatusEl.textContent = `Unable to load Pokémon: ${error.message}`;
+    }
+  };
+
+  const closeCheerPickModal = () => {
+    cheerPickModalEl.hidden = true;
+    pendingCheerSlot = null;
+  };
+  if (cheerPickCloseBtnEl) cheerPickCloseBtnEl.addEventListener("click", closeCheerPickModal);
+
+  const renderCheerPickResults = (search) => {
+    if (!cheerPickList) return;
+    const term = search.trim().toLowerCase();
+    if (!term) {
+      cheerPickGridEl.innerHTML = "";
+      return;
+    }
+    const matches = cheerPickList
+      .filter((p) => p.name.includes(term) && !legendaryIds.has(p.id) && !cheerDraftedIds.has(p.id))
+      .slice(0, 48);
+    if (!matches.length) {
+      cheerPickGridEl.innerHTML = `<p class="status">No undrafted Pokémon match "${escapeHtml(search)}".</p>`;
+      return;
+    }
+    cheerPickGridEl.innerHTML = matches
+      .map(
+        (p) =>
+          `<div class="cheer-pick-card" data-id="${p.id}" data-name="${escapeHtml(p.name)}">
+            <img src="${smallSpriteUrl(p.id)}" alt="${escapeHtml(p.name)}" loading="lazy" />
+            <span>${escapeHtml(p.name)}</span>
+          </div>`
+      )
+      .join("");
+    cheerPickGridEl.querySelectorAll(".cheer-pick-card").forEach((card) => {
+      card.addEventListener("click", () => {
+        if (pendingCheerSlot === null) return;
+        saveCheerSlot(pendingCheerSlot, { pokemonId: Number(card.dataset.id), pokemonName: card.dataset.name });
+      });
+    });
+  };
+
+  let cheerSearchTimeout = null;
+  if (cheerPickSearchEl) {
+    cheerPickSearchEl.addEventListener("input", () => {
+      clearTimeout(cheerSearchTimeout);
+      cheerSearchTimeout = setTimeout(() => renderCheerPickResults(cheerPickSearchEl.value), 150);
+    });
+  }
+
+  async function saveCheerSlot(slotIndex, pick) {
+    if (!currentUser) return;
+    try {
+      await db.collection("teams").doc(currentUser.uid).update({
+        [`cheerSlots.${slotIndex}`]: pick,
+      });
+      closeCheerPickModal();
+    } catch (error) {
+      cheerPickStatusEl.hidden = false;
+      cheerPickStatusEl.className = "status error";
+      cheerPickStatusEl.textContent = error.message;
+    }
   }
 
   // --- My roster: draggable, square, large-sprite slots ---

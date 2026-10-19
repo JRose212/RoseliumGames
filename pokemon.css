@@ -1840,3 +1840,119 @@ body[data-page^="pokemon-"] .app-content {
   font-size: 0.75rem;
   text-align: center;
 }
+
+/* Cheerleaders (My Team, purely cosmetic - a small for-fun extra) */
+
+.training-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.training-header-row h2 {
+  margin: 0;
+}
+
+.cheer-toggle-btn {
+  border: 1px dashed var(--border);
+  background: transparent;
+  color: var(--muted);
+  font-size: 0.7rem;
+  padding: 0.3rem 0.6rem;
+  border-radius: 999px;
+  cursor: pointer;
+}
+
+.cheer-toggle-btn:hover {
+  color: var(--accent-strong);
+  border-color: var(--accent-strong);
+}
+
+.cheer-slots-row {
+  display: flex;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+}
+
+.cheer-slot {
+  width: 36px;
+  height: 36px;
+  border-radius: 4px;
+  border: 1px dashed var(--border);
+  background: rgba(199, 211, 222, 0.05);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  overflow: visible;
+  padding: 0;
+}
+
+.cheer-slot:hover {
+  border-color: var(--accent-strong);
+}
+
+.cheer-slot-empty {
+  color: var(--muted);
+  font-size: 1rem;
+  line-height: 1;
+}
+
+.cheer-slot-sprite {
+  width: 30px;
+  height: 30px;
+  object-fit: contain;
+  image-rendering: pixelated;
+  transform-origin: 50% 85%;
+  animation: cheer-dance 1.6s ease-in-out infinite;
+}
+
+/* Left-right rock plus a small up-down bob, same timing on every slot
+   (no per-element delay) so all cheerleaders move in sync. */
+@keyframes cheer-dance {
+  0% { transform: rotate(-15deg) translateY(0); }
+  25% { transform: rotate(0deg) translateY(-3px); }
+  50% { transform: rotate(15deg) translateY(0); }
+  75% { transform: rotate(0deg) translateY(2px); }
+  100% { transform: rotate(-15deg) translateY(0); }
+}
+
+.cheer-pick-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
+  gap: 0.6rem;
+  max-height: 50vh;
+  overflow-y: auto;
+  margin-top: 0.5rem;
+}
+
+.cheer-pick-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.2rem;
+  padding: 0.5rem;
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  background: rgba(199, 211, 222, 0.05);
+  cursor: pointer;
+  text-align: center;
+}
+
+.cheer-pick-card:hover {
+  border-color: var(--accent-strong);
+}
+
+.cheer-pick-card img {
+  width: 48px;
+  height: 48px;
+  object-fit: contain;
+  image-rendering: pixelated;
+}
+
+.cheer-pick-card span {
+  font-size: 0.68rem;
+  text-transform: capitalize;
+}

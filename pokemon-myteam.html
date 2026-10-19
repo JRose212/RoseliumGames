@@ -72,10 +72,13 @@
       </section>
 
       <section class="card" id="training-card" hidden>
-        <h2>
-          Train Your Team
-          <button type="button" class="info-tooltip-btn" id="training-info-btn" aria-label="What is training?">?</button>
-        </h2>
+        <div class="training-header-row">
+          <h2>
+            Train Your Team
+            <button type="button" class="info-tooltip-btn" id="training-info-btn" aria-label="What is training?">?</button>
+          </h2>
+          <div id="cheer-area"></div>
+        </div>
         <div class="info-tooltip-popover" id="training-info-popover" hidden></div>
         <p class="training-meta" id="training-meta"></p>
         <div class="training-buttons" id="training-buttons"></div>
@@ -133,6 +136,29 @@
         <button type="button" class="poke-detail-close-btn" id="type-radar-modal-close-btn" aria-label="Close">✕</button>
         <h2 id="type-radar-modal-caption">Type Composition</h2>
         <div id="type-radar-modal-chart"></div>
+      </div>
+    </div>
+
+    <div class="slot-picker-modal" id="cheer-confirm-modal" hidden>
+      <div class="card slot-picker-panel poke-detail-panel" style="max-width: 360px;">
+        <h2>Add Cheerleaders?</h2>
+        <p>Are you sure you want to have the cutest Pokémon cheering your team on?</p>
+        <div style="display:flex; gap:0.5rem; margin-top: 1rem; justify-content: center;">
+          <button type="button" class="btn" id="cheer-confirm-yes-btn">Yes!</button>
+          <button type="button" class="btn btn-secondary" id="cheer-confirm-no-btn">Not Now</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="slot-picker-modal" id="cheer-pick-modal" hidden>
+      <div class="card slot-picker-panel">
+        <button type="button" class="poke-detail-close-btn" id="cheer-pick-close-btn" aria-label="Close">✕</button>
+        <h2>Pick a Cheerleader</h2>
+        <p>Any undrafted Pokémon works - search by name.</p>
+        <input type="search" id="cheer-pick-search" placeholder="Pokémon name…" style="width:100%; padding:0.6rem 0.8rem; border-radius:2px; border:1px solid var(--border); background:var(--surface-strong); color:var(--text); font:inherit; margin-bottom:0.75rem;" />
+        <div id="cheer-pick-remove-area"></div>
+        <div class="cheer-pick-grid" id="cheer-pick-grid"></div>
+        <p class="status" id="cheer-pick-status" hidden></p>
       </div>
     </div>
 
