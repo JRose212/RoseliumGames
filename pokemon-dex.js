@@ -1,6 +1,7 @@
 (function () {
   const config = window.siteConfig || {};
   const statusEl = document.getElementById("dex-status");
+  const faLimitStatusEl = document.getElementById("fa-limit-status");
   const gridEl = document.getElementById("dex-grid");
   const searchEl = document.getElementById("dex-search");
   const typeFilterEl = document.getElementById("dex-type-filter");
@@ -12,6 +13,7 @@
   const faModalCancelEl = document.getElementById("fa-sign-cancel-btn");
   const legendaryIds = new Set(config.legendaryPokemonIds || []);
   const positions = config.pokemonPositions || [];
+  const MAX_SIGNINGS_PER_WEEK = 2;
 
   if (!gridEl) return;
 
@@ -125,7 +127,20 @@
   let currentUser = null;
   let myTeam = null;
   let seasonState = null;
+  let matchups = [];
   let draftedMap = new Map();
+
+  // The regular season's "active" week - the earliest week number that
+  // still has an unplayed game. Not seasonState.currentWeek, since
+  // nothing auto-advances that during the regular season (only playoffs
+  // do) - same derivation pokemon-teams.js/pokemon-myteam.js already use
+  // for injury "OUT for week" logic, reused here for the free agency cap
+  // so it actually resets week to week instead of only ever "week 1".
+  const currentActiveWeek = () => {
+    const unplayed = matchups.filter((m) => m.round === "regular" && m.status !== "final");
+    if (!unplayed.length) return null;
+    return Math.min(...unplayed.map((m) => m.week));
+  };
 
   const firebaseReady = Boolean(config.firebaseConfig && config.firebaseConfig.apiKey !== "YOUR_FIREBASE_API_KEY");
   if (firebaseReady) {
@@ -141,9 +156,35 @@
 
   const seasonHasStarted = () => Boolean(seasonState);
 
+  const signingsUsedThisWeek = () => {
+    if (!myTeam || !seasonState) return 0;
+    const week = currentActiveWeek();
+    if (week === null) return 0;
+    const fa = myTeam.freeAgency || {};
+    return fa.week === week ? fa.signings || 0 : 0;
+  };
+
   const canSignFreeAgents = () => Boolean(currentUser && myTeam && seasonHasStarted());
 
   const isSignable = (id) => canSignFreeAgents() && !legendaryIds.has(id) && !draftedMap.has(id);
+
+  const renderFaLimitStatus = () => {
+    if (!faLimitStatusEl) return;
+    if (!currentUser) {
+      faLimitStatusEl.hidden = true;
+      return;
+    }
+    if (!seasonHasStarted()) {
+      faLimitStatusEl.hidden = false;
+      faLimitStatusEl.className = "status";
+      faLimitStatusEl.textContent = "Free agency opens once the season starts.";
+      return;
+    }
+    const used = signingsUsedThisWeek();
+    faLimitStatusEl.hidden = false;
+    faLimitStatusEl.className = "status";
+    faLimitStatusEl.textContent = `Free agent signings used this week: ${used}/${MAX_SIGNINGS_PER_WEEK}`;
+  };
 
   const applyDraftedOverlay = () => {
     gridEl.querySelectorAll(".poke-card").forEach((card) => {
@@ -177,22 +218,25 @@
       }
     });
     renderSelectionUI();
+    renderFaLimitStatus();
   };
 
   if (db && auth) {
     let unsubscribeDrafted = null;
     let unsubscribeTeam = null;
     let unsubscribeSeason = null;
+    let unsubscribeMatchups = null;
 
     auth.onAuthStateChanged((user) => {
       currentUser = user;
-      [unsubscribeDrafted, unsubscribeTeam, unsubscribeSeason].forEach((u) => u && u());
-      unsubscribeDrafted = unsubscribeTeam = unsubscribeSeason = null;
+      [unsubscribeDrafted, unsubscribeTeam, unsubscribeSeason, unsubscribeMatchups].forEach((u) => u && u());
+      unsubscribeDrafted = unsubscribeTeam = unsubscribeSeason = unsubscribeMatchups = null;
 
       if (!user) {
         draftedMap = new Map();
         myTeam = null;
         seasonState = null;
+        matchups = [];
         clearSelection();
         applyDraftedOverlay();
         return;
@@ -228,6 +272,14 @@
           },
           () => {}
         );
+
+      unsubscribeMatchups = db.collection("matchups").onSnapshot(
+        (snapshot) => {
+          matchups = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+          applyDraftedOverlay();
+        },
+        () => {}
+      );
     });
   }
 
@@ -258,10 +310,12 @@
     }
     card.classList.add("poke-card--selected");
     if (!card.querySelector(".poke-card-draft-btn")) {
+      const limitReached = signingsUsedThisWeek() >= MAX_SIGNINGS_PER_WEEK;
       const btn = document.createElement("button");
       btn.type = "button";
       btn.className = "btn poke-card-draft-btn";
-      btn.textContent = "Sign Free Agent";
+      btn.textContent = limitReached ? "Weekly Limit Reached" : "Sign Free Agent";
+      btn.disabled = limitReached;
       btn.addEventListener("click", (event) => {
         event.stopPropagation();
         openFreeAgentSignModal(selectedSignId, selectedSignName);
@@ -340,6 +394,17 @@
 
         if (!seasonState) throw new Error("Free agency opens once the season starts.");
 
+        // Derived from matchups (see currentActiveWeek above), not
+        // seasonState.currentWeek - that field is stuck at 1 for the
+        // whole regular season. Null means every regular-season game is
+        // already final (postseason) - the cap just doesn't apply then.
+        const activeWeek = currentActiveWeek();
+        const fa = team.freeAgency || {};
+        const signingsSoFar = activeWeek !== null && fa.week === activeWeek ? fa.signings || 0 : 0;
+        if (activeWeek !== null && signingsSoFar >= MAX_SIGNINGS_PER_WEEK) {
+          throw new Error("You've already used both free agent signings this week.");
+        }
+
         const dropped = team.slots[slot];
         if (dropped) tx.delete(db.collection("draftedPokemon").doc(String(dropped.pokemonId)));
 
@@ -354,6 +419,9 @@
         });
         tx.update(teamRef, {
           [`slots.${slot}`]: { pokemonId, pokemonName, freeAgent: true },
+          ...(activeWeek !== null
+            ? { "freeAgency.week": activeWeek, "freeAgency.signings": signingsSoFar + 1 }
+            : {}),
         });
         announceText = dropped
           ? `${team.teamName} dropped ${dropped.pokemonName} for ${pokemonName}`
