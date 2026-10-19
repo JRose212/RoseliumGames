@@ -67,6 +67,40 @@
   const positions = config.pokemonPositions || [];
   const legendaryIds = new Set(config.legendaryPokemonIds || []);
 
+  // Cheerleader slots are cosmetic-only and were never meant to let a
+  // manager "hoard" a Pokemon by parking it there - once it's actually
+  // drafted (or autodrafted, or signed as a free agent), clear it out of
+  // whichever team(s) had it as a cheerleader. Best-effort, called AFTER
+  // the draft transaction commits, never from inside it (same reasoning
+  // as notifyDiscord - a transaction callback can retry on contention,
+  // and this isn't part of its buffered writes). Scans every team rather
+  // than querying, since Firestore can't query inside a map's values and
+  // the league is small enough (a few dozen teams at most) that this is
+  // cheap either way.
+  const clearCheerleaderReferences = async (pokemonId) => {
+    try {
+      const teamsSnapshot = await db.collection("teams").get();
+      const batch = db.batch();
+      let any = false;
+      teamsSnapshot.docs.forEach((doc) => {
+        const cheerSlots = doc.data().cheerSlots;
+        if (!cheerSlots) return;
+        const updates = {};
+        ["0", "1", "2", "3", "4"].forEach((key) => {
+          const slot = cheerSlots[key];
+          if (slot && slot.pokemonId === pokemonId) updates[`cheerSlots.${key}`] = null;
+        });
+        if (Object.keys(updates).length) {
+          batch.update(doc.ref, updates);
+          any = true;
+        }
+      });
+      if (any) await batch.commit();
+    } catch (error) {
+      // Cosmetic cleanup only - never surface this to the drafting user.
+    }
+  };
+
   // --- PokeAPI list/detail caching (duplicated from pokemon-dex.js by this
   // repo's one-self-contained-file-per-page convention). ---
 
@@ -792,6 +826,7 @@
         });
       });
       if (announceText) notifyDiscord(announceText);
+      clearCheerleaderReferences(pokemonId);
       closeSlotPicker();
     } catch (error) {
       showError(error.message);
@@ -815,6 +850,7 @@
 
     const stateRef = db.collection("draftState").doc("current");
     let announceText = null;
+    let assignedPokemonId = null;
 
     try {
       // predraftRankings is read here, outside the transaction, rather
@@ -861,6 +897,7 @@
         const nextRound = Math.floor(nextIndex / state.participants.length) + 1;
 
         if (chosenId !== null && openSlot) {
+          assignedPokemonId = chosenId;
           const pokemonName = nameForId(chosenId);
           const draftedRef = db.collection("draftedPokemon").doc(String(chosenId));
 
@@ -918,6 +955,7 @@
         });
       });
       if (announceText) notifyDiscord(announceText);
+      if (assignedPokemonId !== null) clearCheerleaderReferences(assignedPokemonId);
     } catch (error) {
       showError(error.message);
     }

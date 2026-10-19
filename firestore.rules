@@ -43,8 +43,16 @@ service cloud.firestore {
       allow read: if isSignedIn();
       allow create: if isSignedIn() && request.auth.uid == uid
                      && request.resource.data.ownerUid == uid;
+      // The cheerSlots-only clause lets any signed-in user clear a STALE
+      // cheerleader reference on someone else's team the moment that
+      // Pokemon actually gets drafted/autodrafted/signed elsewhere
+      // (client-side cleanup, see clearCheerleaderReferences in
+      // pokemon-draft.js/pokemon-dex.js) - cheerleaders are purely
+      // cosmetic, so this can't be used to touch a roster, training, or
+      // anything that actually matters.
       allow update: if isSignedIn() && (
-        request.auth.uid == uid || isOverdueAutodraftFor(uid) || isAdmin()
+        request.auth.uid == uid || isOverdueAutodraftFor(uid) || isAdmin() ||
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(["cheerSlots"])
       );
       allow delete: if isSignedIn() && request.auth.uid == uid && draftNotStarted();
     }

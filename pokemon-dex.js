@@ -39,6 +39,38 @@
     }).catch(() => {});
   };
 
+  // Cheerleader slots are cosmetic-only and were never meant to let a
+  // manager "hoard" a Pokemon by parking it there - once it's actually
+  // signed as a free agent (or drafted/autodrafted - see pokemon-draft.js
+  // for that duplicate), clear it out of whichever team(s) had it as a
+  // cheerleader. Best-effort, called AFTER the sign transaction commits,
+  // never from inside it (same reasoning as notifyDiscord). Scans every
+  // team rather than querying, since Firestore can't query inside a map's
+  // values and the league is small enough for this to be cheap either way.
+  const clearCheerleaderReferences = async (pokemonId) => {
+    try {
+      const teamsSnapshot = await db.collection("teams").get();
+      const batch = db.batch();
+      let any = false;
+      teamsSnapshot.docs.forEach((doc) => {
+        const cheerSlots = doc.data().cheerSlots;
+        if (!cheerSlots) return;
+        const updates = {};
+        ["0", "1", "2", "3", "4"].forEach((key) => {
+          const slot = cheerSlots[key];
+          if (slot && slot.pokemonId === pokemonId) updates[`cheerSlots.${key}`] = null;
+        });
+        if (Object.keys(updates).length) {
+          batch.update(doc.ref, updates);
+          any = true;
+        }
+      });
+      if (any) await batch.commit();
+    } catch (error) {
+      // Cosmetic cleanup only - never surface this to the signing user.
+    }
+  };
+
   const readCache = (key, ttlMs) => {
     try {
       const raw = localStorage.getItem(key);
@@ -434,6 +466,7 @@
         });
       });
       if (announceText) notifyDiscord(announceText);
+      clearCheerleaderReferences(pokemonId);
       closeFreeAgentSignModal();
       clearSelection();
     } catch (error) {
