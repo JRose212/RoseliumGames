@@ -7,18 +7,20 @@
 // not something any site code triggers automatically.
 //
 // type is one of "preview" | "thursday_recap" | "sunday_recap" |
-// "week_summary" (see broadcastTypeLabels below for how each displays).
-// title is optional - leave it out to get an auto-generated "Week N:
-// <type label>".
+// "monday_recap" | "week_summary" (see broadcastTypeLabels below for how
+// each displays). title is optional - leave it out to get an
+// auto-generated "Week N: <type label>".
 window.broadcasts = [
   { type: "preview", week: 1, file: "audio/week01-preview.mp3", title: "Fantasy Pokeball Season Preview — Week 1", date: "2026-10-14" },
   { type: "thursday_recap", week: 1, file: "audio/week01-thursday-recap.mp3", title: "Week 1: Thursday Night Primetime Recap", date: "2026-10-15" },
   { type: "sunday_recap", week: 1, file: "audio/week01-sunday-recap.mp3", title: "Week 1: Sunday Slate Recap", date: "2026-10-18" },
+  { type: "monday_recap", week: 1, file: "audio/week01-monday-recap.mp3", title: "Week 1: Monday Night Football Recap", date: "2026-10-19" },
 ];
 
 window.broadcastTypeLabels = {
   preview: "Week Preview",
   thursday_recap: "Thursday Recap",
   sunday_recap: "Sunday Recap",
+  monday_recap: "Monday Night Recap",
   week_summary: "Week Summary",
 };
