@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Draft Room • Big Woof League</title>
+    <meta name="theme-color" content="#1a0f0f" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="../style.css" />
+    <link rel="stylesheet" href="../pokemon.css" />
+    <script src="config.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+    <script src="pokemon-draft.js" defer></script>
+    <script src="pokemon-chat.js" defer></script>
+  </head>
+  <body data-page="pokemon-draft">
+  <div class="app-shell">
+  <div class="app-content">
+    <div class="sticky-top">
+      <header class="site-header">
+      <nav class="site-nav" aria-label="Primary navigation">
+        <div class="brand-group">
+          <a class="brand" href="../index.html">Roselium Games</a>
+          <a class="pokemon-nav-badge active" href="pokemon-league.html"><span class="pokemon-nav-badge-icon" aria-hidden="true"></span>Fantasy Pokéball</a>
+        </div>
+        <div class="nav-links">
+          <a href="../index.html">Home</a>
+          <a href="../unmatched.html">Unmatched</a>
+          <a href="../dice-throne.html">Dice Throne</a>
+          <a href="../players.html">Leaderboards</a>
+          <a href="../characters.html">Champion Records</a>
+          <a href="../calendar.html">Calendar</a>
+        </div>
+      </nav>
+      </header>
+    </div>
+
+    <main class="page page-stack">
+      <section class="page-intro">
+        <h1>Draft Room</h1>
+        <p>Snake draft — order reverses every round. Sign in on League Home to participate.</p>
+      </section>
+
+      <nav class="jump-nav card" aria-label="Fantasy league navigation">
+        <a href="pokemon-league.html">League Home</a>
+        <a href="pokemon-myteam.html">My Team</a>
+        <a href="pokemon-dex.html">Pokédex</a>
+        <a href="pokemon-teams.html">Rosters</a>
+        <a href="pokemon-draft.html" class="active">Draft Room</a>
+        <a href="pokemon-schedule.html">Schedule</a>
+        <a href="pokemon-stats.html">Stats</a>
+        <a href="pokemon-kj-show.html">K&amp;J Show</a>
+        <a href="pokemon-feedback.html">Feedback</a>
+      </nav>
+
+      <a class="trade-notification-badge" id="trade-notification-badge" href="pokemon-myteam.html#trades" hidden>🔔 <span id="trade-notification-count"></span> pending trade</a>
+
+      <section class="card next-event-card draft-turn-tracker" id="turn-tracker">
+        <span class="eyebrow">Draft Status</span>
+        <h2 id="turn-tracker-name">Loading…</h2>
+        <p id="turn-tracker-meta" class="draft-turn-tracker-meta"></p>
+        <p id="turn-tracker-countdown" class="draft-turn-tracker-meta" hidden></p>
+        <div id="autodraft-area"></div>
+      </section>
+
+      <section class="card rankings-section" id="rankings-card" hidden>
+        <h2>My pre-draft rankings <span class="rankings-count" id="rankings-count">0/50</span></h2>
+        <p>
+          Privately rank up to 50 Pokémon, best first. Nobody else can see this
+          list. Click a Pokémon below to <strong>instantly add it</strong> to
+          your list — this does not draft it. If you miss a live pick,
+          autodraft works down this list for you.
+        </p>
+        <ol class="pick-history-order" id="rankings-list"></ol>
+        <div class="selector-card dex-search-bar" style="margin-top: 1rem;">
+          <label for="rankings-search">Add to rankings</label>
+          <input type="search" id="rankings-search" placeholder="Pokémon name…" />
+        </div>
+        <p class="status" id="rankings-status" hidden></p>
+        <div class="poke-grid rankings-grid" id="rankings-grid"></div>
+      </section>
+
+      <div class="section-heading" id="live-picker-heading">
+        <h2>Live draft picker</h2>
+        <p>Only usable on your turn. Click a Pokémon, then confirm to draft it.</p>
+      </div>
+
+      <section class="card selector-card dex-search-bar" id="picker-search-card" hidden>
+        <label for="picker-search">Search</label>
+        <input type="search" id="picker-search" placeholder="Pokémon name…" />
+        <label for="picker-type-filter">Type</label>
+        <select id="picker-type-filter">
+          <option value="">All Types</option>
+          <option value="normal">Normal</option>
+          <option value="fire">Fire</option>
+          <option value="water">Water</option>
+          <option value="electric">Electric</option>
+          <option value="grass">Grass</option>
+          <option value="ice">Ice</option>
+          <option value="fighting">Fighting</option>
+          <option value="poison">Poison</option>
+          <option value="ground">Ground</option>
+          <option value="flying">Flying</option>
+          <option value="psychic">Psychic</option>
+          <option value="bug">Bug</option>
+          <option value="rock">Rock</option>
+          <option value="ghost">Ghost</option>
+          <option value="dragon">Dragon</option>
+          <option value="dark">Dark</option>
+          <option value="steel">Steel</option>
+          <option value="fairy">Fairy</option>
+        </select>
+      </section>
+
+      <p class="status" id="picker-status" hidden></p>
+      <div class="poke-grid" id="picker-grid"></div>
+    </main>
+
+    <div class="slot-picker-modal" id="slot-picker-modal" hidden>
+      <div class="card slot-picker-panel">
+        <h2>Assign <span id="slot-picker-pokemon-name"></span> to…</h2>
+        <p class="status" id="slot-picker-message" hidden></p>
+        <div class="slot-picker-grid" id="slot-picker-grid"></div>
+        <button type="button" class="btn btn-secondary" id="slot-picker-cancel" style="margin-top: 1rem;">Cancel</button>
+      </div>
+    </div>
+
+    <footer class="site-footer">
+      <p>Roselium Games • community-managed records for tactical play nights</p>
+    </footer>
+  </div>
+
+  <aside class="chat-sidebar" id="chat-sidebar">
+    <div class="chat-header">
+      <h2>League Chat</h2>
+      <button type="button" class="chat-clear-system-btn" id="chat-clear-system-btn" hidden title="Clear all system messages">Clear System Msgs</button>
+      <button type="button" class="chat-close-btn" id="chat-close-btn" aria-label="Close chat">✕</button>
+    </div>
+    <div class="chat-messages" id="chat-messages">
+      <p class="status">Loading chat…</p>
+    </div>
+    <form class="chat-input-row" id="chat-form">
+      <input type="text" id="chat-input" placeholder="Sign in to chat…" maxlength="500" disabled />
+      <button type="submit" class="btn" id="chat-send-btn" disabled>Send</button>
+    </form>
+    <p class="status" id="chat-status" hidden></p>
+  </aside>
+  </div>
+  <button type="button" class="chat-toggle-btn" id="chat-toggle-btn" aria-label="Open chat">💬</button>
+  </body>
+</html>

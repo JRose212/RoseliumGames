@@ -1,0 +1,195 @@
+window.siteConfig = {
+  // Fantasy Pokemon League config - Big Woof League, its own Firebase
+  // project, fully separate from the original league's data.
+  firebaseConfig: {
+    apiKey: "AIzaSyDNIo3PuVNqyaGbd7TdO8oDzRloR9w684s",
+    authDomain: "big-woof-league.firebaseapp.com",
+    projectId: "big-woof-league",
+    storageBucket: "big-woof-league.firebasestorage.app",
+    messagingSenderId: "522681967069",
+    appId: "1:522681967069:web:ef3e8693a94a3c8fc55634",
+  },
+
+  // One slot per roster position. Easy to edit if the league's position
+  // list changes - nothing else in the app hardcodes these names.
+  pokemonPositions: [
+    "QB", "RB", "FB", "WR1", "WR2", "TE", "LT", "RT", "LG", "RG", "C",
+    "DE", "DT", "NT", "ILB1", "ILB2", "OLB1", "OLB2", "CB1", "CB2", "FS", "SS",
+    "K",
+    "BENCH1", "BENCH2", "BENCH3",
+  ],
+
+  // Same slots as pokemonPositions, grouped for the roster page's
+  // offense/defense list layout. Keep in sync with pokemonPositions above
+  // if the position list ever changes. Bench slots have no position
+  // restriction, same as every other slot - they're just filled/displayed
+  // last.
+  positionGroups: {
+    offense: ["QB", "RB", "FB", "WR1", "WR2", "TE", "LT", "RT", "LG", "RG", "C"],
+    defense: ["DE", "DT", "NT", "ILB1", "ILB2", "OLB1", "OLB2", "CB1", "CB2", "FS", "SS"],
+    specialTeams: ["K"],
+    bench: ["BENCH1", "BENCH2", "BENCH3"],
+  },
+
+  // Legendary and Mythical Pokemon, excluded from the draft, pre-draft
+  // rankings, and free agency entirely - shown grayed-out/labeled
+  // "Legendary" everywhere they'd otherwise appear (including the plain
+  // Pokedex browse page). PokeAPI has no bulk "is legendary" list - each
+  // species' own detail page carries that flag, and fetching all ~1300
+  // individually isn't practical for a static site - so this is a
+  // hand-maintained list instead, grouped by generation for easy editing
+  // if a new game's legendaries need adding. High confidence through Gen
+  // 8; the Gen 9 DLC-era entries (Loyal Three, Ogerpon, Terapagos,
+  // Pecharunt) are the ones most worth double-checking.
+  legendaryPokemonIds: [
+    // Gen 1: birds, Mewtwo, Mew
+    144, 145, 146, 150, 151,
+    // Gen 2: beasts, Lugia, Ho-Oh, Celebi
+    243, 244, 245, 249, 250, 251,
+    // Gen 3: Regis, Eon duo, weather trio, Jirachi, Deoxys
+    377, 378, 379, 380, 381, 382, 383, 384, 385, 386,
+    // Gen 4: lake trio, Dialga/Palkia/Giratina, Heatran, Regigigas,
+    // Cresselia, Manaphy, Darkrai, Shaymin, Arceus
+    480, 481, 482, 483, 484, 485, 486, 487, 488, 490, 491, 492, 493,
+    // Gen 5: Victini, swords of justice, forces of nature, Kyurem,
+    // Keldeo, Meloetta, Genesect
+    494, 638, 639, 640, 641, 642, 643, 644, 645, 646, 647, 648, 649,
+    // Gen 6: Xerneas, Yveltal, Zygarde, Diancie, Hoopa, Volcanion
+    716, 717, 718, 719, 720, 721,
+    // Gen 7: Tapus, cosmog line, Ultra Beasts, Magearna, Marshadow,
+    // Necrozma, Zeraora, Meltan/Melmetal
+    785, 786, 787, 788, 789, 790, 791, 792, 793, 794, 795, 796, 797, 798,
+    799, 800, 801, 802, 803, 804, 805, 806, 807, 808, 809,
+    // Gen 8: Zacian, Zamazenta, Eternatus, Zarude, Regieleki, Regidrago,
+    // Glastrier, Spectrier, Calyrex
+    888, 889, 890, 893, 894, 895, 896, 897, 898,
+    // Gen 9: treasures of ruin, box legends (Walking Wake/Iron Leaves are
+    // Paradox Pokemon, not legendary-flagged, so deliberately left out),
+    // loyal three + Ogerpon, Terapagos, Pecharunt
+    1001, 1002, 1003, 1004, 1007, 1008, 1014, 1015, 1016, 1017, 1024, 1025,
+  ],
+
+  // Daily team training (My Team page). Each type's "item" is the PokeAPI
+  // sprites repo item slug shown on its button - chosen to fit the
+  // training concept rather than being literally about that item (the
+  // stat-boosting vitamins map 1:1 onto attack/defense/sp.atk/sp.def,
+  // which lines up neatly with run/pass offense/defense).
+  trainingTypes: [
+    { key: "passOffense", label: "Pass Offense", color: "#2f6fed", item: "calcium" },
+    { key: "runOffense", label: "Run Offense", color: "#d9542f", item: "protein" },
+    { key: "passDefense", label: "Pass Defense", color: "#2fa7c7", item: "zinc" },
+    { key: "runDefense", label: "Run Defense", color: "#3f9e52", item: "iron" },
+    { key: "filmSession", label: "Film Session", color: "#8e5fd9", item: "tm-normal" },
+    { key: "teamBonding", label: "Team Bonding", color: "#d9a62f", item: "exp-share" },
+  ],
+
+  // Mirrors league activity (picks/autodraft, free agency, trades,
+  // results) into a Discord channel - a plain Discord webhook URL, no
+  // bot/backend involved. Treat this like a password: anyone who has it
+  // can post to that channel, and it necessarily lives here in client-
+  // side code since this site has no server to hide it behind. Leave as
+  // "" to disable. Left blank for now - no Discord server set up for this
+  // league yet.
+  discordWebhookUrl: "",
+
+  // A separate webhook, posted to its own dedicated Discord channel,
+  // announcing new broadcast episodes (see broadcasts.js). Left blank for
+  // the same reason as discordWebhookUrl above.
+  discordBroadcastWebhookUrl: "",
+
+  trainingInfoBlurb:
+    'Train your Team daily to enhance their abilities in their upcoming matchup. You are allowed to do one training session per day so choose wisely between "Pass Defense", "Run Defense", "Pass Offense", "Run Offense", "Film Session", "Team Bonding". Each training type provides different benefits to your team to edge out your opponent. Training more than your opponent for the week does not guarantee you win the matchup but it does help tip the scales. Determine your best training regiment and log in daily to get them right.\n\nLosing a matchup grants you a bonus practice session for the upcoming week, so be sure to use them. Bonus training sessions stack per week until your team wins a game.',
+
+  pokeApiBaseUrl: "https://pokeapi.co/api/v2",
+  pokemonListCacheTtlMs: 30 * 24 * 60 * 60 * 1000, // 30 days
+  pokemonDetailCacheTtlMs: 90 * 24 * 60 * 60 * 1000, // 90 days
+  minManagersToStartDraft: 8,
+
+  // Client-side only - just controls whether admin buttons/screens are
+  // shown. The real enforcement is isAdmin() in firestore.rules, which
+  // has to hardcode this same uid separately since rules can't read this
+  // file. Placeholder until the admin signs up on this league and sends
+  // back their UID - the "!== YOUR_ADMIN_UID" guards already throughout
+  // the app treat this literal string as "not configured yet".
+  adminUid: "YOUR_ADMIN_UID",
+  autodraftTimeoutMs: 20 * 1000, // 20 seconds - live draft night
+  regularSeasonWeeks: 13,
+
+  // Box score stats (Stats & Analytics page). One flat stat shape covers
+  // every position - boxScoreStatFields says which of those keys are
+  // relevant to show for a given roster slot, so e.g. a QB's row doesn't
+  // display "0 sacks". Bench slots are deliberately left out - only
+  // starters get box score stats, same as real fantasy football.
+  boxScoreStatFields: {
+    QB: ["passYds", "passTD", "int", "rushYds", "rushTD"],
+    RB: ["rushYds", "rushTD", "receptions", "recYds", "recTD"],
+    FB: ["rushYds", "rushTD", "receptions", "recYds", "recTD"],
+    WR1: ["receptions", "recYds", "recTD", "rushYds", "rushTD"],
+    WR2: ["receptions", "recYds", "recTD", "rushYds", "rushTD"],
+    TE: ["receptions", "recYds", "recTD", "rushYds", "rushTD"],
+    LT: ["pancakes"],
+    RT: ["pancakes"],
+    LG: ["pancakes"],
+    RG: ["pancakes"],
+    C: ["pancakes"],
+    DE: ["tackles", "sacks", "tfl", "int", "defTD"],
+    DT: ["tackles", "sacks", "tfl", "int", "defTD"],
+    NT: ["tackles", "sacks", "tfl", "int", "defTD"],
+    ILB1: ["tackles", "sacks", "tfl", "int", "defTD"],
+    ILB2: ["tackles", "sacks", "tfl", "int", "defTD"],
+    OLB1: ["tackles", "sacks", "tfl", "int", "defTD"],
+    OLB2: ["tackles", "sacks", "tfl", "int", "defTD"],
+    CB1: ["tackles", "int", "passDeflections", "defTD"],
+    CB2: ["tackles", "int", "passDeflections", "defTD"],
+    FS: ["tackles", "int", "passDeflections", "defTD"],
+    SS: ["tackles", "int", "passDeflections", "defTD"],
+    K: ["fgMade", "fgAtt", "long", "xpMade"],
+  },
+  boxScoreStatLabels: {
+    passYds: "Pass Yds",
+    passTD: "Pass TD",
+    int: "INT",
+    rushYds: "Rush Yds",
+    rushTD: "Rush TD",
+    receptions: "Rec",
+    recYds: "Rec Yds",
+    recTD: "Rec TD",
+    tackles: "Tackles",
+    sacks: "Sacks",
+    tfl: "TFL",
+    passDeflections: "PD",
+    defTD: "Def TD",
+    pancakes: "Pancakes",
+    fgMade: "FG Made",
+    fgAtt: "FG Att",
+    long: "Long",
+    xpMade: "XP Made",
+  },
+  // Season leaderboard categories (Stats & Analytics page) - a curated
+  // subset of the stat keys above, summed across every box score.
+  boxScoreLeaderboardCategories: [
+    { key: "passYds", label: "Passing Yards" },
+    { key: "passTD", label: "Passing TDs" },
+    { key: "rushYds", label: "Rushing Yards" },
+    { key: "rushTD", label: "Rushing TDs" },
+    { key: "receptions", label: "Receptions" },
+    { key: "recYds", label: "Receiving Yards" },
+    { key: "recTD", label: "Receiving TDs" },
+    { key: "tackles", label: "Tackles" },
+    { key: "sacks", label: "Sacks" },
+    { key: "int", label: "Interceptions" },
+    { key: "defTD", label: "Defensive TDs" },
+    { key: "fgMade", label: "Field Goals Made" },
+  ],
+
+  // Fixed circular axis order for the type-composition radar charts (My
+  // Team, Rosters) - same computed ordering as the original league (see
+  // that config.js for the full method/reasoning); it's a function of
+  // Pokemon type effectiveness, not anything league-specific, so there's
+  // no reason for this to differ between leagues.
+  typeWheelOrder: [
+    "ghost", "poison", "rock", "normal", "ice", "water", "steel", "dark",
+    "psychic", "electric", "grass", "dragon", "fire", "flying", "ground",
+    "fairy", "fighting", "bug",
+  ],
+};

@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Rosters • Big Woof League</title>
+    <meta name="theme-color" content="#1a0f0f" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="../style.css" />
+    <link rel="stylesheet" href="../pokemon.css" />
+    <script src="config.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+    <script src="pokemon-teams.js" defer></script>
+    <script src="pokemon-chat.js" defer></script>
+  </head>
+  <body data-page="pokemon-teams">
+  <div class="app-shell">
+  <div class="app-content">
+    <div class="sticky-top">
+      <header class="site-header">
+      <nav class="site-nav" aria-label="Primary navigation">
+        <div class="brand-group">
+          <a class="brand" href="../index.html">Roselium Games</a>
+          <a class="pokemon-nav-badge active" href="pokemon-league.html"><span class="pokemon-nav-badge-icon" aria-hidden="true"></span>Fantasy Pokéball</a>
+        </div>
+        <div class="nav-links">
+          <a href="../index.html">Home</a>
+          <a href="../unmatched.html">Unmatched</a>
+          <a href="../dice-throne.html">Dice Throne</a>
+          <a href="../players.html">Leaderboards</a>
+          <a href="../characters.html">Champion Records</a>
+          <a href="../calendar.html">Calendar</a>
+        </div>
+      </nav>
+      </header>
+    </div>
+
+    <main class="page page-stack">
+      <section class="page-intro">
+        <h1>League rosters</h1>
+        <p>Every manager's 26-slot roster, live. Sign in on the League Home page to view.</p>
+      </section>
+
+      <nav class="jump-nav card" aria-label="Fantasy league navigation">
+        <a href="pokemon-league.html">League Home</a>
+        <a href="pokemon-myteam.html">My Team</a>
+        <a href="pokemon-dex.html">Pokédex</a>
+        <a href="pokemon-teams.html" class="active">Rosters</a>
+        <a href="pokemon-draft.html">Draft Room</a>
+        <a href="pokemon-schedule.html">Schedule</a>
+        <a href="pokemon-stats.html">Stats</a>
+        <a href="pokemon-kj-show.html">K&amp;J Show</a>
+        <a href="pokemon-feedback.html">Feedback</a>
+      </nav>
+
+      <a class="trade-notification-badge" id="trade-notification-badge" href="pokemon-myteam.html#trades" hidden>🔔 <span id="trade-notification-count"></span> pending trade</a>
+
+      <p class="status" id="teams-status">Loading rosters…</p>
+      <div class="page-stack" id="teams-list"></div>
+    </main>
+
+    <div class="slot-picker-modal" id="trade-modal" hidden>
+      <div class="card slot-picker-panel trade-modal-panel">
+        <h2>Propose Trade with <span id="trade-other-team-name"></span></h2>
+        <p class="status" id="trade-message" hidden></p>
+
+        <h3>You'll receive</h3>
+        <div class="trade-pick-grid" id="trade-receive-grid"></div>
+
+        <h3>You'll give</h3>
+        <div class="trade-pick-grid" id="trade-give-grid"></div>
+
+        <button type="button" class="btn" id="trade-send-btn">Send Proposal</button>
+        <button type="button" class="btn btn-secondary" id="trade-cancel-btn" style="margin-top: 0.5rem;">Cancel</button>
+      </div>
+    </div>
+
+    <div class="slot-picker-modal" id="type-radar-modal" hidden>
+      <div class="card slot-picker-panel type-radar-modal-panel">
+        <button type="button" class="poke-detail-close-btn" id="type-radar-modal-close-btn" aria-label="Close">✕</button>
+        <h2 id="type-radar-modal-caption">Type Composition</h2>
+        <div id="type-radar-modal-chart"></div>
+      </div>
+    </div>
+
+    <footer class="site-footer">
+      <p>Roselium Games • community-managed records for tactical play nights</p>
+    </footer>
+  </div>
+
+  <aside class="chat-sidebar" id="chat-sidebar">
+    <div class="chat-header">
+      <h2>League Chat</h2>
+      <button type="button" class="chat-clear-system-btn" id="chat-clear-system-btn" hidden title="Clear all system messages">Clear System Msgs</button>
+      <button type="button" class="chat-close-btn" id="chat-close-btn" aria-label="Close chat">✕</button>
+    </div>
+    <div class="chat-messages" id="chat-messages">
+      <p class="status">Loading chat…</p>
+    </div>
+    <form class="chat-input-row" id="chat-form">
+      <input type="text" id="chat-input" placeholder="Sign in to chat…" maxlength="500" disabled />
+      <button type="submit" class="btn" id="chat-send-btn" disabled>Send</button>
+    </form>
+    <p class="status" id="chat-status" hidden></p>
+  </aside>
+  </div>
+  <button type="button" class="chat-toggle-btn" id="chat-toggle-btn" aria-label="Open chat">💬</button>
+  </body>
+</html>

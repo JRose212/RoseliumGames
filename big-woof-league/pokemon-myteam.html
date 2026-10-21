@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>My Team • Big Woof League</title>
+    <meta name="theme-color" content="#1a0f0f" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="../style.css" />
+    <link rel="stylesheet" href="../pokemon.css" />
+    <script src="config.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+    <script src="pokemon-myteam.js" defer></script>
+    <script src="pokemon-chat.js" defer></script>
+  </head>
+  <body data-page="pokemon-myteam">
+  <div class="app-shell">
+  <div class="app-content">
+    <div class="sticky-top">
+      <header class="site-header">
+      <nav class="site-nav" aria-label="Primary navigation">
+        <div class="brand-group">
+          <a class="brand" href="../index.html">Roselium Games</a>
+          <a class="pokemon-nav-badge active" href="pokemon-league.html"><span class="pokemon-nav-badge-icon" aria-hidden="true"></span>Fantasy Pokéball</a>
+        </div>
+        <div class="nav-links">
+          <a href="../index.html">Home</a>
+          <a href="../unmatched.html">Unmatched</a>
+          <a href="../dice-throne.html">Dice Throne</a>
+          <a href="../players.html">Leaderboards</a>
+          <a href="../characters.html">Champion Records</a>
+          <a href="../calendar.html">Calendar</a>
+        </div>
+      </nav>
+      </header>
+    </div>
+
+    <main class="page page-stack">
+      <section class="page-intro">
+        <h1>My Team</h1>
+        <p>Your roster, in the positions you drafted them in. Drag a Pokémon onto another slot to swap them, or on mobile just tap a Pokémon, then tap the slot to swap it with.</p>
+      </section>
+
+      <nav class="jump-nav card" aria-label="Fantasy league navigation">
+        <a href="pokemon-league.html">League Home</a>
+        <a href="pokemon-myteam.html" class="active">My Team</a>
+        <a href="pokemon-dex.html">Pokédex</a>
+        <a href="pokemon-teams.html">Rosters</a>
+        <a href="pokemon-draft.html">Draft Room</a>
+        <a href="pokemon-schedule.html">Schedule</a>
+        <a href="pokemon-stats.html">Stats</a>
+        <a href="pokemon-kj-show.html">K&amp;J Show</a>
+        <a href="pokemon-feedback.html">Feedback</a>
+      </nav>
+
+      <a class="trade-notification-badge" id="trade-notification-badge" href="pokemon-myteam.html#trades" hidden>🔔 <span id="trade-notification-count"></span> pending trade</a>
+
+      <p class="status" id="myteam-status">Loading your team…</p>
+
+      <a id="trades"></a>
+      <section class="card" id="trades-card" hidden>
+        <h2>Pending Trades</h2>
+        <div id="trades-incoming-area"></div>
+        <div id="trades-outgoing-area"></div>
+      </section>
+
+      <section class="card" id="training-card" hidden>
+        <div class="training-header-row">
+          <h2>
+            Train Your Team
+            <button type="button" class="info-tooltip-btn" id="training-info-btn" aria-label="What is training?">?</button>
+          </h2>
+          <div id="cheer-area"></div>
+        </div>
+        <div class="info-tooltip-popover" id="training-info-popover" hidden></div>
+        <p class="training-meta" id="training-meta"></p>
+        <div class="training-buttons" id="training-buttons"></div>
+        <p class="status" id="training-message" hidden></p>
+      </section>
+
+      <section class="card" id="myteam-roster-card" hidden>
+        <h2>My Roster<span class="training-badges" id="myteam-training-badges"></span></h2>
+        <div class="myteam-group">
+          <h3 class="roster-column-heading">Offense</h3>
+          <div class="type-radar-slot" id="myteam-offense-radar"></div>
+          <div class="myteam-grid" id="myteam-offense-grid"></div>
+        </div>
+        <div class="myteam-group">
+          <h3 class="roster-column-heading">Defense</h3>
+          <div class="type-radar-slot" id="myteam-defense-radar"></div>
+          <div class="myteam-grid" id="myteam-defense-grid"></div>
+        </div>
+        <div class="myteam-group">
+          <h3 class="roster-column-heading">Special Teams</h3>
+          <div class="myteam-grid" id="myteam-special-grid"></div>
+        </div>
+        <div class="myteam-group">
+          <h3 class="roster-column-heading">Bench</h3>
+          <div class="myteam-grid" id="myteam-bench-grid"></div>
+        </div>
+      </section>
+
+      <section class="card" id="myteam-matchup-card" hidden>
+        <h2>Next Matchup</h2>
+        <p class="status" id="myteam-matchup-meta"></p>
+        <div class="matchup-training-compare" id="myteam-matchup-training"></div>
+        <div class="roster-columns" style="margin-top: 1rem;">
+          <div class="roster-column">
+            <h3 class="roster-column-heading" id="myteam-opp-heading">Opponent<span class="training-badges" id="myteam-opp-training-badges"></span></h3>
+            <div class="type-radar-row" id="myteam-opp-radars"></div>
+            <ul class="roster-list" id="myteam-opp-list"></ul>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <div class="slot-picker-modal" id="poke-detail-modal" hidden>
+      <div class="card slot-picker-panel poke-detail-panel">
+        <button type="button" class="poke-detail-close-btn" id="poke-detail-close-btn" aria-label="Close">✕</button>
+        <img class="poke-detail-sprite" id="poke-detail-sprite" alt="" />
+        <h2 id="poke-detail-name"></h2>
+        <div class="poke-card-types poke-detail-types" id="poke-detail-types"></div>
+        <p class="poke-detail-dims" id="poke-detail-dims"></p>
+      </div>
+    </div>
+
+    <div class="slot-picker-modal" id="type-radar-modal" hidden>
+      <div class="card slot-picker-panel type-radar-modal-panel">
+        <button type="button" class="poke-detail-close-btn" id="type-radar-modal-close-btn" aria-label="Close">✕</button>
+        <h2 id="type-radar-modal-caption">Type Composition</h2>
+        <div id="type-radar-modal-chart"></div>
+      </div>
+    </div>
+
+    <div class="slot-picker-modal" id="cheer-confirm-modal" hidden>
+      <div class="card slot-picker-panel poke-detail-panel" style="max-width: 360px;">
+        <h2>Add Cheerleaders?</h2>
+        <p>Are you sure you want to have the cutest Pokémon cheering your team on?</p>
+        <div style="display:flex; gap:0.5rem; margin-top: 1rem; justify-content: center;">
+          <button type="button" class="btn" id="cheer-confirm-yes-btn">Yes!</button>
+          <button type="button" class="btn btn-secondary" id="cheer-confirm-no-btn">Not Now</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="slot-picker-modal" id="cheer-pick-modal" hidden>
+      <div class="card slot-picker-panel">
+        <button type="button" class="poke-detail-close-btn" id="cheer-pick-close-btn" aria-label="Close">✕</button>
+        <h2>Pick a Cheerleader</h2>
+        <p>Any undrafted Pokémon works - search by name.</p>
+        <input type="search" id="cheer-pick-search" placeholder="Pokémon name…" style="width:100%; padding:0.6rem 0.8rem; border-radius:2px; border:1px solid var(--border); background:var(--surface-strong); color:var(--text); font:inherit; margin-bottom:0.75rem;" />
+        <div id="cheer-pick-remove-area"></div>
+        <div class="cheer-pick-grid" id="cheer-pick-grid"></div>
+        <p class="status" id="cheer-pick-status" hidden></p>
+      </div>
+    </div>
+
+    <footer class="site-footer">
+      <p>Roselium Games • community-managed records for tactical play nights</p>
+    </footer>
+  </div>
+
+  <aside class="chat-sidebar" id="chat-sidebar">
+    <div class="chat-header">
+      <h2>League Chat</h2>
+      <button type="button" class="chat-clear-system-btn" id="chat-clear-system-btn" hidden title="Clear all system messages">Clear System Msgs</button>
+      <button type="button" class="chat-close-btn" id="chat-close-btn" aria-label="Close chat">✕</button>
+    </div>
+    <div class="chat-messages" id="chat-messages">
+      <p class="status">Loading chat…</p>
+    </div>
+    <form class="chat-input-row" id="chat-form">
+      <input type="text" id="chat-input" placeholder="Sign in to chat…" maxlength="500" disabled />
+      <button type="submit" class="btn" id="chat-send-btn" disabled>Send</button>
+    </form>
+    <p class="status" id="chat-status" hidden></p>
+  </aside>
+  </div>
+  <button type="button" class="chat-toggle-btn" id="chat-toggle-btn" aria-label="Open chat">💬</button>
+  </body>
+</html>

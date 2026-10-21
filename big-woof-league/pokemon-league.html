@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Fantasy League • Big Woof League</title>
+    <meta name="theme-color" content="#1a0f0f" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="../style.css" />
+    <link rel="stylesheet" href="../pokemon.css" />
+    <script src="config.js"></script>
+    <script src="broadcasts.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-storage-compat.js"></script>
+    <script src="pokemon-league.js" defer></script>
+    <script src="pokemon-chat.js" defer></script>
+  </head>
+  <body data-page="pokemon-league">
+  <div class="app-shell">
+  <div class="app-content">
+    <div class="sticky-top">
+      <header class="site-header">
+      <nav class="site-nav" aria-label="Primary navigation">
+        <div class="brand-group">
+          <a class="brand" href="../index.html">Roselium Games</a>
+          <a class="pokemon-nav-badge active" href="pokemon-league.html"><span class="pokemon-nav-badge-icon" aria-hidden="true"></span>Fantasy Pokéball</a>
+        </div>
+        <div class="nav-links">
+          <a href="../index.html">Home</a>
+          <a href="../unmatched.html">Unmatched</a>
+          <a href="../dice-throne.html">Dice Throne</a>
+          <a href="../players.html">Leaderboards</a>
+          <a href="../characters.html">Champion Records</a>
+          <a href="../calendar.html">Calendar</a>
+        </div>
+      </nav>
+      </header>
+    </div>
+
+    <main class="page page-stack">
+      <section class="page-intro">
+        <span class="eyebrow">Big Woof League</span>
+        <h1>Pokémon Fantasy Football</h1>
+        <p>
+          Forget the scouting combine — this draft runs on Trainer instincts.
+          Build your dynasty by drafting Pokémon instead of NFL players onto
+          a 26-slot roster covering every position: offense, defense, kicker,
+          and bench. Sign up, rank your picks, and get ready to battle your
+          way to the PokéBowl - draft date to be announced.
+        </p>
+        <a href="#rules" class="rules-link-btn" id="rules-link-btn">
+          <span class="pokemon-nav-badge-icon" aria-hidden="true"></span>
+          League Rules &amp; Information
+        </a>
+      </section>
+
+      <a class="trade-notification-badge" id="trade-notification-badge" href="pokemon-myteam.html#trades" hidden>🔔 <span id="trade-notification-count"></span> pending trade</a>
+
+      <section class="card broadcast-card" id="latest-broadcast-card" hidden>
+        <h2>🎙️ The Kessler and Johnson Show</h2>
+        <p id="latest-broadcast-title"></p>
+        <audio controls id="latest-broadcast-player" style="width: 100%;"></audio>
+        <p class="status" id="latest-broadcast-archive-link"><a href="pokemon-kj-show.html">Hear past episodes →</a></p>
+      </section>
+
+      <nav class="jump-nav card" aria-label="Fantasy league navigation">
+        <a href="pokemon-league.html" class="active">League Home</a>
+        <a href="pokemon-myteam.html">My Team</a>
+        <a href="pokemon-dex.html">Pokédex</a>
+        <a href="pokemon-teams.html">Rosters</a>
+        <a href="pokemon-draft.html">Draft Room</a>
+        <a href="pokemon-schedule.html">Schedule</a>
+        <a href="pokemon-stats.html">Stats</a>
+        <a href="pokemon-kj-show.html">K&amp;J Show</a>
+        <a href="pokemon-feedback.html">Feedback</a>
+      </nav>
+
+      <section class="card auth-panel" id="auth-panel">
+        <p class="status">Loading account…</p>
+      </section>
+
+      <section class="card" id="league-status-card">
+        <h2>League status</h2>
+        <p id="league-status-summary" class="status">Loading league status…</p>
+        <div id="start-draft-area"></div>
+        <div id="draft-order-area"></div>
+        <ul class="manager-list" id="manager-list"></ul>
+      </section>
+    </main>
+
+    <div class="rules-modal" id="rules-modal" hidden>
+      <div class="card rules-modal-panel">
+        <button type="button" class="rules-modal-close" id="rules-modal-close" aria-label="Close">✕</button>
+
+        <h2>Welcome to Fantasy Pokéball</h2>
+        <p>
+          Fantasy Pokéball is starting soon - a fantasy football league where you draft Pokémon instead of
+          NFL players onto a 26-slot roster, then manage your team all season through a weekly schedule,
+          standings, and playoffs.
+        </p>
+        <p>You're getting this because you're in (or invited to) the league. Here's what to do and where everything lives.</p>
+
+        <h3>How to Join</h3>
+        <ol>
+          <li>Go to <a href="pokemon-league.html">League Home</a>.</li>
+          <li>Create an account with your email and a password, and give your team a name.</li>
+          <li>That's it - you'll show up in the manager list immediately, and you can start building your Pre-Draft Rankings right away.</li>
+        </ol>
+
+        <h3>Quick Tour</h3>
+        <div class="table-wrap">
+          <table class="rules-modal-table">
+            <thead><tr><th>Page</th><th>What it's for</th></tr></thead>
+            <tbody>
+              <tr><td><a href="pokemon-league.html">League Home</a></td><td>Sign up, see who's joined, start the draft once enough managers are in</td></tr>
+              <tr><td><a href="pokemon-myteam.html">My Team</a></td><td>Your own roster, drag-and-drop slot management, daily training, next matchup</td></tr>
+              <tr><td><a href="pokemon-dex.html">Pokédex</a></td><td>Browse every Pokémon and sign free agents once the season starts - Legendaries are grayed out, since they can't be drafted</td></tr>
+              <tr><td><a href="pokemon-teams.html">Rosters</a></td><td>Every manager's roster, live and read-only here - sign free agents from the Pokédex instead</td></tr>
+              <tr><td><a href="pokemon-draft.html">Draft Room</a></td><td>Where the live draft happens, and where you build your private Pre-Draft Rankings beforehand</td></tr>
+              <tr><td><a href="pokemon-schedule.html">Schedule</a></td><td>Weekly matchups, standings, and the playoff bracket</td></tr>
+              <tr><td><a href="pokemon-stats.html">Stats</a></td><td>Every game's box score, plus season-long leaderboards</td></tr>
+              <tr><td><a href="pokemon-kj-show.html">K&amp;J Show</a></td><td>Past episodes of the Kessler and Johnson Show</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p>
+          Worth doing now, before the draft: rank your Pokémon preferences on the Draft Room page. It's
+          private, takes a few minutes, and means autodraft can still make good picks for you if you ever
+          miss your turn.
+        </p>
+
+        <h3>How the Draft Works</h3>
+        <p>A snake draft across all 26 roster positions - pick order reverses every round. It starts once enough managers have joined.</p>
+        <p>
+          Each pick has a countdown timer. If yours expires, any signed-in manager can trigger your
+          autodraft - it fills your highest-ranked still-available Pokémon from your own Pre-Draft Rankings
+          into your first open slot, or skips the pick if your list is empty. Rank your Pokémon ahead of
+          time on the Draft Room page so autodraft can still pick well for you if you're away.
+        </p>
+        <p>
+          Legendary and Mythical Pokémon can't be drafted, ranked, or signed as free agents - they show up
+          grayed out and labeled "Legendary" everywhere a Pokémon can normally be picked.
+        </p>
+
+        <h3>Daily Training</h3>
+        <p>
+          Once your team exists, train it daily from the My Team page to help your results each week. One
+          session per real calendar day - six types to pick from:
+        </p>
+        <div class="table-wrap">
+          <table class="rules-modal-table">
+            <thead><tr><th>Type</th><th>Represents</th></tr></thead>
+            <tbody>
+              <tr><td>Pass Offense</td><td>Calcium</td></tr>
+              <tr><td>Run Offense</td><td>Protein</td></tr>
+              <tr><td>Pass Defense</td><td>Zinc</td></tr>
+              <tr><td>Run Defense</td><td>Iron</td></tr>
+              <tr><td>Film Session</td><td>TM</td></tr>
+              <tr><td>Team Bonding</td><td>Exp. Share</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <ul>
+          <li>Losing a declared matchup banks a bonus session, letting you train twice (two different types) on a later day. Bonus sessions stack across multiple losses and clear the moment you win.</li>
+          <li>A streak badge tracks consecutive days trained, shown on My Team and publicly on the Rosters page.</li>
+        </ul>
+
+        <h3>Free Agency</h3>
+        <p>Once the season starts, any Pokémon nobody has drafted is fair game - sign one from the Pokédex page:</p>
+        <ol>
+          <li>Click an eligible Pokémon (not drafted, not Legendary) - a "Sign Free Agent" button appears.</li>
+          <li>Choose a slot from your own roster to sign it into. If that slot is already filled, the current Pokémon there is dropped back into the pool as part of the same move.</li>
+          <li>Confirm - the league chat announces it automatically ("Your Team dropped X for Y").</li>
+        </ol>
+        <p>Limited to 2 free agent signings per week, shown on the Pokédex as you sign.</p>
+
+        <h3>What's Next</h3>
+        <p>
+          The live draft date is still to be announced - get your account made and your Pre-Draft Rankings
+          in so you're ready whenever it's set. After the draft, the admin will generate the regular-season
+          schedule, and the season kicks off from there.
+        </p>
+        <p>Questions along the way? Ask in the league chat - it's open on every page.</p>
+      </div>
+    </div>
+
+    <footer class="site-footer">
+      <p>Roselium Games • community-managed records for tactical play nights</p>
+    </footer>
+  </div>
+
+  <aside class="chat-sidebar" id="chat-sidebar">
+    <div class="chat-header">
+      <h2>League Chat</h2>
+      <button type="button" class="chat-clear-system-btn" id="chat-clear-system-btn" hidden title="Clear all system messages">Clear System Msgs</button>
+      <button type="button" class="chat-close-btn" id="chat-close-btn" aria-label="Close chat">✕</button>
+    </div>
+    <div class="chat-messages" id="chat-messages">
+      <p class="status">Loading chat…</p>
+    </div>
+    <form class="chat-input-row" id="chat-form">
+      <input type="text" id="chat-input" placeholder="Sign in to chat…" maxlength="500" disabled />
+      <button type="submit" class="btn" id="chat-send-btn" disabled>Send</button>
+    </form>
+    <p class="status" id="chat-status" hidden></p>
+  </aside>
+  </div>
+  <button type="button" class="chat-toggle-btn" id="chat-toggle-btn" aria-label="Open chat">💬</button>
+  </body>
+</html>

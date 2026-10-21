@@ -1,0 +1,180 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    // TODO: replace with the real admin uid (Firebase Console > Authentication
+    // > Users > your row > User UID). Rules can't read config.js, so this
+    // has to be a literal string here, kept in sync by hand with config.js's
+    // adminUid (which only controls client-side UI, not enforcement).
+    function isAdmin() {
+      return request.auth.uid == "REPLACE_WITH_BIG_WOOF_ADMIN_UID";
+    }
+
+    function draftState() {
+      return get(/databases/$(database)/documents/draftState/current).data;
+    }
+
+    function draftNotStarted() {
+      return draftState().status == "pending";
+    }
+
+    // True only during the exact window where it's legitimately needed:
+    // targetUid is on the clock, drafting is underway, and their pick's
+    // deadline has already passed. This is what lets another manager
+    // trigger an absent manager's autodraft without making private data
+    // (predraftRankings) or another person's docs (teams/draftedPokemon/
+    // draftPicks) generally readable/writable by anyone else.
+    function isOverdueAutodraftFor(targetUid) {
+      let state = draftState();
+      return state.status == "drafting" && state.currentUid == targetUid
+             && request.time > state.pickDeadlineAt;
+    }
+
+    match /users/{uid} {
+      allow read: if isSignedIn();
+      allow create, update: if isSignedIn() && request.auth.uid == uid;
+      allow delete: if isSignedIn() && request.auth.uid == uid && draftNotStarted();
+    }
+
+    match /teams/{uid} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn() && request.auth.uid == uid
+                     && request.resource.data.ownerUid == uid;
+      // The cheerSlots-only clause lets any signed-in user clear a STALE
+      // cheerleader reference on someone else's team the moment that
+      // Pokemon actually gets drafted/autodrafted/signed elsewhere
+      // (client-side cleanup, see clearCheerleaderReferences in
+      // pokemon-draft.js/pokemon-dex.js) - cheerleaders are purely
+      // cosmetic, so this can't be used to touch a roster, training, or
+      // anything that actually matters.
+      allow update: if isSignedIn() && (
+        request.auth.uid == uid || isOverdueAutodraftFor(uid) || isAdmin() ||
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(["cheerSlots"])
+      );
+      allow delete: if isSignedIn() && request.auth.uid == uid && draftNotStarted();
+    }
+
+    // Private draft preferences. Only the owner can read this - except in
+    // the narrow overdue-autodraft window, so a missed live pick can still
+    // be filled from the absent manager's own ranking.
+    match /predraftRankings/{uid} {
+      allow read: if isSignedIn() && (request.auth.uid == uid || isOverdueAutodraftFor(uid) || isAdmin());
+      allow write: if isSignedIn() && request.auth.uid == uid;
+    }
+
+    // Singleton doc. Hand-created once in the Firebase Console with
+    // status: "pending" - client code is only ever allowed to update it.
+    match /draftState/current {
+      allow read: if isSignedIn();
+      allow create: if false;
+      allow update: if isSignedIn() && (
+        (resource.data.status == "pending" && request.resource.data.status == "drafting" && isAdmin()) ||
+        (resource.data.status == "drafting" && resource.data.currentUid == request.auth.uid) ||
+        (resource.data.status == "drafting" && request.time > resource.data.pickDeadlineAt) ||
+        isAdmin()
+      );
+      allow delete: if false;
+    }
+
+    // Append-only pick history during a draft - but the admin can wipe it
+    // entirely when restarting a draft from scratch (pick numbering starts
+    // back at 0001, which would otherwise collide with leftover docs from
+    // whatever draft ran before).
+    match /draftPicks/{pickId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn() && (
+        request.resource.data.uid == request.auth.uid || isOverdueAutodraftFor(request.resource.data.uid) || isAdmin()
+      );
+      allow update: if false;
+      allow delete: if isAdmin();
+    }
+
+    // Create-only-if-absent is what guarantees no Pokemon is drafted twice.
+    // Delete is allowed so a manager can drop a Pokemon from their own
+    // roster and return it to the pool (the roster-remove "x" button) -
+    // only the uid that owns the pick (or the admin) can do it, and the
+    // matching teams/{uid} slot update is a separate, equally-guarded write.
+    match /draftedPokemon/{pokemonId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn() && (
+        request.resource.data.uid == request.auth.uid || isOverdueAutodraftFor(request.resource.data.uid) || isAdmin()
+      );
+      allow update: if false;
+      allow delete: if isSignedIn() && (request.auth.uid == resource.data.uid || isAdmin());
+    }
+
+    // One training log entry per manager per calendar day (doc id is
+    // "{uid}_{YYYY-MM-DD}", enforced client-side, not by these rules - same
+    // "honest limitation" tradeoff used throughout this app). create covers
+    // today's first session, update covers a second session spent from a
+    // banked bonus credit (adds a second entry to the same day's types).
+    match /trainingLog/{logId} {
+      allow read: if isSignedIn();
+      allow create, update: if isSignedIn() && request.resource.data.uid == request.auth.uid;
+      allow delete: if isAdmin();
+    }
+
+    // Proposed trades between two managers. Readable by anyone signed in
+    // (needed for the pending-trade notification badge and the "already in
+    // a pending trade" lock on the Rosters page) - only the two parties
+    // involved (or admin) can act on one, and only while still pending.
+    // The actual roster/draftedPokemon moves on acceptance are a separate,
+    // equally-guarded write - this collection only ever records the offer
+    // and its outcome.
+    match /trades/{tradeId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn() && request.resource.data.fromUid == request.auth.uid && request.resource.data.status == "pending";
+      allow update: if isSignedIn() && resource.data.status == "pending" && (
+        resource.data.toUid == request.auth.uid || resource.data.fromUid == request.auth.uid || isAdmin()
+      );
+      allow delete: if false;
+    }
+
+    // Private feedback box. Anyone signed in can submit their own; only the
+    // admin can read or delete any of it - unlike chat, this is never
+    // visible to other managers, by design.
+    match /feedback/{feedbackId} {
+      allow read: if isAdmin();
+      allow create: if isSignedIn() && request.resource.data.uid == request.auth.uid;
+      allow update: if false;
+      allow delete: if isAdmin();
+    }
+
+    // Season-level schedule state. Admin-managed; everyone can read it.
+    match /seasonState/current {
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
+    }
+
+    // The weekly schedule and results. Admin declares results; everyone
+    // reads. Delete is admin-only too, needed so the regular-season
+    // schedule can be regenerated (as a preview, or as more teams join)
+    // up until any game actually goes final.
+    match /matchups/{matchupId} {
+      allow read: if isSignedIn();
+      allow create, update: if isAdmin();
+      allow delete: if isAdmin();
+    }
+
+    // Per-game box score stats (keyed by matchupId), pasted in by the admin
+    // as JSON on the Schedule page - same access shape as matchups, since
+    // it's the same kind of admin-entered per-game record.
+    match /boxScores/{matchupId} {
+      allow read: if isSignedIn();
+      allow create, update: if isAdmin();
+      allow delete: if isAdmin();
+    }
+
+    // League chat. Anyone signed in can read/post; only the admin can
+    // delete (moderation) - nobody can edit a sent message.
+    match /chatMessages/{messageId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn() && request.resource.data.uid == request.auth.uid;
+      allow update: if false;
+      allow delete: if isAdmin();
+    }
+  }
+}

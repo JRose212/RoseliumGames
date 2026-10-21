@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Schedule • Big Woof League</title>
+    <meta name="theme-color" content="#1a0f0f" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="../style.css" />
+    <link rel="stylesheet" href="../pokemon.css" />
+    <script src="config.js"></script>
+    <script src="broadcasts.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+    <script src="pokemon-schedule.js" defer></script>
+    <script src="pokemon-chat.js" defer></script>
+  </head>
+  <body data-page="pokemon-schedule">
+  <div class="app-shell">
+  <div class="app-content">
+    <div class="sticky-top">
+      <header class="site-header">
+      <nav class="site-nav" aria-label="Primary navigation">
+        <div class="brand-group">
+          <a class="brand" href="../index.html">Roselium Games</a>
+          <a class="pokemon-nav-badge active" href="pokemon-league.html"><span class="pokemon-nav-badge-icon" aria-hidden="true"></span>Fantasy Pokéball</a>
+        </div>
+        <div class="nav-links">
+          <a href="../index.html">Home</a>
+          <a href="../unmatched.html">Unmatched</a>
+          <a href="../dice-throne.html">Dice Throne</a>
+          <a href="../players.html">Leaderboards</a>
+          <a href="../characters.html">Champion Records</a>
+          <a href="../calendar.html">Calendar</a>
+        </div>
+      </nav>
+      </header>
+    </div>
+
+    <main class="page page-stack">
+      <section class="page-intro">
+        <h1>Season schedule</h1>
+        <p>13 regular-season weeks, then an 8-team single-elimination bracket ending in the PokéBowl.</p>
+      </section>
+
+      <nav class="jump-nav card" aria-label="Fantasy league navigation">
+        <a href="pokemon-league.html">League Home</a>
+        <a href="pokemon-myteam.html">My Team</a>
+        <a href="pokemon-dex.html">Pokédex</a>
+        <a href="pokemon-teams.html">Rosters</a>
+        <a href="pokemon-draft.html">Draft Room</a>
+        <a href="pokemon-schedule.html" class="active">Schedule</a>
+        <a href="pokemon-stats.html">Stats</a>
+        <a href="pokemon-kj-show.html">K&amp;J Show</a>
+        <a href="pokemon-feedback.html">Feedback</a>
+      </nav>
+
+      <a class="trade-notification-badge" id="trade-notification-badge" href="pokemon-myteam.html#trades" hidden>🔔 <span id="trade-notification-count"></span> pending trade</a>
+
+      <p class="status" id="schedule-status">Loading…</p>
+
+      <section class="card" id="broadcasts-archive-card" hidden>
+        <h2>🎙️ The Kessler and Johnson Show</h2>
+        <div id="broadcasts-latest"></div>
+        <p class="status"><a href="pokemon-kj-show.html">Hear past episodes →</a></p>
+      </section>
+
+      <section class="card" id="generate-schedule-card" hidden>
+        <h2 id="generate-schedule-heading">Generate the schedule</h2>
+        <p id="generate-schedule-intro">Pick the first Thursday of the season. Safe to re-run and preview as more teams join - once any game goes final, this locks.</p>
+        <form class="auth-form" id="generate-schedule-form">
+          <label for="season-start-date">Season start date (a Thursday)</label>
+          <input type="date" id="season-start-date" required />
+          <button type="button" class="btn" id="generate-schedule-btn">Generate Schedule</button>
+        </form>
+        <p class="status" id="generate-schedule-message" hidden></p>
+      </section>
+
+      <section class="card" id="reset-season-card" hidden>
+        <h2>Schedule is locked</h2>
+        <p>A result has already been recorded, so the schedule can no longer be regenerated normally. Resetting the season deletes every matchup and the season state entirely, so a fresh schedule can be generated from scratch.</p>
+        <button type="button" class="btn btn-secondary" id="reset-season-btn">Reset Season</button>
+        <p class="status" id="reset-season-message" hidden></p>
+      </section>
+
+      <section class="card" id="reset-training-card" hidden>
+        <h2>Reset Training</h2>
+        <p>Clears every team's training streak and banked bonus sessions, and deletes any training log entries from before the date below - useful for wiping out pre-season/test training once the real season goes live.</p>
+        <form class="auth-form" id="reset-training-form">
+          <label for="training-cutoff-date">Keep training on/after</label>
+          <input type="date" id="training-cutoff-date" />
+          <button type="button" class="btn btn-secondary" id="reset-training-btn">Reset Training</button>
+        </form>
+        <p class="status" id="reset-training-message" hidden></p>
+      </section>
+
+      <section class="card" id="swap-matchup-days-card" hidden>
+        <h2>Swap Matchup Days</h2>
+        <p>Pick two matchups from the same week and swap which day/date each is played on - the teams playing in each matchup don't change, only which slot (Thursday/Sunday/Monday) they're in. Useful for manually fixing a day's assignment without regenerating the whole schedule.</p>
+        <form class="auth-form" id="swap-matchup-days-form">
+          <label for="swap-matchup-week">Week</label>
+          <select id="swap-matchup-week"></select>
+          <label for="swap-matchup-a">Matchup A</label>
+          <select id="swap-matchup-a"></select>
+          <label for="swap-matchup-b">Matchup B</label>
+          <select id="swap-matchup-b"></select>
+          <button type="button" class="btn btn-secondary" id="swap-matchup-days-btn">Swap Days</button>
+        </form>
+        <p class="status" id="swap-matchup-days-message" hidden></p>
+      </section>
+
+      <section class="card" id="standings-card" hidden>
+        <h2>Standings</h2>
+        <div class="table-wrap">
+          <table class="standings-table">
+            <thead>
+              <tr>
+                <th>Team</th>
+                <th>W</th>
+                <th>L</th>
+                <th>Pts For</th>
+                <th>Pts Against</th>
+                <th>Diff</th>
+              </tr>
+            </thead>
+            <tbody id="standings-body"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="card" id="playoff-admin-card" hidden>
+        <h2>Playoffs</h2>
+        <div id="playoff-admin-area"></div>
+      </section>
+
+      <section class="card" id="bracket-card" hidden>
+        <h2>Bracket</h2>
+        <div id="bracket-area"></div>
+      </section>
+
+      <section id="schedule-weeks"></section>
+    </main>
+
+    <div class="slot-picker-modal" id="result-modal" hidden>
+      <div class="card slot-picker-panel" style="max-width: 640px;">
+        <h2>Declare result — <span id="result-modal-title"></span></h2>
+        <form class="auth-form" id="result-form">
+          <label for="result-home-score" id="result-home-label">Home score</label>
+          <input type="number" id="result-home-score" min="0" required />
+          <label for="result-away-score" id="result-away-label">Away score</label>
+          <input type="number" id="result-away-score" min="0" required />
+          <label for="result-drive-summary">Drive summary</label>
+          <textarea id="result-drive-summary" rows="6" style="padding:0.6rem 0.8rem;border-radius:2px;border:1px solid var(--border);background:var(--surface-strong);color:var(--text);font:inherit;"></textarea>
+          <label for="result-short-summary">Short summary</label>
+          <textarea id="result-short-summary" rows="2" style="padding:0.6rem 0.8rem;border-radius:2px;border:1px solid var(--border);background:var(--surface-strong);color:var(--text);font:inherit;"></textarea>
+        </form>
+        <div id="result-injury-area"></div>
+        <p class="status" id="result-message" hidden></p>
+        <div style="display:flex; gap:0.5rem; margin-top: 1rem;">
+          <button type="button" class="btn" id="result-submit-btn">Save Result</button>
+          <button type="button" class="btn btn-secondary" id="result-cancel-btn">Cancel</button>
+        </div>
+
+        <h3 style="margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid var(--border);">Box Score</h3>
+        <p>Paste the box score JSON for this game (see the Stats page for the schema). Optional, and separate from the result above - add it whenever it's ready.</p>
+        <textarea id="box-score-input" rows="8" style="width: 100%; padding:0.6rem 0.8rem;border-radius:2px;border:1px solid var(--border);background:var(--surface-strong);color:var(--text);font:inherit;font-family:monospace;font-size:0.8rem;"></textarea>
+        <p class="status" id="box-score-message" hidden></p>
+        <div style="display:flex; gap:0.5rem; margin-top: 0.75rem;">
+          <button type="button" class="btn btn-secondary" id="box-score-save-btn">Save Box Score</button>
+        </div>
+      </div>
+    </div>
+
+    <footer class="site-footer">
+      <p>Roselium Games • community-managed records for tactical play nights</p>
+    </footer>
+  </div>
+
+  <aside class="chat-sidebar" id="chat-sidebar">
+    <div class="chat-header">
+      <h2>League Chat</h2>
+      <button type="button" class="chat-clear-system-btn" id="chat-clear-system-btn" hidden title="Clear all system messages">Clear System Msgs</button>
+      <button type="button" class="chat-close-btn" id="chat-close-btn" aria-label="Close chat">✕</button>
+    </div>
+    <div class="chat-messages" id="chat-messages">
+      <p class="status">Loading chat…</p>
+    </div>
+    <form class="chat-input-row" id="chat-form">
+      <input type="text" id="chat-input" placeholder="Sign in to chat…" maxlength="500" disabled />
+      <button type="submit" class="btn" id="chat-send-btn" disabled>Send</button>
+    </form>
+    <p class="status" id="chat-status" hidden></p>
+  </aside>
+  </div>
+  <button type="button" class="chat-toggle-btn" id="chat-toggle-btn" aria-label="Open chat">💬</button>
+  </body>
+</html>
