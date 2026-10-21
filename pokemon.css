@@ -671,6 +671,23 @@ body[data-page^="pokemon-"] .jump-nav a {
   margin-top: 0;
 }
 
+.week-collapse {
+  margin-top: 1.5rem;
+}
+
+.week-collapse:first-of-type {
+  margin-top: 0;
+}
+
+.week-collapse .roster-set-title {
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.week-collapse .roster-set-group {
+  gap: 0.75rem;
+}
+
 .matchup-card {
   display: flex;
   align-items: center;

@@ -715,6 +715,17 @@
     URL.revokeObjectURL(url);
   };
 
+  // The week that should start expanded - the earliest regular-season
+  // week with a game not yet final, or (once the whole regular season is
+  // done) whichever week is highest, so an in-progress playoff round
+  // starts open instead of everything collapsing once week 13 finishes.
+  const currentWeekForDisplay = () => {
+    const unplayed = matchups.filter((m) => m.round === "regular" && m.status !== "final");
+    if (unplayed.length) return Math.min(...unplayed.map((m) => m.week));
+    const allWeeks = matchups.map((m) => m.week);
+    return allWeeks.length ? Math.max(...allWeeks) : null;
+  };
+
   const renderWeeks = () => {
     if (!matchups.length) {
       weeksEl.innerHTML = "";
@@ -726,6 +737,7 @@
       byWeek.get(m.week).push(m);
     });
     const weeks = [...byWeek.keys()].sort((a, b) => a - b);
+    const currentWeek = currentWeekForDisplay();
 
     weeksEl.innerHTML = weeks
       .map((week) => {
@@ -785,7 +797,13 @@
                     </div>`;
           })
           .join("");
-        return `<h3 class="matchup-week-heading">${escapeHtml(heading)}</h3>${cards}`;
+        const gameCount = weekMatchups.length;
+        return `
+          <details class="roster-set week-collapse"${week === currentWeek ? " open" : ""}>
+            <summary class="roster-set-title">${escapeHtml(heading)}<span class="roster-set-count">${gameCount} game${gameCount === 1 ? "" : "s"}</span></summary>
+            <div class="roster-set-group">${cards}</div>
+          </details>
+        `;
       })
       .join("");
 
