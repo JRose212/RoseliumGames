@@ -901,7 +901,8 @@ body[data-page^="pokemon-"] .jump-nav a {
   margin-right: 0.5rem;
 }
 
-/* Broadcasts (League Home's latest-episode card, Schedule's archive) */
+/* Broadcasts (League Home's/Schedule's latest-episode card, K&J Show's
+   past-episodes list) */
 
 .broadcast-card audio,
 .broadcast-archive-item audio {
@@ -918,12 +919,6 @@ body[data-page^="pokemon-"] .jump-nav a {
   margin-top: 0.5rem;
   padding-top: 0;
   border-top: none;
-}
-
-.broadcast-archive-heading {
-  margin-top: 1.5rem;
-  padding-top: 1rem;
-  border-top: 1px solid var(--border);
 }
 
 .roster-remove-btn {
