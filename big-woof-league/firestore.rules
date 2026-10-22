@@ -33,6 +33,19 @@ service cloud.firestore {
              && request.time > state.pickDeadlineAt;
     }
 
+    // Lets whichever manager clicks "Accept" write the OTHER party's
+    // teams/draftedPokemon records too, since completing a trade requires
+    // touching both sides' data in one go and there's no backend to do it
+    // on their behalf. Scoped tightly: only true for a still-pending trade
+    // that is specifically between these two uids, so it can't be reused
+    // to touch anyone else's data.
+    function isPendingTradeBetween(tradeId, uidA, uidB) {
+      let trade = get(/databases/$(database)/documents/trades/$(tradeId)).data;
+      return trade.status == "pending" &&
+        ((trade.fromUid == uidA && trade.toUid == uidB) ||
+         (trade.fromUid == uidB && trade.toUid == uidA));
+    }
+
     match /users/{uid} {
       allow read: if isSignedIn();
       allow create, update: if isSignedIn() && request.auth.uid == uid;
@@ -52,7 +65,10 @@ service cloud.firestore {
       // anything that actually matters.
       allow update: if isSignedIn() && (
         request.auth.uid == uid || isOverdueAutodraftFor(uid) || isAdmin() ||
-        request.resource.data.diff(resource.data).affectedKeys().hasOnly(["cheerSlots"])
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(["cheerSlots"]) ||
+        (request.resource.data.get("tradeId", null) is string &&
+         isPendingTradeBetween(request.resource.data.tradeId, uid, request.auth.uid) &&
+         request.resource.data.diff(resource.data).affectedKeys().hasOnly(["slots", "tradeId"]))
       );
       allow delete: if isSignedIn() && request.auth.uid == uid && draftNotStarted();
     }
@@ -102,7 +118,15 @@ service cloud.firestore {
       allow create: if isSignedIn() && (
         request.resource.data.uid == request.auth.uid || isOverdueAutodraftFor(request.resource.data.uid) || isAdmin()
       );
-      allow update: if false;
+      // Ownership reassignment on trade acceptance - same tightly-scoped
+      // escape hatch as teams/{uid} above, verified against the same
+      // pending trade doc so this can't be used outside a real trade.
+      allow update: if isAdmin() || (
+        isSignedIn() &&
+        request.resource.data.get("tradeId", null) is string &&
+        isPendingTradeBetween(request.resource.data.tradeId, resource.data.uid, request.resource.data.uid) &&
+        (request.auth.uid == resource.data.uid || request.auth.uid == request.resource.data.uid)
+      );
       allow delete: if isSignedIn() && (request.auth.uid == resource.data.uid || isAdmin());
     }
 

@@ -1091,6 +1091,7 @@
             uid: trade.toUid,
             teamName: toTeam.teamName,
             slot: destPosition,
+            tradeId,
           });
         });
         receive.forEach((item) => {
@@ -1100,9 +1101,15 @@
             uid: trade.fromUid,
             teamName: fromTeam.teamName,
             slot: destPosition,
+            tradeId,
           });
         });
 
+        // tradeId lets firestore.rules verify this cross-team write is
+        // tied to this specific, still-pending, mutually-agreed trade -
+        // see isPendingTradeBetween in firestore.rules.
+        fromSlotUpdates.tradeId = tradeId;
+        toSlotUpdates.tradeId = tradeId;
         tx.update(fromRef, fromSlotUpdates);
         tx.update(toRef, toSlotUpdates);
         tx.update(tradeRef, { status: "accepted", resolvedAt: firebase.firestore.FieldValue.serverTimestamp() });
