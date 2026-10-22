@@ -10,7 +10,7 @@ service cloud.firestore {
     // has to be a literal string here, kept in sync by hand with config.js's
     // adminUid (which only controls client-side UI, not enforcement).
     function isAdmin() {
-      return request.auth.uid == "REPLACE_WITH_BIG_WOOF_ADMIN_UID";
+      return request.auth.uid == "ASJjIqPQ2FOW0ks8F5mpMO87gr83";
     }
 
     function draftState() {

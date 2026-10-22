@@ -111,7 +111,7 @@ window.siteConfig = {
   // file. Placeholder until the admin signs up on this league and sends
   // back their UID - the "!== YOUR_ADMIN_UID" guards already throughout
   // the app treat this literal string as "not configured yet".
-  adminUid: "YOUR_ADMIN_UID",
+  adminUid: "ASJjIqPQ2FOW0ks8F5mpMO87gr83",
   autodraftTimeoutMs: 20 * 1000, // 20 seconds - live draft night
   regularSeasonWeeks: 13,
 
