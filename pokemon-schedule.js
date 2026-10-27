@@ -193,14 +193,41 @@
     return rounds;
   };
 
+  // Thursday/Monday are always the single primetime game. Sunday's slate
+  // (however many games land on it) fills 1:00 PM first, then 4:00 PM,
+  // then 8:00 PM for whatever's left - matches the real NFL kickoff
+  // pattern this league mirrors (2 early, 2 late afternoon, 1 primetime).
+  const timeForSlot = (day, sunIndex) => {
+    if (day !== "sun") return "8:00 PM";
+    if (sunIndex < 2) return "1:00 PM";
+    if (sunIndex < 4) return "4:00 PM";
+    return "8:00 PM";
+  };
+
   const assignDays = (pairs, weekIndex) => {
     if (!pairs.length) return [];
     const offset = weekIndex % pairs.length;
     const ordered = pairs.slice(offset).concat(pairs.slice(0, offset));
-    return ordered.map((pair, i) => ({
-      pair,
-      day: ordered.length > 1 && i === 0 ? "thu" : ordered.length > 1 && i === 1 ? "mon" : "sun",
-    }));
+    let sunIndex = 0;
+    return ordered.map((pair, i) => {
+      const day = ordered.length > 1 && i === 0 ? "thu" : ordered.length > 1 && i === 1 ? "mon" : "sun";
+      const time = timeForSlot(day, day === "sun" ? sunIndex++ : 0);
+      return { pair, day, time };
+    });
+  };
+
+  // Legacy fallback for matchups generated before the `time` field
+  // existed - derives the same slot a fresh generation would have
+  // assigned, from day + position among that week's Sunday games (sorted
+  // by matchup id, which preserves original generation order). Once a
+  // matchup has a real stored `time` (every matchup generated from here
+  // on, plus any swapped via swapMatchupDays), that's used directly.
+  const matchupTime = (m, weekMatchups) => {
+    if (m.time) return m.time;
+    if (m.day !== "sun") return "8:00 PM";
+    const sunSorted = weekMatchups.filter((x) => x.day === "sun").sort((a, b) => a.id.localeCompare(b.id));
+    const idx = sunSorted.findIndex((x) => x.id === m.id);
+    return timeForSlot("sun", idx);
   };
 
   const dateForDay = (startDate, week, day) => {
@@ -355,10 +382,10 @@
     const weekMatchups = selectedWeek !== undefined ? byWeek.get(selectedWeek) || [] : [];
     const optionsHtml = weekMatchups
       .slice()
-      .sort((a, b) => (dayOrder[a.day] ?? 99) - (dayOrder[b.day] ?? 99))
+      .sort((a, b) => (dayOrder[a.day] ?? 99) - (dayOrder[b.day] ?? 99) || (timeOrder[matchupTime(a, weekMatchups)] ?? 99) - (timeOrder[matchupTime(b, weekMatchups)] ?? 99))
       .map(
         (m) =>
-          `<option value="${m.id}">${escapeHtml(dayLabel[m.day] || m.day)} - ${escapeHtml(teamName(m.homeUid))} vs ${escapeHtml(teamName(m.awayUid))}${m.status === "final" ? " (Final)" : ""}</option>`
+          `<option value="${m.id}">${escapeHtml(dayLabel[m.day] || m.day)} ${escapeHtml(matchupTime(m, weekMatchups))} - ${escapeHtml(teamName(m.homeUid))} vs ${escapeHtml(teamName(m.awayUid))}${m.status === "final" ? " (Final)" : ""}</option>`
       )
       .join("");
     const prevA = swapMatchupAEl.value;
@@ -408,12 +435,19 @@
     }
 
     try {
+      const weekMatchups = matchups.filter((m) => m.week === a.week);
+      const timeA = matchupTime(a, weekMatchups);
+      const timeB = matchupTime(b, weekMatchups);
       const startDate = seasonState.startDate.toDate();
       const newDateA = firebase.firestore.Timestamp.fromDate(dateForDay(startDate, a.week, b.day));
       const newDateB = firebase.firestore.Timestamp.fromDate(dateForDay(startDate, b.week, a.day));
       const batch = db.batch();
-      batch.update(db.collection("matchups").doc(a.id), { day: b.day, date: newDateA });
-      batch.update(db.collection("matchups").doc(b.id), { day: a.day, date: newDateB });
+      // Swapping day/date alone isn't enough once two matchups can share a
+      // day but differ by kickoff time (e.g. two Sunday games) - carrying
+      // time along the same way covers both a same-day time swap and a
+      // cross-day swap in one move.
+      batch.update(db.collection("matchups").doc(a.id), { day: b.day, date: newDateA, time: timeB });
+      batch.update(db.collection("matchups").doc(b.id), { day: a.day, date: newDateB, time: timeA });
       await batch.commit();
       showMessage("Swapped.", false);
     } catch (error) {
@@ -466,13 +500,14 @@
       for (let week = 1; week <= regularWeeks; week++) {
         const pairs = rrRounds[(week - 1) % rrRounds.length];
         const assigned = assignDays(pairs, week - 1);
-        assigned.forEach(({ pair, day }, idx) => {
+        assigned.forEach(({ pair, day, time }, idx) => {
           const date = dateForDay(startDate, week, day);
           const matchupId = `w${String(week).padStart(2, "0")}-m${idx + 1}`;
           batch.set(db.collection("matchups").doc(matchupId), {
             week,
             round: "regular",
             day,
+            time,
             date: firebase.firestore.Timestamp.fromDate(date),
             homeUid: pair[0],
             awayUid: pair[1],
@@ -632,6 +667,7 @@
   // matchup docs happened to be created in.
   const dayOrder = { thu: 0, sun: 1, mon: 2 };
   const dayLabel = { thu: "Thursday", sun: "Sunday", mon: "Monday" };
+  const timeOrder = { "1:00 PM": 0, "4:00 PM": 1, "8:00 PM": 2 };
 
   const formatMatchupDate = (date) => {
     if (!date) return "";
@@ -685,7 +721,8 @@
 
   const exportMatchupCsv = (matchup) => {
     let csv = "";
-    csv += csvRow(["Matchup", `Week ${matchup.week} - ${dayLabel[matchup.day] || matchup.day}, ${formatMatchupDate(matchup.date)}`]);
+    const exportWeekMatchups = matchups.filter((m) => m.week === matchup.week);
+    csv += csvRow(["Matchup", `Week ${matchup.week} - ${dayLabel[matchup.day] || matchup.day}, ${formatMatchupDate(matchup.date)} - ${matchupTime(matchup, exportWeekMatchups)}`]);
     csv += csvRow(["Home Team", teamName(matchup.homeUid)]);
     csv += csvRow(["Away Team", teamName(matchup.awayUid)]);
     csv += "\r\n";
@@ -733,9 +770,15 @@
 
     weeksEl.innerHTML = weeks
       .map((week) => {
-        const weekMatchups = byWeek
-          .get(week)
-          .sort((a, b) => (dayOrder[a.day] ?? 99) - (dayOrder[b.day] ?? 99) || a.id.localeCompare(b.id));
+        const rawWeekMatchups = byWeek.get(week);
+        const weekMatchups = rawWeekMatchups
+          .slice()
+          .sort(
+            (a, b) =>
+              (dayOrder[a.day] ?? 99) - (dayOrder[b.day] ?? 99) ||
+              (timeOrder[matchupTime(a, rawWeekMatchups)] ?? 99) - (timeOrder[matchupTime(b, rawWeekMatchups)] ?? 99) ||
+              a.id.localeCompare(b.id)
+          );
         const heading =
           weekMatchups[0].round === "regular"
             ? `Week ${week}`
@@ -778,7 +821,7 @@
               : "";
 
             return `<div class="card matchup-card">
-                      <span class="matchup-day">${dayLabel[m.day] || m.day}, ${formatMatchupDate(m.date)}</span>
+                      <span class="matchup-day">${dayLabel[m.day] || m.day}, ${formatMatchupDate(m.date)} — ${escapeHtml(matchupTime(m, weekMatchups))}</span>
                       <span class="matchup-teams">${matchupLabel(m)}</span>
                       <span class="matchup-score">${scoreText}</span>
                       ${declareBtn}
@@ -1046,11 +1089,12 @@
     const startDate = seasonState.startDate.toDate();
     const assigned = assignDays(pairs, 0);
     const batch = db.batch();
-    assigned.forEach(({ pair, day }, idx) => {
+    assigned.forEach(({ pair, day, time }, idx) => {
       batch.set(db.collection("matchups").doc(`w14-m${idx + 1}`), {
         week: 14,
         round: "quarterfinal",
         day,
+        time,
         date: firebase.firestore.Timestamp.fromDate(dateForDay(startDate, 14, day)),
         homeUid: pair[0],
         awayUid: pair[1],
@@ -1072,11 +1116,12 @@
     const startDate = seasonState.startDate.toDate();
     const assigned = assignDays(pairs, 0);
     const batch = db.batch();
-    assigned.forEach(({ pair, day }, idx) => {
+    assigned.forEach(({ pair, day, time }, idx) => {
       batch.set(db.collection("matchups").doc(`w15-m${idx + 1}`), {
         week: 15,
         round: "semifinal",
         day,
+        time,
         date: firebase.firestore.Timestamp.fromDate(dateForDay(startDate, 15, day)),
         homeUid: pair[0],
         awayUid: pair[1],
@@ -1099,6 +1144,7 @@
       week: 16,
       round: "pokebowl",
       day: "sun",
+      time: "8:00 PM",
       date: firebase.firestore.Timestamp.fromDate(dateForDay(startDate, 16, "sun")),
       homeUid: winners[0],
       awayUid: winners[1],
