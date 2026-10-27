@@ -18,6 +18,7 @@ window.broadcasts = [
   { type: "preview", week: 2, file: "audio/week02-preview.mp3", title: "Fantasy Pokeball Week 2 Preview", date: "2026-10-21" },
   { type: "thursday_recap", week: 2, file: "audio/week02-thursday-recap.mp3", title: "Week 2: Thursday Night Primetime Recap", date: "2026-10-22" },
   { type: "sunday_recap", week: 2, file: "audio/week02-sunday-recap.mp3", title: "Week 2: Sunday Slate Recap", date: "2026-10-25" },
+  { type: "monday_recap", week: 2, file: "audio/week02-monday-recap.mp3", title: "Week 2: Monday Night Football Recap", date: "2026-10-26" },
 ];
 
 window.broadcastTypeLabels = {
