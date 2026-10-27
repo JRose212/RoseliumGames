@@ -545,9 +545,11 @@
     standingsCardEl.hidden = false;
     const standings = computeStandings();
     standingsBodyEl.innerHTML = standings
-      .map((s) => {
+      .map((s, i) => {
         const diff = s.pointsFor - s.pointsAgainst;
-        return `<tr>
+        const inPlayoffs = i < 8;
+        return `<tr class="${inPlayoffs ? "standings-playoff-row" : ""}">
+          <td class="standings-seed-cell">${i + 1}</td>
           <td class="standings-team-cell">${teamAvatarHtml(teamsByUid.get(s.uid), "team-avatar--sm")} ${escapeHtml(s.teamName || "Unnamed Team")}</td>
           <td>${s.wins}</td>
           <td>${s.losses}</td>
