@@ -38,23 +38,45 @@
   if (location.hash === "#rules") openModal();
 })();
 
-// Latest broadcast card - also standalone, reading the hand-maintained
-// window.broadcasts list from broadcasts.js. No Firebase/auth dependency,
-// so it shows for signed-out visitors too.
+// Latest broadcast card - reads the hand-maintained window.broadcasts
+// list from broadcasts.js (renders immediately, no Firebase dependency,
+// works for signed-out visitors), then merges in any admin-uploaded
+// episodes from the `broadcasts` Firestore collection once available (the
+// fallback upload path on the K&J Show page - signed-in only). The
+// Firestore call is deferred a tick so it runs after the page's main IIFE
+// below has already called firebase.initializeApp().
 (function () {
   const cardEl = document.getElementById("latest-broadcast-card");
   const titleEl = document.getElementById("latest-broadcast-title");
   const playerEl = document.getElementById("latest-broadcast-player");
   if (!cardEl || !titleEl || !playerEl) return;
 
-  const broadcasts = window.broadcasts || [];
-  if (!broadcasts.length) return;
-
+  const staticBroadcasts = window.broadcasts || [];
   const typeLabels = window.broadcastTypeLabels || {};
-  const latest = [...broadcasts].sort((a, b) => b.date.localeCompare(a.date))[0];
-  titleEl.textContent = latest.title || `Week ${latest.week}: ${typeLabels[latest.type] || latest.type}`;
-  playerEl.src = latest.file;
-  cardEl.hidden = false;
+
+  const render = (liveBroadcasts) => {
+    const all = staticBroadcasts.concat(liveBroadcasts || []);
+    if (!all.length) return;
+    const latest = [...all].sort((a, b) => b.date.localeCompare(a.date))[0];
+    titleEl.textContent = latest.title || `Week ${latest.week}: ${typeLabels[latest.type] || latest.type}`;
+    playerEl.src = latest.file;
+    cardEl.hidden = false;
+  };
+
+  render([]);
+
+  const config = window.siteConfig || {};
+  if (!config.firebaseConfig || config.firebaseConfig.apiKey === "YOUR_FIREBASE_API_KEY") return;
+  setTimeout(() => {
+    if (!firebase.apps.length) return; // main IIFE below didn't initialize for some reason
+    firebase
+      .firestore()
+      .collection("broadcasts")
+      .onSnapshot(
+        (snapshot) => render(snapshot.docs.map((doc) => doc.data())),
+        () => {}
+      );
+  }, 0);
 })();
 
 (function () {

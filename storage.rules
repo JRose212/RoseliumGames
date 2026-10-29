@@ -21,5 +21,17 @@ service firebase.storage {
                     && request.resource.contentType.matches('image/.*');
       allow delete: if (request.auth != null && request.auth.uid == uid) || isAdmin();
     }
+
+    // Broadcast episode audio uploaded from the K&J Show page - the
+    // admin's fallback path for posting an episode without VS Code/git
+    // (see the matching broadcasts collection in firestore.rules). 40MB
+    // covers the longest episode so far (~17MB) with plenty of headroom.
+    match /broadcastAudio/{fileName} {
+      allow read: if request.auth != null;
+      allow write: if isAdmin()
+                    && request.resource.size < 40 * 1024 * 1024
+                    && request.resource.contentType.matches('audio/.*');
+      allow delete: if isAdmin();
+    }
   }
 }

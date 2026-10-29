@@ -1,14 +1,15 @@
-// Latest-episode card - standalone, same as League Home's, reads
-// window.broadcasts directly, no Firebase/auth dependency, so it shows
-// for signed-out visitors too. Past episodes live on their own page
+// Latest-episode card - same as League Home's, reads window.broadcasts
+// (renders immediately, no Firebase dependency, works for signed-out
+// visitors), then merges in admin-uploaded episodes from the `broadcasts`
+// Firestore collection once available (the fallback upload path on the
+// K&J Show page - signed-in only). The Firestore call is deferred a tick
+// so it runs after this page's main IIFE below has already called
+// firebase.initializeApp(). Past episodes live on their own page
 // (pokemon-kj-show.html) now, not here.
 (function () {
   const cardEl = document.getElementById("broadcasts-archive-card");
   const latestEl = document.getElementById("broadcasts-latest");
   if (!cardEl || !latestEl) return;
-
-  const broadcasts = window.broadcasts || [];
-  if (!broadcasts.length) return;
 
   const escapeHtml = (value) =>
     String(value)
@@ -18,14 +19,35 @@
       .replace(/\"/g, "&quot;")
       .replace(/'/g, "&#39;");
 
+  const staticBroadcasts = window.broadcasts || [];
   const typeLabels = window.broadcastTypeLabels || {};
-  const latest = [...broadcasts].sort((a, b) => b.date.localeCompare(a.date))[0];
-  const title = latest.title || `Week ${latest.week}: ${typeLabels[latest.type] || latest.type}`;
-  latestEl.innerHTML = `<div class="broadcast-archive-item">
-              <p>${escapeHtml(title)} <span class="matchup-day">${escapeHtml(latest.date)}</span></p>
-              <audio controls src="${escapeHtml(latest.file)}" style="width: 100%;"></audio>
-            </div>`;
-  cardEl.hidden = false;
+
+  const render = (liveBroadcasts) => {
+    const all = staticBroadcasts.concat(liveBroadcasts || []);
+    if (!all.length) return;
+    const latest = [...all].sort((a, b) => b.date.localeCompare(a.date))[0];
+    const title = latest.title || `Week ${latest.week}: ${typeLabels[latest.type] || latest.type}`;
+    latestEl.innerHTML = `<div class="broadcast-archive-item">
+                <p>${escapeHtml(title)} <span class="matchup-day">${escapeHtml(latest.date)}</span></p>
+                <audio controls src="${escapeHtml(latest.file)}" style="width: 100%;"></audio>
+              </div>`;
+    cardEl.hidden = false;
+  };
+
+  render([]);
+
+  const config = window.siteConfig || {};
+  if (!config.firebaseConfig || config.firebaseConfig.apiKey === "YOUR_FIREBASE_API_KEY") return;
+  setTimeout(() => {
+    if (!firebase.apps.length) return; // main IIFE below didn't initialize for some reason
+    firebase
+      .firestore()
+      .collection("broadcasts")
+      .onSnapshot(
+        (snapshot) => render(snapshot.docs.map((doc) => doc.data())),
+        () => {}
+      );
+  }, 0);
 })();
 
 (function () {

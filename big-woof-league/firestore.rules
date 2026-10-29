@@ -192,6 +192,17 @@ service cloud.firestore {
       allow delete: if isAdmin();
     }
 
+    // Broadcast episodes uploaded straight from the K&J Show page - the
+    // admin's fallback for posting an episode without VS Code/git access.
+    // The hand-maintained broadcasts.js file is still the primary method;
+    // this collection only exists for the rare case that isn't available.
+    // Signed-in read only (unlike the static file, which works for
+    // signed-out visitors since it never touches Firestore at all).
+    match /broadcasts/{broadcastId} {
+      allow read: if isSignedIn();
+      allow create, update, delete: if isAdmin();
+    }
+
     // League chat. Anyone signed in can read/post; only the admin can
     // delete (moderation) - nobody can edit a sent message.
     match /chatMessages/{messageId} {

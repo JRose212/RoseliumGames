@@ -15,6 +15,7 @@
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-storage-compat.js"></script>
     <script src="pokemon-kj-show.js" defer></script>
     <script src="pokemon-chat.js" defer></script>
   </head>
@@ -59,6 +60,31 @@
       </nav>
 
       <a class="trade-notification-badge" id="trade-notification-badge" href="pokemon-myteam.html#trades" hidden>🔔 <span id="trade-notification-count"></span> pending trade</a>
+
+      <section class="card" id="upload-episode-card" hidden>
+        <h2>Upload Episode</h2>
+        <p>Fallback for posting an episode without VS Code/git access - for the usual workflow, add it to <code>broadcasts.js</code> instead. Uploaded episodes only show to signed-in managers (the hand-added ones still work for signed-out visitors).</p>
+        <form class="auth-form" id="upload-episode-form">
+          <label for="upload-episode-type">Type</label>
+          <select id="upload-episode-type">
+            <option value="preview">Week Preview</option>
+            <option value="thursday_recap">Thursday Recap</option>
+            <option value="sunday_recap">Sunday Recap</option>
+            <option value="monday_recap">Monday Night Recap</option>
+            <option value="week_summary">Week Summary</option>
+          </select>
+          <label for="upload-episode-week">Week</label>
+          <input type="number" id="upload-episode-week" min="1" step="1" />
+          <label for="upload-episode-title">Title (optional)</label>
+          <input type="text" id="upload-episode-title" placeholder="Leave blank for an auto-generated title" />
+          <label for="upload-episode-date">Date</label>
+          <input type="date" id="upload-episode-date" />
+          <label for="upload-episode-file">Audio file</label>
+          <input type="file" id="upload-episode-file" accept="audio/*" />
+          <button type="button" class="btn" id="upload-episode-btn">Upload</button>
+        </form>
+        <p class="status" id="upload-episode-message" hidden></p>
+      </section>
 
       <section class="card" id="kj-show-card">
         <div id="kj-show-list"></div>
