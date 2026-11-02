@@ -121,7 +121,7 @@ window.siteConfig = {
   // display "0 sacks". Bench slots are deliberately left out - only
   // starters get box score stats, same as real fantasy football.
   boxScoreStatFields: {
-    QB: ["passComp", "passAtt", "passYds", "passTD", "int", "rushYds", "rushTD"],
+    QB: ["passCmp", "passAtt", "passYds", "passTD", "int", "rushYds", "rushTD"],
     RB: ["rushAtt", "rushYds", "rushTD", "receptions", "recYds", "recTD"],
     FB: ["rushAtt", "rushYds", "rushTD", "receptions", "recYds", "recTD"],
     WR1: ["targets", "receptions", "recYds", "recTD", "rushYds", "rushTD"],
@@ -146,7 +146,7 @@ window.siteConfig = {
     K: ["fgMade", "fgAtt", "long", "xpMade"],
   },
   boxScoreStatLabels: {
-    passComp: "Comp",
+    passCmp: "Comp",
     passAtt: "Pass Att",
     passYds: "Pass Yds",
     passTD: "Pass TD",
