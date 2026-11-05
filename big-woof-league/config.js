@@ -181,7 +181,7 @@ window.siteConfig = {
     { key: "recTD", label: "Receiving TDs" },
     { key: "tackles", label: "Tackles" },
     { key: "sacks", label: "Sacks" },
-    { key: "int", label: "Interceptions" },
+    { key: "int", label: "Interceptions Caught", excludeSlots: ["QB"] },
     { key: "defTD", label: "Defensive TDs" },
     { key: "fgMade", label: "Field Goals Made" },
   ],

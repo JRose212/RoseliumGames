@@ -65,6 +65,34 @@
         <h2>Season Leaderboards</h2>
         <div id="leaderboards-area" class="leaderboard-grid"></div>
       </section>
+
+      <section class="card" id="player-stats-card" hidden>
+        <h2>Player Stats</h2>
+        <p>Click a column to sort. A dash means that stat wasn't recorded yet.</p>
+        <div class="player-stats-tabs" id="player-stats-tabs"></div>
+        <div class="player-stats-filters">
+          <label>Search
+            <input type="search" id="player-stats-search" placeholder="Pokémon name…" />
+          </label>
+          <label>Team
+            <select id="player-stats-team"></select>
+          </label>
+          <label id="player-stats-position-wrap">Position
+            <select id="player-stats-position"></select>
+          </label>
+          <label>Games
+            <select id="player-stats-scope">
+              <option value="">All Games</option>
+              <option value="regular">Regular Season</option>
+              <option value="playoffs">Playoffs</option>
+            </select>
+          </label>
+        </div>
+        <div class="table-wrap">
+          <table class="standings-table player-stats-table" id="player-stats-table"></table>
+        </div>
+        <p class="status" id="player-stats-empty" hidden>No Pokémon match those filters.</p>
+      </section>
     </main>
 
     <footer class="site-footer">

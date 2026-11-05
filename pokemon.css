@@ -669,6 +669,96 @@ body[data-page^="pokemon-"] .jump-nav a {
   color: var(--accent-strong);
 }
 
+/* Player Stats (pokemon-stats.html): sortable per-Pokemon tables. The
+   min-width keeps a wide table scrolling inside its own card - without it,
+   the table stretches the whole .page-stack grid on narrow screens. */
+
+#player-stats-card {
+  min-width: 0;
+}
+
+.player-stats-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+}
+
+.player-stats-tab--active {
+  border-color: var(--accent-strong);
+  color: var(--accent-strong);
+}
+
+.player-stats-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin: 0.75rem 0;
+}
+
+.player-stats-filters label {
+  display: grid;
+  gap: 0.25rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.player-stats-filters label[hidden] {
+  display: none;
+}
+
+.player-stats-filters input,
+.player-stats-filters select {
+  padding: 0.45rem 0.6rem;
+  border-radius: 2px;
+  border: 1px solid var(--border);
+  background: var(--surface-strong);
+  color: var(--text);
+  font: inherit;
+  font-weight: 400;
+  text-transform: none;
+}
+
+.player-stats-table {
+  font-size: 0.8rem;
+  white-space: nowrap;
+}
+
+.player-stats-table th,
+.player-stats-table td {
+  padding: 0.45rem 0.5rem;
+  text-align: right;
+}
+
+.player-stats-table .player-stats-text {
+  text-align: left;
+}
+
+.player-stats-table td.player-stats-text {
+  text-transform: capitalize;
+}
+
+.player-stats-group {
+  text-align: center !important;
+}
+
+.player-stats-sort-btn {
+  padding: 0;
+  border: none;
+  background: none;
+  color: inherit;
+  font: inherit;
+  letter-spacing: inherit;
+  text-transform: inherit;
+  cursor: pointer;
+}
+
+.player-stats-sort-btn:hover {
+  color: var(--text);
+}
+
 .matchup-week-heading {
   margin: 1.5rem 0 0.6rem;
   color: var(--accent-strong);
