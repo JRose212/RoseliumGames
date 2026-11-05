@@ -211,9 +211,21 @@
     wrapEl.addEventListener("click", () => openTypeRadarModal(counts, caption));
   };
 
+  // A stored streak only updates when a team trains, so it counts as 0 once
+  // the team's last session is older than yesterday. A team that hasn't
+  // trained yet today still has until the end of the day to keep it.
+  const activeStreak = (training) => {
+    const t = training || {};
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+    const pad = (n) => String(n).padStart(2, "0");
+    const yesterdayKey = `${yesterday.getFullYear()}-${pad(yesterday.getMonth() + 1)}-${pad(yesterday.getDate())}`;
+    return t.lastTrainedDate && t.lastTrainedDate >= yesterdayKey ? t.currentStreak || 0 : 0;
+  };
+
   const trainingBadgesHtml = (training) => {
     const t = training || {};
-    const streak = t.currentStreak || 0;
+    const streak = activeStreak(t);
     const bonus = t.bonusSessionsAvailable || 0;
     const parts = [];
     if (streak > 0) parts.push(`<span class="training-badge training-badge--streak">🔥 ${streak}-day training streak</span>`);
@@ -346,7 +358,7 @@
 
     let csv = "";
     csv += csvRow(["Team", team.teamName || "Unnamed Team"]);
-    csv += csvRow(["Training Streak (days)", training.currentStreak || 0]);
+    csv += csvRow(["Training Streak (days)", activeStreak(training)]);
     csv += csvRow(["Bonus Sessions Banked", training.bonusSessionsAvailable || 0]);
     csv += csvRow([
       "Next Matchup",

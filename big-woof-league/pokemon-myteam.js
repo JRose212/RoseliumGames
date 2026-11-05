@@ -386,9 +386,17 @@
     return `<span class="matchup-training-row">${icons}</span>`;
   };
 
+  // A stored streak only updates when a team trains, so it counts as 0 once
+  // the team's last session is older than yesterday. A team that hasn't
+  // trained yet today still has until the end of the day to keep it.
+  const activeStreak = (training) => {
+    const t = training || {};
+    return t.lastTrainedDate && t.lastTrainedDate >= dateKey(-1) ? t.currentStreak || 0 : 0;
+  };
+
   const trainingBadgesHtml = (training) => {
     const t = training || {};
-    const streak = t.currentStreak || 0;
+    const streak = activeStreak(t);
     const bonus = t.bonusSessionsAvailable || 0;
     const parts = [];
     if (streak > 0) parts.push(`<span class="training-badge training-badge--streak">🔥 ${streak}-day training streak</span>`);

@@ -713,6 +713,18 @@
 
   const trainingTypeList = config.trainingTypes || [];
 
+  // A stored streak only updates when a team trains, so it counts as 0 once
+  // the team's last session is older than yesterday. A team that hasn't
+  // trained yet today still has until the end of the day to keep it.
+  const activeStreak = (training) => {
+    const t = training || {};
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+    const pad = (n) => String(n).padStart(2, "0");
+    const yesterdayKey = `${yesterday.getFullYear()}-${pad(yesterday.getMonth() + 1)}-${pad(yesterday.getDate())}`;
+    return t.lastTrainedDate && t.lastTrainedDate >= yesterdayKey ? t.currentStreak || 0 : 0;
+  };
+
   const teamCsvSection = (uid, label, currentMatchup) => {
     const team = teamsByUid.get(uid) || {};
     const training = team.training || {};
@@ -721,7 +733,7 @@
 
     let csv = "";
     csv += csvRow([`${label} Team`, team.teamName || "Unnamed Team"]);
-    csv += csvRow(["Training Streak (days)", training.currentStreak || 0]);
+    csv += csvRow(["Training Streak (days)", activeStreak(training)]);
     csv += csvRow(["Bonus Sessions Banked", training.bonusSessionsAvailable || 0]);
     csv += "\r\n";
 
@@ -954,6 +966,12 @@
       showResultMessage("Enter both scores.", true);
       return;
     }
+    // Playoff games go to overtime until someone wins - a tie would leave
+    // the next round with no team to advance.
+    if (matchup.round !== "regular" && homeScore === awayScore) {
+      showResultMessage("Playoff games can't end in a tie - enter the final score after overtime.", true);
+      return;
+    }
     const winnerUid = homeScore === awayScore ? null : homeScore > awayScore ? matchup.homeUid : matchup.awayUid;
 
     const injured = [...resultInjuryAreaEl.querySelectorAll("input[type=checkbox]:checked")].map((input) => ({
@@ -961,11 +979,10 @@
       slot: input.dataset.slot,
     }));
 
-    // A losing team banks a bonus training session for the weeks ahead; a
-    // winning team's banked sessions reset to zero. Only applied the first
-    // time a matchup goes final, not on a later "Edit Result", so
-    // re-declaring the same matchup never double-credits a bonus.
     const isFirstDeclaration = matchup.status !== "final";
+    const scoreChanged = homeScore !== matchup.homeScore || awayScore !== matchup.awayScore;
+    const previousWinnerUid = matchup.winnerUid || null;
+    const winnerChanged = winnerUid !== previousWinnerUid;
 
     // Firestore batches reject more than one write to the same document,
     // so every field touched for a given team - injury flags, training
@@ -979,15 +996,39 @@
       mergeTeamUpdate(uid, { [`slots.${slot}.outForWeek`]: matchup.week + 1 });
     });
 
-    if (isFirstDeclaration && winnerUid) {
-      const loserUid = winnerUid === matchup.homeUid ? matchup.awayUid : matchup.homeUid;
-      mergeTeamUpdate(winnerUid, { "training.bonusSessionsAvailable": 0 });
-      mergeTeamUpdate(loserUid, { "training.bonusSessionsAvailable": firebase.firestore.FieldValue.increment(1) });
+    // A losing team banks a bonus training session for the weeks ahead; a
+    // winning team's banked sessions reset to zero. Whenever a game's winner
+    // changes - a first result, a blank result filled in, or a correction -
+    // the old outcome is undone before the new one applies. The sessions a
+    // winner lost are kept on the matchup so that undo can restore them;
+    // games from before that field existed just restore none. Editing a
+    // game without changing its winner leaves bonus sessions alone.
+    const matchupFields = {};
+    if (winnerChanged) {
+      const opponentOf = (uid) => (uid === matchup.homeUid ? matchup.awayUid : matchup.homeUid);
+      const bonus = new Map(
+        [matchup.homeUid, matchup.awayUid].map((uid) => [uid, teamsByUid.get(uid)?.training?.bonusSessionsAvailable || 0])
+      );
+      if (previousWinnerUid) {
+        const previousLoserUid = opponentOf(previousWinnerUid);
+        bonus.set(previousWinnerUid, bonus.get(previousWinnerUid) + (matchup.bonusClearedFromWinner || 0));
+        bonus.set(previousLoserUid, Math.max(0, bonus.get(previousLoserUid) - 1));
+      }
+      matchupFields.bonusClearedFromWinner = 0;
+      if (winnerUid) {
+        const loserUid = opponentOf(winnerUid);
+        matchupFields.bonusClearedFromWinner = bonus.get(winnerUid);
+        bonus.set(winnerUid, 0);
+        bonus.set(loserUid, bonus.get(loserUid) + 1);
+      }
+      bonus.forEach((sessions, uid) => mergeTeamUpdate(uid, { "training.bonusSessionsAvailable": sessions }));
     }
 
     const resultText = winnerUid
       ? `${teamName(winnerUid)} defeated ${teamName(winnerUid === matchup.homeUid ? matchup.awayUid : matchup.homeUid)} ${Math.max(homeScore, awayScore)}-${Math.min(homeScore, awayScore)} (Week ${matchup.week})`
       : `${teamName(matchup.homeUid)} and ${teamName(matchup.awayUid)} tied ${homeScore}-${awayScore} (Week ${matchup.week})`;
+    // Editing only the summaries of a final game stays quiet.
+    const announceText = isFirstDeclaration ? resultText : scoreChanged ? `Score updated: ${resultText}` : null;
 
     try {
       const batch = db.batch();
@@ -998,20 +1039,21 @@
         driveSummary: resultDriveSummaryEl.value.trim(),
         shortSummary: resultShortSummaryEl.value.trim(),
         status: "final",
+        ...matchupFields,
       });
       teamUpdates.forEach((fields, uid) => {
         batch.update(db.collection("teams").doc(uid), fields);
       });
-      if (isFirstDeclaration) {
+      if (announceText) {
         batch.set(db.collection("chatMessages").doc(), {
           uid: auth.currentUser.uid,
           system: true,
-          text: resultText,
+          text: announceText,
           createdAt: firebase.firestore.FieldValue.serverTimestamp(),
         });
       }
       await batch.commit();
-      if (isFirstDeclaration) notifyDiscord(resultText);
+      if (announceText) notifyDiscord(announceText);
       closeResultModal();
     } catch (error) {
       showResultMessage(error.message, true);
@@ -1133,8 +1175,10 @@
   }
 
   async function generateSemifinals() {
+    // Quarterfinal winners in matchup order: 1v8, 2v7, 3v6, 4v5. A standard
+    // bracket keeps the top two seeds apart until the PokéBowl.
     const winners = winnersOf("quarterfinal");
-    const pairs = [[winners[0], winners[1]], [winners[2], winners[3]]];
+    const pairs = [[winners[0], winners[3]], [winners[1], winners[2]]];
     const startDate = seasonState.startDate.toDate();
     const assigned = assignDays(pairs, 0);
     const batch = db.batch();
