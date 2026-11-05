@@ -46,8 +46,17 @@ service cloud.firestore {
          (trade.fromUid == uidB && trade.toUid == uidA));
     }
 
+    // Only the manager a trade was offered to can complete it. Without
+    // this, anyone could create a pending trade naming another team and
+    // use it to rewrite that team's roster without their agreement.
+    function isTradeRecipient(tradeId) {
+      return get(/databases/$(database)/documents/trades/$(tradeId)).data.toUid == request.auth.uid;
+    }
+
+    // Holds each manager's email, so it's limited to its owner and the
+    // admin - no page reads anyone else's record.
     match /users/{uid} {
-      allow read: if isSignedIn();
+      allow read: if isSignedIn() && (request.auth.uid == uid || isAdmin());
       allow create, update: if isSignedIn() && request.auth.uid == uid;
       allow delete: if isSignedIn() && request.auth.uid == uid && draftNotStarted();
     }
@@ -68,6 +77,7 @@ service cloud.firestore {
         request.resource.data.diff(resource.data).affectedKeys().hasOnly(["cheerSlots"]) ||
         (request.resource.data.get("tradeId", null) is string &&
          isPendingTradeBetween(request.resource.data.tradeId, uid, request.auth.uid) &&
+         isTradeRecipient(request.resource.data.tradeId) &&
          request.resource.data.diff(resource.data).affectedKeys().hasOnly(["slots", "tradeId"]))
       );
       allow delete: if isSignedIn() && request.auth.uid == uid && draftNotStarted();
@@ -125,7 +135,7 @@ service cloud.firestore {
         isSignedIn() &&
         request.resource.data.get("tradeId", null) is string &&
         isPendingTradeBetween(request.resource.data.tradeId, resource.data.uid, request.resource.data.uid) &&
-        (request.auth.uid == resource.data.uid || request.auth.uid == request.resource.data.uid)
+        isTradeRecipient(request.resource.data.tradeId)
       );
       allow delete: if isSignedIn() && (request.auth.uid == resource.data.uid || isAdmin());
     }
@@ -143,8 +153,9 @@ service cloud.firestore {
 
     // Proposed trades between two managers. Readable by anyone signed in
     // (needed for the pending-trade notification badge and the "already in
-    // a pending trade" lock on the Rosters page) - only the two parties
-    // involved (or admin) can act on one, and only while still pending.
+    // a pending trade" lock on the Rosters page) - while it's pending, the
+    // recipient can accept or reject it, the proposer can only cancel it,
+    // and the admin can do any of those.
     // The actual roster/draftedPokemon moves on acceptance are a separate,
     // equally-guarded write - this collection only ever records the offer
     // and its outcome.
@@ -152,7 +163,9 @@ service cloud.firestore {
       allow read: if isSignedIn();
       allow create: if isSignedIn() && request.resource.data.fromUid == request.auth.uid && request.resource.data.status == "pending";
       allow update: if isSignedIn() && resource.data.status == "pending" && (
-        resource.data.toUid == request.auth.uid || resource.data.fromUid == request.auth.uid || isAdmin()
+        isAdmin() ||
+        (resource.data.toUid == request.auth.uid && request.resource.data.status in ["accepted", "rejected"]) ||
+        (resource.data.fromUid == request.auth.uid && request.resource.data.status == "cancelled")
       );
       allow delete: if false;
     }
