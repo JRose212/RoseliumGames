@@ -206,6 +206,7 @@
 
   const skillSlots = ["QB", "RB", "FB", "WR1", "WR2", "TE"];
   const defenseSlots = (config.positionGroups && config.positionGroups.defense) || [];
+  const offensiveLineSlots = ["LT", "RT", "LG", "RG", "C"];
 
   // slots: the positions a table reads from - this is what keeps "int"
   // (thrown by a QB, caught by a defender) and "sacks" in the right table.
@@ -318,6 +319,15 @@
         totalColumn("fumbleTD", "FTD", "Fumble return touchdowns", "Fumbles"),
         totalColumn("safeties", "SFTY", "Safeties"),
       ],
+    },
+    {
+      key: "blocking",
+      label: "Blocking",
+      slots: offensiveLineSlots,
+      primarySlots: offensiveLineSlots,
+      statKeys: ["pancakes"],
+      defaultSort: "pancakes",
+      columns: [nameColumn, teamColumn, posColumn, gpColumn, totalColumn("pancakes", "PANCAKES", "Pancake blocks")],
     },
   ];
 
