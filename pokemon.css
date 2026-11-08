@@ -788,6 +788,127 @@ body[data-page^="pokemon-"] .jump-nav a {
   gap: 0.75rem;
 }
 
+/* --- Player of the Week --- */
+
+.week-collapse > .roster-set-title {
+  flex-wrap: wrap;
+}
+
+.week-collapse .potw-open-btn {
+  padding: 0.3rem 0.7rem;
+  font-size: 0.72rem;
+  letter-spacing: 0.04em;
+}
+
+/* Collapsed view: sprite + stat line on its own row under the week name.
+   Hidden once the week is open, where the full card (with write-up) shows. */
+.potw-collapsed {
+  order: 10;
+  flex-basis: 100%;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  min-width: 0;
+  text-transform: none;
+  letter-spacing: normal;
+}
+
+details[open].week-collapse > .roster-set-title .potw-collapsed {
+  display: none;
+}
+
+.potw-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+  padding: 1rem 1.25rem;
+  border-left: 3px solid var(--accent-strong);
+}
+
+.potw-text {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  min-width: 0;
+}
+
+.potw-label {
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--accent-strong);
+}
+
+.potw-name {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--text);
+  text-transform: capitalize;
+}
+
+.potw-stats {
+  font-size: 0.8rem;
+  color: var(--muted);
+  overflow-wrap: anywhere;
+}
+
+.potw-writeup {
+  margin: 0.5rem 0 0;
+  color: var(--text);
+}
+
+.potw-sprite {
+  width: 56px;
+  height: 56px;
+  flex-shrink: 0;
+  object-fit: contain;
+  image-rendering: pixelated;
+}
+
+.potw-sprite--lg {
+  width: 96px;
+  height: 96px;
+}
+
+.potw-sprite-placeholder {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  color: var(--muted);
+}
+
+.potw-suggestions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  max-height: 40vh;
+  overflow-y: auto;
+}
+
+.potw-suggestion {
+  padding: 0.45rem 0.7rem;
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  background: rgba(199, 211, 222, 0.05);
+  color: var(--text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.potw-suggestion:hover {
+  border-color: var(--accent-strong);
+}
+
+@media (max-width: 540px) {
+  .potw-card {
+    flex-direction: column;
+  }
+}
+
 .matchup-card {
   display: flex;
   align-items: center;

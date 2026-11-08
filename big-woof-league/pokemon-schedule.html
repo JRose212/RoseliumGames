@@ -190,6 +190,26 @@
       </div>
     </div>
 
+    <div class="slot-picker-modal" id="potw-modal" hidden>
+      <div class="card slot-picker-panel" style="max-width: 560px;">
+        <h2>Player of the Week — <span id="potw-modal-title"></span></h2>
+        <form class="auth-form" id="potw-form" autocomplete="off">
+          <label for="potw-search">Pokémon</label>
+          <input type="search" id="potw-search" placeholder="Start typing a Pokémon from this week's box scores…" />
+          <div class="potw-suggestions" id="potw-suggestions"></div>
+          <p class="status" id="potw-selected" hidden></p>
+          <label for="potw-writeup">Write-up</label>
+          <textarea id="potw-writeup" rows="5" style="padding:0.6rem 0.8rem;border-radius:2px;border:1px solid var(--border);background:var(--surface-strong);color:var(--text);font:inherit;"></textarea>
+        </form>
+        <p class="status" id="potw-message" hidden></p>
+        <div style="display:flex; gap:0.5rem; margin-top: 1rem; flex-wrap: wrap;">
+          <button type="button" class="btn" id="potw-save-btn" disabled>Save</button>
+          <button type="button" class="btn btn-secondary" id="potw-remove-btn" hidden>Remove</button>
+          <button type="button" class="btn btn-secondary" id="potw-cancel-btn">Cancel</button>
+        </div>
+      </div>
+    </div>
+
     <footer class="site-footer">
       <p>Roselium Games • community-managed records for tactical play nights</p>
     </footer>

@@ -98,6 +98,16 @@
   const swapTeamsBEl = document.getElementById("swap-teams-b");
   const swapTeamsBtnEl = document.getElementById("swap-teams-btn");
   const swapTeamsMessageEl = document.getElementById("swap-teams-message");
+  const potwModalEl = document.getElementById("potw-modal");
+  const potwModalTitleEl = document.getElementById("potw-modal-title");
+  const potwSearchEl = document.getElementById("potw-search");
+  const potwSuggestionsEl = document.getElementById("potw-suggestions");
+  const potwSelectedEl = document.getElementById("potw-selected");
+  const potwWriteupEl = document.getElementById("potw-writeup");
+  const potwMessageEl = document.getElementById("potw-message");
+  const potwSaveBtnEl = document.getElementById("potw-save-btn");
+  const potwRemoveBtnEl = document.getElementById("potw-remove-btn");
+  const potwCancelBtnEl = document.getElementById("potw-cancel-btn");
 
   if (!weeksEl) return;
 
@@ -868,6 +878,297 @@
     URL.revokeObjectURL(url);
   };
 
+  // --- Player of the Week ---
+  // One pick per week, stored on seasonState/current as
+  // playerOfTheWeek.{week} (admin-write, everyone-read, same as the rest of
+  // the season state). The pick points at a box score entry (matchup +
+  // home/away side + slot), and its stat line is read from that box score
+  // live, so editing the box score later updates the stat line too.
+
+  const pokemonSpriteUrl = (pokemonId) =>
+    `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${pokemonId}.png`;
+
+  // "Mr. Mime" / "mr-mime" / "MR MIME" all become "mr-mime" (PokeAPI style).
+  const normalizePokemonName = (name) =>
+    String(name || "")
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, "");
+
+  const playerOfTheWeekFor = (week) => (seasonState && seasonState.playerOfTheWeek && seasonState.playerOfTheWeek[week]) || null;
+
+  // Every Pokemon that appears in a saved box score for this week's games.
+  const potwCandidates = (week) => {
+    const seen = new Set();
+    const candidates = [];
+    matchups
+      .filter((m) => m.week === week)
+      .forEach((m) => {
+        const box = boxScoresByMatchupId.get(m.id);
+        if (!box) return;
+        ["home", "away"].forEach((side) => {
+          const uid = side === "home" ? m.homeUid : m.awayUid;
+          (box[side] || []).forEach((entry) => {
+            if (!entry || !entry.pokemonName) return;
+            const key = `${m.id}|${side}|${entry.slot}|${normalizePokemonName(entry.pokemonName)}`;
+            if (seen.has(key)) return;
+            seen.add(key);
+            candidates.push({ matchupId: m.id, side, uid, slot: entry.slot, pokemonName: entry.pokemonName });
+          });
+        });
+      });
+    return candidates.sort((a, b) => a.pokemonName.localeCompare(b.pokemonName));
+  };
+
+  const potwBoxEntry = (potw) => {
+    const box = potw && boxScoresByMatchupId.get(potw.matchupId);
+    const entries = (box && box[potw.side]) || [];
+    const key = normalizePokemonName(potw.pokemonName);
+    return (
+      entries.find((e) => e.slot === potw.slot && normalizePokemonName(e.pokemonName) === key) ||
+      entries.find((e) => normalizePokemonName(e.pokemonName) === key) ||
+      null
+    );
+  };
+
+  const potwStatLine = (potw) => {
+    const entry = potwBoxEntry(potw);
+    return entry ? formatBoxScoreStatLine(entry.slot, entry.stats) : "Box score not available";
+  };
+
+  const potwSpriteHtml = (potw, cls) =>
+    potw.pokemonId
+      ? `<img class="${cls}" src="${pokemonSpriteUrl(potw.pokemonId)}" alt="${escapeHtml(potw.pokemonName)}" loading="lazy" />`
+      : `<span class="${cls} potw-sprite-placeholder">?</span>`;
+
+  // Shown inside the week's header row, so it's visible while collapsed.
+  const potwCollapsedHtml = (potw) => `
+    <span class="potw-collapsed">
+      ${potwSpriteHtml(potw, "potw-sprite")}
+      <span class="potw-text">
+        <span class="potw-label">Player of the Week</span>
+        <span class="potw-name">${escapeHtml(potw.pokemonName)}</span>
+        <span class="potw-stats">${escapeHtml(potw.slot || "")}${potw.slot ? " · " : ""}${escapeHtml(potwStatLine(potw))}</span>
+      </span>
+    </span>`;
+
+  // Shown at the top of the expanded week, with the write-up.
+  const potwExpandedHtml = (potw) => `
+    <div class="card potw-card">
+      ${potwSpriteHtml(potw, "potw-sprite potw-sprite--lg")}
+      <div class="potw-text">
+        <span class="potw-label">Player of the Week</span>
+        <span class="potw-name">${escapeHtml(potw.pokemonName)}</span>
+        <span class="potw-stats">${escapeHtml(potw.slot || "")}${potw.slot ? " · " : ""}${escapeHtml(teamName(potw.uid))} · ${escapeHtml(potwStatLine(potw))}</span>
+        ${potw.writeUp ? `<p class="potw-writeup">${escapeHtml(potw.writeUp).replace(/\n/g, "<br>")}</p>` : ""}
+      </div>
+    </div>`;
+
+  // Sprite lookup: rosters first (they carry the PokeAPI id), then the full
+  // PokeAPI list, shared with the other pages' localStorage cache.
+  let pokemonListPromise = null;
+  const fetchPokemonList = () => {
+    if (pokemonListPromise) return pokemonListPromise;
+    pokemonListPromise = (async () => {
+      const cacheKey = "pokedex:list:v1";
+      const ttl = config.pokemonListCacheTtlMs || 30 * 24 * 60 * 60 * 1000;
+      try {
+        const parsed = JSON.parse(localStorage.getItem(cacheKey) || "null");
+        if (parsed && Date.now() - parsed.fetchedAt <= ttl) return parsed.data;
+      } catch (error) {
+        // Fall through to the network.
+      }
+      const apiBase = config.pokeApiBaseUrl || "https://pokeapi.co/api/v2";
+      const response = await fetch(`${apiBase}/pokemon?limit=1025`, { cache: "no-store" });
+      if (!response.ok) throw new Error(`Unable to load Pokédex list (${response.status})`);
+      const payload = await response.json();
+      const list = payload.results
+        .map((entry) => {
+          const match = entry.url.match(/\/pokemon\/(\d+)\/?$/);
+          return match ? { id: Number(match[1]), name: entry.name } : null;
+        })
+        .filter(Boolean);
+      try {
+        localStorage.setItem(cacheKey, JSON.stringify({ fetchedAt: Date.now(), data: list }));
+      } catch (error) {
+        // Non-fatal.
+      }
+      return list;
+    })();
+    pokemonListPromise.catch(() => (pokemonListPromise = null));
+    return pokemonListPromise;
+  };
+
+  const resolvePokemonId = async (pokemonName) => {
+    const key = normalizePokemonName(pokemonName);
+    for (const team of teamsByUid.values()) {
+      const pick = Object.values(team.slots || {}).find((p) => p && normalizePokemonName(p.pokemonName) === key);
+      if (pick && pick.pokemonId) return Number(pick.pokemonId);
+    }
+    try {
+      const list = await fetchPokemonList();
+      const match = list.find((p) => p.name === key) || list.find((p) => p.name.startsWith(`${key}-`));
+      return match ? match.id : null;
+    } catch (error) {
+      return null;
+    }
+  };
+
+  let potwWeek = null;
+  let potwSelection = null;
+
+  const showPotwMessage = (text, isError) => {
+    potwMessageEl.hidden = false;
+    potwMessageEl.className = `status${isError ? " error" : ""}`;
+    potwMessageEl.textContent = text;
+  };
+
+  const candidateLabel = (c) => `${c.pokemonName} (${c.slot}, ${teamName(c.uid)})`;
+
+  const setPotwSelection = (candidate) => {
+    potwSelection = candidate;
+    potwSaveBtnEl.disabled = !candidate;
+    potwSelectedEl.hidden = !candidate;
+    potwSelectedEl.className = "status";
+    potwSelectedEl.textContent = candidate ? `Selected: ${candidateLabel(candidate)}` : "";
+  };
+
+  const renderPotwSuggestions = () => {
+    const candidates = potwCandidates(potwWeek);
+    const term = normalizePokemonName(potwSearchEl.value);
+    if (!candidates.length) {
+      potwSuggestionsEl.innerHTML = `<p class="status error">No box scores are saved for Week ${potwWeek} yet. Add box scores first.</p>`;
+      return;
+    }
+    // Typing changes the pick - it's only valid again once one is chosen,
+    // or the text exactly matches exactly one Pokemon from this week.
+    const exact = candidates.filter((c) => normalizePokemonName(c.pokemonName) === term);
+    if (!potwSelection || normalizePokemonName(potwSelection.pokemonName) !== term) {
+      setPotwSelection(exact.length === 1 ? exact[0] : null);
+    }
+    if (!term) {
+      potwSuggestionsEl.innerHTML = "";
+      return;
+    }
+    const matches = candidates.filter((c) => normalizePokemonName(c.pokemonName).includes(term)).slice(0, 12);
+    if (!matches.length) {
+      potwSuggestionsEl.innerHTML = `<p class="status error">No Pokémon named "${escapeHtml(potwSearchEl.value)}" played in Week ${potwWeek}.</p>`;
+      return;
+    }
+    potwSuggestionsEl.innerHTML = matches
+      .map(
+        (c, i) =>
+          `<button type="button" class="potw-suggestion" data-index="${i}">${escapeHtml(candidateLabel(c))}</button>`
+      )
+      .join("");
+    potwSuggestionsEl.querySelectorAll(".potw-suggestion").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const candidate = matches[Number(btn.dataset.index)];
+        potwSearchEl.value = candidate.pokemonName;
+        setPotwSelection(candidate);
+        potwSuggestionsEl.innerHTML = "";
+      });
+    });
+  };
+
+  const openPotwModal = (week) => {
+    potwWeek = week;
+    const existing = playerOfTheWeekFor(week);
+    potwModalTitleEl.textContent = `Week ${week}`;
+    potwMessageEl.hidden = true;
+    potwSearchEl.value = existing ? existing.pokemonName : "";
+    potwWriteupEl.value = existing ? existing.writeUp || "" : "";
+    potwRemoveBtnEl.hidden = !existing;
+    const current = existing
+      ? potwCandidates(week).find(
+          (c) => c.matchupId === existing.matchupId && c.side === existing.side && c.slot === existing.slot
+        ) || null
+      : null;
+    setPotwSelection(current);
+    potwSuggestionsEl.innerHTML = "";
+    if (!potwCandidates(week).length) renderPotwSuggestions();
+    potwModalEl.hidden = false;
+    potwSearchEl.focus();
+  };
+
+  const closePotwModal = () => {
+    potwModalEl.hidden = true;
+    potwWeek = null;
+    setPotwSelection(null);
+  };
+
+  async function savePlayerOfTheWeek() {
+    if (!potwSelection || potwWeek === null) {
+      showPotwMessage("Pick a Pokémon from the list first.", true);
+      return;
+    }
+    const writeUp = potwWriteupEl.value.trim();
+    if (!writeUp) {
+      showPotwMessage("Add a write-up.", true);
+      return;
+    }
+    potwSaveBtnEl.disabled = true;
+    try {
+      const pokemonId = await resolvePokemonId(potwSelection.pokemonName);
+      await db
+        .collection("seasonState")
+        .doc("current")
+        .set(
+          {
+            playerOfTheWeek: {
+              [potwWeek]: {
+                pokemonName: potwSelection.pokemonName,
+                pokemonId: pokemonId || null,
+                slot: potwSelection.slot,
+                uid: potwSelection.uid,
+                matchupId: potwSelection.matchupId,
+                side: potwSelection.side,
+                writeUp,
+                updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+              },
+            },
+          },
+          { merge: true }
+        );
+      closePotwModal();
+    } catch (error) {
+      potwSaveBtnEl.disabled = false;
+      showPotwMessage(error.message, true);
+    }
+  }
+
+  async function removePlayerOfTheWeek() {
+    if (potwWeek === null) return;
+    if (!window.confirm(`Remove the Week ${potwWeek} Player of the Week?`)) return;
+    try {
+      await db
+        .collection("seasonState")
+        .doc("current")
+        .update({ [`playerOfTheWeek.${potwWeek}`]: firebase.firestore.FieldValue.delete() });
+      closePotwModal();
+    } catch (error) {
+      showPotwMessage(error.message, true);
+    }
+  }
+
+  if (potwModalEl) {
+    let potwSearchTimeout = null;
+    potwSearchEl.addEventListener("input", () => {
+      clearTimeout(potwSearchTimeout);
+      potwSearchTimeout = setTimeout(renderPotwSuggestions, 120);
+    });
+    // Enter in the search box would otherwise submit the form and reload.
+    document.getElementById("potw-form").addEventListener("submit", (event) => event.preventDefault());
+    potwSaveBtnEl.addEventListener("click", savePlayerOfTheWeek);
+    potwRemoveBtnEl.addEventListener("click", removePlayerOfTheWeek);
+    potwCancelBtnEl.addEventListener("click", closePotwModal);
+  }
+
+  // Which weeks the viewer has opened or closed, so a live update (a new
+  // result, a Player of the Week save) doesn't snap every week back to
+  // the default. Weeks the viewer hasn't touched follow the default.
+  const weekOpenOverrides = new Map();
+
   // The week that should start expanded - the earliest regular-season
   // week with a game not yet final, or (once the whole regular season is
   // done) whichever week is highest, so an in-progress playoff round
@@ -957,15 +1258,34 @@
           })
           .join("");
         const gameCount = weekMatchups.length;
+        const potw = playerOfTheWeekFor(week);
+        const potwBtn = isAdmin()
+          ? `<button type="button" class="btn btn-secondary potw-open-btn" data-week="${week}">${potw ? "Edit" : "Upload"} Player of the Week</button>`
+          : "";
+        const isOpen = weekOpenOverrides.has(week) ? weekOpenOverrides.get(week) : week === currentWeek;
         return `
-          <details class="roster-set week-collapse"${week === currentWeek ? " open" : ""}>
-            <summary class="roster-set-title">${escapeHtml(heading)}<span class="roster-set-count">${gameCount} game${gameCount === 1 ? "" : "s"}</span></summary>
-            <div class="roster-set-group">${cards}</div>
+          <details class="roster-set week-collapse" data-week="${week}"${isOpen ? " open" : ""}>
+            <summary class="roster-set-title">${escapeHtml(heading)}<span class="roster-set-count">${gameCount} game${gameCount === 1 ? "" : "s"}</span>${potwBtn}${potw ? potwCollapsedHtml(potw) : ""}</summary>
+            <div class="roster-set-group">${potw ? potwExpandedHtml(potw) : ""}${cards}</div>
           </details>
         `;
       })
       .join("");
 
+    weeksEl.querySelectorAll(".week-collapse").forEach((detailsEl) => {
+      detailsEl.addEventListener("toggle", () => {
+        weekOpenOverrides.set(Number(detailsEl.dataset.week), detailsEl.open);
+      });
+    });
+    weeksEl.querySelectorAll(".potw-open-btn").forEach((btn) => {
+      btn.addEventListener("click", (event) => {
+        // The button lives inside the week's <summary> - don't let the
+        // click also expand/collapse the week.
+        event.preventDefault();
+        event.stopPropagation();
+        openPotwModal(Number(btn.dataset.week));
+      });
+    });
     weeksEl.querySelectorAll(".result-open-btn").forEach((btn) => {
       btn.addEventListener("click", () => openResultModal(btn.dataset.id));
     });
