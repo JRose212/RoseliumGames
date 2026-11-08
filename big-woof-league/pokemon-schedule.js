@@ -92,6 +92,12 @@
   const swapMatchupBEl = document.getElementById("swap-matchup-b");
   const swapMatchupDaysBtnEl = document.getElementById("swap-matchup-days-btn");
   const swapMatchupDaysMessageEl = document.getElementById("swap-matchup-days-message");
+  const swapTeamsCardEl = document.getElementById("swap-teams-card");
+  const swapTeamsWeekEl = document.getElementById("swap-teams-week");
+  const swapTeamsAEl = document.getElementById("swap-teams-a");
+  const swapTeamsBEl = document.getElementById("swap-teams-b");
+  const swapTeamsBtnEl = document.getElementById("swap-teams-btn");
+  const swapTeamsMessageEl = document.getElementById("swap-teams-message");
 
   if (!weeksEl) return;
 
@@ -478,6 +484,90 @@
   }
 
   if (swapMatchupDaysBtnEl) swapMatchupDaysBtnEl.addEventListener("click", swapMatchupDays);
+
+  // --- Swap two teams within one week ---
+  // Every matchup in the chosen week that has Team A gets Team B in that
+  // same seat (home/away), and the other way around. A team on bye has no
+  // matchup, so swapping it in hands the bye to the other team. Other
+  // weeks are untouched, so a schedule change can be made without
+  // regenerating anything.
+
+  const renderSwapTeamsOptions = () => {
+    if (!swapTeamsWeekEl || !swapTeamsAEl || !swapTeamsBEl) return;
+    const weeks = [...new Set(matchups.map((m) => m.week))].sort((a, b) => a - b);
+    const prevWeek = swapTeamsWeekEl.value ? Number(swapTeamsWeekEl.value) : null;
+    swapTeamsWeekEl.innerHTML = weeks.map((week) => `<option value="${week}">Week ${week}</option>`).join("");
+    if (weeks.includes(prevWeek)) swapTeamsWeekEl.value = prevWeek;
+
+    const teamOptions = [...teamsByUid.entries()]
+      .filter(([, team]) => !team.hidden)
+      .sort(([, a], [, b]) => (a.teamName || "").localeCompare(b.teamName || ""))
+      .map(([uid, team]) => `<option value="${escapeHtml(uid)}">${escapeHtml(team.teamName || "Unknown team")}</option>`)
+      .join("");
+    const prevA = swapTeamsAEl.value;
+    const prevB = swapTeamsBEl.value;
+    swapTeamsAEl.innerHTML = teamOptions;
+    swapTeamsBEl.innerHTML = teamOptions;
+    if (teamsByUid.has(prevA)) swapTeamsAEl.value = prevA;
+    if (teamsByUid.has(prevB)) swapTeamsBEl.value = prevB;
+  };
+
+  async function swapTeamsInWeek() {
+    const showMessage = (text, isError) => {
+      swapTeamsMessageEl.hidden = false;
+      swapTeamsMessageEl.className = `status${isError ? " error" : ""}`;
+      swapTeamsMessageEl.textContent = text;
+    };
+
+    const week = Number(swapTeamsWeekEl.value);
+    const uidA = swapTeamsAEl.value;
+    const uidB = swapTeamsBEl.value;
+    if (!week || !uidA || !uidB || uidA === uidB) {
+      showMessage("Pick a week and two different teams.", true);
+      return;
+    }
+
+    const affected = matchups.filter(
+      (m) => m.week === week && [m.homeUid, m.awayUid].some((uid) => uid === uidA || uid === uidB)
+    );
+    if (!affected.length) {
+      showMessage(`Neither team plays in Week ${week}.`, true);
+      return;
+    }
+    if (affected.some((m) => [m.homeUid, m.awayUid].includes(uidA) && [m.homeUid, m.awayUid].includes(uidB))) {
+      showMessage(`${teamName(uidA)} and ${teamName(uidB)} play each other in Week ${week}, so there's nothing to swap.`, true);
+      return;
+    }
+    if (affected.some((m) => m.status === "final")) {
+      showMessage("One of these games is already final, so it can't be changed.", true);
+      return;
+    }
+
+    const swapUid = (uid) => (uid === uidA ? uidB : uid === uidB ? uidA : uid);
+    const describe = (home, away) => `${teamName(home)} @ ${teamName(away)}`;
+    const changes = affected.map((m) => ({
+      m,
+      homeUid: swapUid(m.homeUid),
+      awayUid: swapUid(m.awayUid),
+    }));
+    const summary = changes
+      .map(({ m, homeUid, awayUid }) => `${describe(m.homeUid, m.awayUid)}  ->  ${describe(homeUid, awayUid)}`)
+      .join("\n");
+    if (!window.confirm(`Week ${week} changes:\n\n${summary}\n\nSave these changes?`)) return;
+
+    try {
+      const batch = db.batch();
+      changes.forEach(({ m, homeUid, awayUid }) => {
+        batch.update(db.collection("matchups").doc(m.id), { homeUid, awayUid });
+      });
+      await batch.commit();
+      showMessage(`Week ${week} updated: ${summary.replace(/\n/g, "; ")}`, false);
+    } catch (error) {
+      showMessage(error.message, true);
+    }
+  }
+
+  if (swapTeamsBtnEl) swapTeamsBtnEl.addEventListener("click", swapTeamsInWeek);
 
   async function generateSchedule() {
     const dateValue = startDateEl.value;
@@ -1299,7 +1389,10 @@
     renderWeeks();
     renderPlayoffAdmin();
     renderBracket();
-    if (isAdmin()) renderSwapMatchupOptions();
+    if (isAdmin()) {
+      renderSwapMatchupOptions();
+      renderSwapTeamsOptions();
+    }
   };
 
   const subscribe = () => {
@@ -1316,6 +1409,7 @@
       resetSeasonCardEl.hidden = true;
       resetTrainingCardEl.hidden = true;
       swapMatchupDaysCardEl.hidden = true;
+      if (swapTeamsCardEl) swapTeamsCardEl.hidden = true;
       standingsCardEl.hidden = true;
       playoffAdminCardEl.hidden = true;
       bracketCardEl.hidden = true;
@@ -1326,6 +1420,7 @@
     statusEl.hidden = true;
     resetTrainingCardEl.hidden = !isAdmin();
     swapMatchupDaysCardEl.hidden = !isAdmin();
+    if (swapTeamsCardEl) swapTeamsCardEl.hidden = !isAdmin();
     if (isAdmin() && trainingCutoffEl && !trainingCutoffEl.value) {
       const now = new Date();
       const pad = (n) => String(n).padStart(2, "0");

@@ -112,6 +112,21 @@
         <p class="status" id="swap-matchup-days-message" hidden></p>
       </section>
 
+      <section class="card" id="swap-teams-card" hidden>
+        <h2>Swap Teams in a Week</h2>
+        <p>Pick a week and two teams, and they trade places in that week's schedule: each takes the other's opponent, home/away side and time slot. If one of them has the bye that week, the other gets the bye instead. Other weeks don't change. Games that are already final can't be changed.</p>
+        <form class="auth-form" id="swap-teams-form">
+          <label for="swap-teams-week">Week</label>
+          <select id="swap-teams-week"></select>
+          <label for="swap-teams-a">Team A</label>
+          <select id="swap-teams-a"></select>
+          <label for="swap-teams-b">Team B</label>
+          <select id="swap-teams-b"></select>
+          <button type="button" class="btn btn-secondary" id="swap-teams-btn">Swap Teams</button>
+        </form>
+        <p class="status" id="swap-teams-message" hidden></p>
+      </section>
+
       <section class="card" id="standings-card" hidden>
         <h2>Standings</h2>
         <div class="table-wrap">
