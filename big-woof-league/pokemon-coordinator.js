@@ -118,13 +118,16 @@
     fairy: "#c56f98",
   };
 
-  const NEUTRAL_GRADIENT = "linear-gradient(135deg, #3a3f46 50%, #3a3f46 50%)";
+  const NEUTRAL_COLOR = "#3a3f46";
 
-  const gradientForTypes = (types) => {
-    if (!types || !types.length) return NEUTRAL_GRADIENT;
-    const a = typeColorHex[types[0]] || "#3a3f46";
-    const b = typeColorHex[types[1]] || a;
-    return `linear-gradient(135deg, ${a} 50%, ${b} 50%)`;
+  // A box's border is split diagonally by its own mitered corners - the
+  // top/left edges carry the first type's color, bottom/right carry the
+  // second (or the same color twice for a single type), so the two meet
+  // at a natural 45deg diagonal at the top-right and bottom-left corners.
+  const colorsForTypes = (types) => {
+    const a = (types && typeColorHex[types[0]]) || NEUTRAL_COLOR;
+    const b = (types && typeColorHex[types[1]]) || a;
+    return { a, b };
   };
 
   // --- Position groups/formation coordinates ---
@@ -221,11 +224,16 @@
             </div>`;
   };
 
+  const setBoxColors = (el, colors) => {
+    el.style.setProperty("--coord-color-a", colors.a);
+    el.style.setProperty("--coord-color-b", colors.b);
+  };
+
   const applyBoxBorders = (containerEl) => {
     containerEl.querySelectorAll("[data-poke-id]").forEach((el) => {
-      el.style.setProperty("--coord-border-gradient", NEUTRAL_GRADIENT);
+      setBoxColors(el, { a: NEUTRAL_COLOR, b: NEUTRAL_COLOR });
       fetchDetail(Number(el.dataset.pokeId))
-        .then((detail) => el.style.setProperty("--coord-border-gradient", gradientForTypes(detail.types)))
+        .then((detail) => setBoxColors(el, colorsForTypes(detail.types)))
         .catch(() => {});
     });
   };

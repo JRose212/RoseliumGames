@@ -2268,9 +2268,19 @@ body[data-page^="pokemon-"] .app-content {
   position: relative;
   width: 100%;
   aspect-ratio: 16 / 8;
-  background: linear-gradient(180deg, rgba(63, 142, 79, 0.22), rgba(63, 142, 79, 0.08));
   border: 1px solid var(--border);
   overflow: visible;
+}
+
+.coord-field::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image: url("assets/coord-field-bg.png");
+  background-size: cover;
+  background-position: center;
+  opacity: 0.5;
+  z-index: 0;
 }
 
 .coord-field--opp {
@@ -2304,6 +2314,7 @@ body[data-page^="pokemon-"] .app-content {
 
 .coord-box {
   position: absolute;
+  z-index: 1;
   transform: translate(-50%, -50%);
   width: clamp(46px, 11vw, 80px);
   height: clamp(46px, 11vw, 80px);
@@ -2312,10 +2323,13 @@ body[data-page^="pokemon-"] .app-content {
   align-items: center;
   justify-content: center;
   padding: 2px;
-  border: 3px solid transparent;
-  background-image: var(--coord-border-gradient), linear-gradient(var(--surface-strong), var(--surface-strong));
-  background-origin: border-box, padding-box;
-  background-clip: border-box, padding-box;
+  border-style: solid;
+  border-width: 3px;
+  border-top-color: var(--coord-color-a, var(--border));
+  border-left-color: var(--coord-color-a, var(--border));
+  border-right-color: var(--coord-color-b, var(--border));
+  border-bottom-color: var(--coord-color-b, var(--border));
+  background: transparent;
   cursor: pointer;
   text-align: center;
 }
@@ -2326,7 +2340,6 @@ body[data-page^="pokemon-"] .app-content {
 }
 
 .coord-box--empty {
-  background-image: none;
   background: rgba(199, 211, 222, 0.06);
   border-style: dashed;
   border-color: var(--border);
@@ -2377,10 +2390,13 @@ body[data-page^="pokemon-"] .app-content {
   align-items: center;
   gap: 0.15rem;
   padding: 0.3rem;
-  border: 3px solid transparent;
-  background-image: var(--coord-border-gradient), linear-gradient(var(--surface-strong), var(--surface-strong));
-  background-origin: border-box, padding-box;
-  background-clip: border-box, padding-box;
+  border-style: solid;
+  border-width: 3px;
+  border-top-color: var(--coord-color-a, var(--border));
+  border-left-color: var(--coord-color-a, var(--border));
+  border-right-color: var(--coord-color-b, var(--border));
+  border-bottom-color: var(--coord-color-b, var(--border));
+  background: transparent;
   cursor: pointer;
   text-align: center;
 }
@@ -2390,7 +2406,6 @@ body[data-page^="pokemon-"] .app-content {
 }
 
 .coord-pool-item--empty {
-  background-image: none;
   background: rgba(199, 211, 222, 0.06);
   border-style: dashed;
   border-color: var(--border);
