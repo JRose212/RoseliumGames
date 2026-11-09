@@ -2272,17 +2272,6 @@ body[data-page^="pokemon-"] .app-content {
   overflow: visible;
 }
 
-.coord-field::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background-image: url("assets/coord-field-bg.png");
-  background-size: cover;
-  background-position: center;
-  opacity: 0.5;
-  z-index: 0;
-}
-
 .coord-field--opp {
   border-bottom: none;
 }
@@ -2443,6 +2432,10 @@ body[data-page^="pokemon-"] .app-content {
 }
 
 @media (max-width: 640px) {
+  .coord-field {
+    --coord-x-scale: 0.5;
+  }
+
   .coord-box {
     width: clamp(40px, 15vw, 64px);
     height: clamp(40px, 15vw, 64px);

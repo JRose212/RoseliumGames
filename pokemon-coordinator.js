@@ -211,7 +211,10 @@
     // needs to land at the BOTTOM of their container (right against the
     // shared divider) rather than the top - mirrored flips that axis.
     const top = mirrored ? 100 - coords.y : coords.y;
-    const style = `left:${coords.x}%; top:${top}%;`;
+    // The x-scale custom property lets mobile pull the whole formation in
+    // toward the center (see the @media rule in pokemon.css) without
+    // touching box size - only how far apart positions sit.
+    const style = `left: calc(50% + (${coords.x}% - 50%) * var(--coord-x-scale, 1)); top:${top}%;`;
     if (empty) {
       return `<div class="${classes.join(" ")}" style="${style}" data-position="${escapeHtml(position)}">
                 <span class="coord-box-position">${escapeHtml(shortLabel(position))}</span>
