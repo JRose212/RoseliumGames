@@ -2363,8 +2363,9 @@ body[data-page^="pokemon-"] .app-content {
 
 .coord-pool {
   display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
   gap: 0.6rem;
-  overflow-x: auto;
   padding: 0.75rem 0.25rem;
   margin-top: 0.5rem;
   border-top: 1px solid var(--border);
@@ -2372,7 +2373,7 @@ body[data-page^="pokemon-"] .app-content {
 
 .coord-pool-item {
   position: relative;
-  flex-shrink: 0;
+  flex: 0 0 auto;
   width: 64px;
   display: flex;
   flex-direction: column;
@@ -2432,12 +2433,8 @@ body[data-page^="pokemon-"] .app-content {
 }
 
 @media (max-width: 640px) {
-  .coord-field {
-    --coord-x-scale: 0.5;
-  }
-
   .coord-box {
-    width: clamp(40px, 15vw, 64px);
-    height: clamp(40px, 15vw, 64px);
+    width: clamp(26px, 7vw, 36px);
+    height: clamp(26px, 7vw, 36px);
   }
 }

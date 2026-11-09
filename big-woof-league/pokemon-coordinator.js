@@ -140,6 +140,10 @@
   const defensePositions = [...(positionGroups.defense || [])];
   const allPositions = config.pokemonPositions || [];
   const fieldFormations = config.fieldFormations || { offense: {}, defense: {} };
+  // Matches pokemon.css's own mobile breakpoint for this page.
+  const mobileQuery = window.matchMedia("(max-width: 640px)");
+  const offenseCoords = () =>
+    mobileQuery.matches && fieldFormations.offenseMobile ? fieldFormations.offenseMobile : fieldFormations.offense;
 
   const shortLabel = (position) => (position.startsWith("BENCH") ? `B${position.slice(5)}` : position);
 
@@ -214,10 +218,7 @@
     // needs to land at the BOTTOM of their container (right against the
     // shared divider) rather than the top - mirrored flips that axis.
     const top = mirrored ? 100 - coords.y : coords.y;
-    // The x-scale custom property lets mobile pull the whole formation in
-    // toward the center (see the @media rule in pokemon.css) without
-    // touching box size - only how far apart positions sit.
-    const style = `left: calc(50% + (${coords.x}% - 50%) * var(--coord-x-scale, 1)); top:${top}%;`;
+    const style = `left:${coords.x}%; top:${top}%;`;
     if (empty) {
       return `<div class="${classes.join(" ")}" style="${style}" data-position="${escapeHtml(position)}">
                 <span class="coord-box-position">${escapeHtml(shortLabel(position))}</span>
@@ -298,11 +299,9 @@
     const offenseEditable = mode === "offense";
     const defenseEditable = mode === "defense";
 
-    const renderHalf = (containerEl, positions, slotsSource, coordKey, editable, mirrored) => {
+    const renderHalf = (containerEl, positions, slotsSource, coordsMap, editable, mirrored) => {
       containerEl.innerHTML = positions
-        .map((position) =>
-          boxHtml(position, slotsSource[position], { editable, coords: fieldFormations[coordKey][position], mirrored })
-        )
+        .map((position) => boxHtml(position, slotsSource[position], { editable, coords: coordsMap[position], mirrored }))
         .join("");
       containerEl.querySelectorAll(".coord-box").forEach((el) => {
         if (editable) {
@@ -314,8 +313,8 @@
       applyBoxBorders(containerEl);
     };
 
-    renderHalf(fieldDefenseEl, defensePositions, defenseSlots, "defense", defenseEditable, true);
-    renderHalf(fieldOffenseEl, offensePositions, offenseSlots, "offense", offenseEditable, false);
+    renderHalf(fieldDefenseEl, defensePositions, defenseSlots, fieldFormations.defense, defenseEditable, true);
+    renderHalf(fieldOffenseEl, offensePositions, offenseSlots, offenseCoords(), offenseEditable, false);
 
     const poolPositions = allPositions.filter((p) => !myPositions.includes(p));
     poolEl.innerHTML = poolPositions.map((position) => poolItemHtml(position, draftSlots[position])).join("");
@@ -351,6 +350,10 @@
     draftSlots[position] = fromValue;
     render();
   };
+
+  // Re-pick desktop vs. mobile offense coordinates on rotation/resize
+  // across the breakpoint (e.g. turning a phone sideways).
+  mobileQuery.addEventListener("change", () => render());
 
   tabOffenseEl.addEventListener("click", () => {
     if (mode === "offense") return;

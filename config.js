@@ -62,6 +62,27 @@ window.siteConfig = {
       FB: { x: 60, y: 40 },
       K: { x: 12, y: 58 },
     },
+    // Narrow-screen-only override for the offensive formation - the
+    // desktop line's 8-9% gaps between LT/LG/C/RG/RT overlap once boxes
+    // are mobile-sized, no matter how small the box gets, so this isn't a
+    // uniform shrink of the desktop layout - it's wider line spacing
+    // (11% gaps) plus TE pulled off the line into its own row, so every
+    // same-row neighbor keeps a real buffer. Defense doesn't need this -
+    // its desktop gaps (17%+) already have enough room on mobile.
+    offenseMobile: {
+      WR1: { x: 10, y: 5 },
+      LT: { x: 28, y: 5 },
+      LG: { x: 39, y: 5 },
+      C: { x: 50, y: 5 },
+      RG: { x: 61, y: 5 },
+      RT: { x: 72, y: 5 },
+      WR2: { x: 92, y: 5 },
+      TE: { x: 83, y: 18 },
+      QB: { x: 50, y: 28 },
+      RB: { x: 36, y: 44 },
+      FB: { x: 64, y: 44 },
+      K: { x: 12, y: 62 },
+    },
     defense: {
       DE: { x: 33, y: 6 },
       NT: { x: 50, y: 6 },
