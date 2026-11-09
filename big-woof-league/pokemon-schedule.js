@@ -922,7 +922,7 @@
 
   const potwBoxEntry = (potw) => {
     const box = potw && boxScoresByMatchupId.get(potw.matchupId);
-    const entries = (box && box[potw.side]) || [];
+    const entries = ((box && box[potw.side]) || []).filter(Boolean);
     const key = normalizePokemonName(potw.pokemonName);
     return (
       entries.find((e) => e.slot === potw.slot && normalizePokemonName(e.pokemonName) === key) ||
@@ -1107,48 +1107,58 @@
       showPotwMessage("Add a write-up.", true);
       return;
     }
+    const week = potwWeek;
+    const selection = potwSelection;
     potwSaveBtnEl.disabled = true;
-    try {
-      const pokemonId = await resolvePokemonId(potwSelection.pokemonName);
-      await db
-        .collection("seasonState")
-        .doc("current")
-        .set(
-          {
-            playerOfTheWeek: {
-              [potwWeek]: {
-                pokemonName: potwSelection.pokemonName,
-                pokemonId: pokemonId || null,
-                slot: potwSelection.slot,
-                uid: potwSelection.uid,
-                matchupId: potwSelection.matchupId,
-                side: potwSelection.side,
-                writeUp,
-                updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
-              },
+    potwSaveBtnEl.textContent = "Saving…";
+    // Never let the sprite lookup hold the save up - after a few seconds,
+    // save without a sprite rather than leave the dialog hanging.
+    const pokemonId = await Promise.race([
+      resolvePokemonId(selection.pokemonName),
+      new Promise((resolve) => setTimeout(() => resolve(null), 4000)),
+    ]);
+    const write = db
+      .collection("seasonState")
+      .doc("current")
+      .set(
+        {
+          playerOfTheWeek: {
+            [week]: {
+              pokemonName: selection.pokemonName,
+              pokemonId: pokemonId || null,
+              slot: selection.slot,
+              uid: selection.uid,
+              matchupId: selection.matchupId,
+              side: selection.side,
+              writeUp,
+              updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
             },
           },
-          { merge: true }
-        );
-      closePotwModal();
-    } catch (error) {
-      potwSaveBtnEl.disabled = false;
-      showPotwMessage(error.message, true);
-    }
+        },
+        { merge: true }
+      );
+    // Firestore shows the change on the page straight away; its promise
+    // only resolves once the server confirms, which can lag. Close now
+    // rather than waiting on that, and only speak up if it fails.
+    potwSaveBtnEl.textContent = "Save";
+    closePotwModal();
+    write.catch((error) => {
+      window.alert(`Couldn't save the Week ${week} Player of the Week: ${error.message}`);
+    });
   }
 
   async function removePlayerOfTheWeek() {
     if (potwWeek === null) return;
     if (!window.confirm(`Remove the Week ${potwWeek} Player of the Week?`)) return;
-    try {
-      await db
-        .collection("seasonState")
-        .doc("current")
-        .update({ [`playerOfTheWeek.${potwWeek}`]: firebase.firestore.FieldValue.delete() });
-      closePotwModal();
-    } catch (error) {
-      showPotwMessage(error.message, true);
-    }
+    const week = potwWeek;
+    const write = db
+      .collection("seasonState")
+      .doc("current")
+      .update({ [`playerOfTheWeek.${week}`]: firebase.firestore.FieldValue.delete() });
+    closePotwModal();
+    write.catch((error) => {
+      window.alert(`Couldn't remove the Week ${week} Player of the Week: ${error.message}`);
+    });
   }
 
   if (potwModalEl) {
@@ -1162,6 +1172,15 @@
     potwSaveBtnEl.addEventListener("click", savePlayerOfTheWeek);
     potwRemoveBtnEl.addEventListener("click", removePlayerOfTheWeek);
     potwCancelBtnEl.addEventListener("click", closePotwModal);
+    document.getElementById("potw-close-btn").addEventListener("click", closePotwModal);
+    // Clicking the dimmed backdrop (outside the panel) or pressing Escape
+    // closes it too.
+    potwModalEl.addEventListener("click", (event) => {
+      if (event.target === potwModalEl) closePotwModal();
+    });
+    document.addEventListener("keydown", (event) => {
+      if (event.key === "Escape" && !potwModalEl.hidden) closePotwModal();
+    });
   }
 
   // Which weeks the viewer has opened or closed, so a live update (a new
