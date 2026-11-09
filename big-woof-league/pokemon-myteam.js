@@ -367,7 +367,12 @@
     return trainingLog
       .filter((log) => log.uid === uid)
       .filter((log) => {
-        const logMs = new Date(`${log.date}T12:00:00`).getTime();
+        // loggedAt (the real click time) is what actually matters here - log.date
+        // alone is just a calendar day, and every kickoff slot is after noon, so
+        // using a noon fallback keeps pre-kickoff same-day training attributed to
+        // that day's game while still letting real post-game timestamps roll over
+        // to the next matchup's window.
+        const logMs = log.loggedAt ? log.loggedAt.toMillis() : new Date(`${log.date}T12:00:00`).getTime();
         return (startMs === null || logMs > startMs) && logMs <= endMs;
       })
       .sort((a, b) => a.date.localeCompare(b.date))
