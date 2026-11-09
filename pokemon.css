@@ -2272,11 +2272,11 @@ body[data-page^="pokemon-"] .app-content {
   overflow: visible;
 }
 
-.coord-field--opp {
+.coord-field--top {
   border-bottom: none;
 }
 
-.coord-field--mine {
+.coord-field--bottom {
   border-top: none;
 }
 

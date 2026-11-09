@@ -1,8 +1,11 @@
 // Offense/Defense Coordinator (My Team). A sandbox: swaps here only touch
 // a local draft of your own slots, never Firestore, until "Save to
 // Roster" runs the same kind of per-key transactional merge the plain My
-// Team roster editor uses. The opponent's half is always their real,
-// live roster - read-only here, no local draft on their side at all.
+// Team roster editor uses. The two halves are pinned to their own shape
+// (offense bottom, defense top) regardless of mode - only which team's
+// roster fills a half, and whether it's editable, changes. Whichever half
+// isn't yours is always the opponent's real, live roster - read-only, no
+// local draft on their side at all.
 (function () {
   const config = window.siteConfig || {};
   const statusEl = document.getElementById("coord-status");
@@ -10,8 +13,8 @@
   const tabOffenseEl = document.getElementById("coord-tab-offense");
   const tabDefenseEl = document.getElementById("coord-tab-defense");
   const matchupLabelEl = document.getElementById("coord-matchup-label");
-  const fieldOppEl = document.getElementById("coord-field-opp");
-  const fieldMineEl = document.getElementById("coord-field-mine");
+  const fieldDefenseEl = document.getElementById("coord-field-defense");
+  const fieldOffenseEl = document.getElementById("coord-field-offense");
   const poolEl = document.getElementById("coord-pool");
   const saveBtnEl = document.getElementById("coord-save-btn");
   const resetBtnEl = document.getElementById("coord-reset-btn");
@@ -282,34 +285,37 @@
     tabOffenseEl.classList.toggle("coord-mode-tab--active", mode === "offense");
     tabDefenseEl.classList.toggle("coord-mode-tab--active", mode === "defense");
 
-    // Realistic facing: Offensive Coordinator = my offense vs their
-    // defense; Defensive Coordinator = my defense vs their offense.
+    // The two halves are pinned to their own shape and screen position -
+    // the offense formation always sits at the bottom, the defense
+    // formation always at the top - so switching tabs never rearranges
+    // the diagram itself. Only which team's roster fills each half, and
+    // which one you can edit, changes. Realistic facing still holds:
+    // Offensive Coordinator makes the bottom (offense) yours and the top
+    // (defense) your opponent's; Defensive Coordinator flips that.
     const myPositions = mode === "offense" ? offensePositions : defensePositions;
-    const myCoordKey = mode === "offense" ? "offense" : "defense";
-    const oppPositions = mode === "offense" ? defensePositions : offensePositions;
-    const oppCoordKey = mode === "offense" ? "defense" : "offense";
+    const offenseSlots = mode === "offense" ? draftSlots : opponentSlots;
+    const defenseSlots = mode === "offense" ? opponentSlots : draftSlots;
+    const offenseEditable = mode === "offense";
+    const defenseEditable = mode === "defense";
 
-    fieldOppEl.innerHTML = oppPositions
-      .map((position) =>
-        boxHtml(position, opponentSlots[position], {
-          editable: false,
-          coords: fieldFormations[oppCoordKey][position],
-          mirrored: true,
-        })
-      )
-      .join("");
-    fieldOppEl.querySelectorAll(".coord-box[data-poke-id]").forEach((el) => {
-      el.addEventListener("click", () => openDetail(Number(el.dataset.pokeId), el.dataset.pokeName));
-    });
-    applyBoxBorders(fieldOppEl);
+    const renderHalf = (containerEl, positions, slotsSource, coordKey, editable, mirrored) => {
+      containerEl.innerHTML = positions
+        .map((position) =>
+          boxHtml(position, slotsSource[position], { editable, coords: fieldFormations[coordKey][position], mirrored })
+        )
+        .join("");
+      containerEl.querySelectorAll(".coord-box").forEach((el) => {
+        if (editable) {
+          el.addEventListener("click", () => handleSlotClick(el.dataset.position));
+        } else if (el.dataset.pokeId) {
+          el.addEventListener("click", () => openDetail(Number(el.dataset.pokeId), el.dataset.pokeName));
+        }
+      });
+      applyBoxBorders(containerEl);
+    };
 
-    fieldMineEl.innerHTML = myPositions
-      .map((position) => boxHtml(position, draftSlots[position], { editable: true, coords: fieldFormations[myCoordKey][position] }))
-      .join("");
-    fieldMineEl.querySelectorAll(".coord-box").forEach((el) => {
-      el.addEventListener("click", () => handleSlotClick(el.dataset.position));
-    });
-    applyBoxBorders(fieldMineEl);
+    renderHalf(fieldDefenseEl, defensePositions, defenseSlots, "defense", defenseEditable, true);
+    renderHalf(fieldOffenseEl, offensePositions, offenseSlots, "offense", offenseEditable, false);
 
     const poolPositions = allPositions.filter((p) => !myPositions.includes(p));
     poolEl.innerHTML = poolPositions.map((position) => poolItemHtml(position, draftSlots[position])).join("");
