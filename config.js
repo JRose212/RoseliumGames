@@ -37,6 +37,46 @@ window.siteConfig = {
     bench: ["BENCH1", "BENCH2", "BENCH3"],
   },
 
+  // Offense/Defense Coordinator screens (My Team) - roughly where each
+  // position lines up on a real field, as percentages within that unit's
+  // own half (x: 0-100 left-to-right, y: 0 at the line of scrimmage up to
+  // 100 deep in that unit's own territory). The Coordinator page mirrors
+  // the y-axis for whichever unit is drawn on top, so both halves meet at
+  // a shared line-of-scrimmage divider. Not league-specific - same real
+  // positions, same real field - so there's no reason for this to differ
+  // between leagues. K rides along with the offensive formation (see the
+  // Coordinator page) since this league has no standalone special-teams
+  // screen.
+  fieldFormations: {
+    offense: {
+      WR1: { x: 8, y: 6 },
+      TE: { x: 80, y: 8 },
+      LT: { x: 33, y: 5 },
+      LG: { x: 42, y: 5 },
+      C: { x: 50, y: 5 },
+      RG: { x: 58, y: 5 },
+      RT: { x: 67, y: 5 },
+      WR2: { x: 93, y: 6 },
+      QB: { x: 50, y: 24 },
+      RB: { x: 40, y: 40 },
+      FB: { x: 60, y: 40 },
+      K: { x: 12, y: 58 },
+    },
+    defense: {
+      DE: { x: 33, y: 6 },
+      NT: { x: 50, y: 6 },
+      DT: { x: 67, y: 6 },
+      OLB1: { x: 15, y: 17 },
+      ILB1: { x: 42, y: 19 },
+      ILB2: { x: 58, y: 19 },
+      OLB2: { x: 85, y: 17 },
+      CB1: { x: 6, y: 33 },
+      CB2: { x: 94, y: 33 },
+      SS: { x: 40, y: 44 },
+      FS: { x: 60, y: 52 },
+    },
+  },
+
   // Legendary and Mythical Pokemon, excluded from the draft, pre-draft
   // rankings, and free agency entirely - shown grayed-out/labeled
   // "Legendary" everywhere they'd otherwise appear (including the plain

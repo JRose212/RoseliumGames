@@ -2221,3 +2221,215 @@ body[data-page^="pokemon-"] .app-content {
   font-size: 0.68rem;
   text-transform: capitalize;
 }
+
+/* Offense/Defense Coordinator (pokemon-coordinator.html) - a literal
+   field-diagram sandbox: positions sit at the real-ish spot they'd line
+   up on a football field, swaps only touch a local draft until Save,
+   and each box's border is split diagonally by its Pokemon's type
+   color(s) (set per-box via the --coord-border-a/--coord-border-b
+   custom properties in pokemon-coordinator.js, not here - this just
+   draws the gradient border + readable fallback interior). */
+
+.coord-mode-tabs {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+}
+
+.coord-mode-tab {
+  flex: 1;
+  padding: 0.6rem 0.8rem;
+  border: 2px solid var(--border);
+  background: rgba(199, 211, 222, 0.05);
+  color: var(--text);
+  font: inherit;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  font-size: 0.78rem;
+  cursor: pointer;
+}
+
+.coord-mode-tab--active {
+  border-color: var(--accent-strong);
+  background: rgba(255, 203, 5, 0.12);
+  color: var(--accent-strong);
+}
+
+.coord-matchup-label {
+  margin-top: 0.5rem;
+}
+
+.coord-field-stack {
+  margin-top: 1rem;
+}
+
+.coord-field {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 8;
+  background: linear-gradient(180deg, rgba(63, 142, 79, 0.22), rgba(63, 142, 79, 0.08));
+  border: 1px solid var(--border);
+  overflow: visible;
+}
+
+.coord-field--opp {
+  border-bottom: none;
+}
+
+.coord-field--mine {
+  border-top: none;
+}
+
+.coord-los-divider {
+  position: relative;
+  height: 3px;
+  background: repeating-linear-gradient(90deg, var(--accent-strong) 0 10px, transparent 10px 20px);
+  z-index: 2;
+}
+
+.coord-los-divider span {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: var(--bg);
+  padding: 0.1rem 0.5rem;
+  font-size: 0.6rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+.coord-box {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  width: clamp(46px, 11vw, 80px);
+  height: clamp(46px, 11vw, 80px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 2px;
+  border: 3px solid transparent;
+  background-image: var(--coord-border-gradient), linear-gradient(var(--surface-strong), var(--surface-strong));
+  background-origin: border-box, padding-box;
+  background-clip: border-box, padding-box;
+  cursor: pointer;
+  text-align: center;
+}
+
+.coord-box--readonly {
+  cursor: pointer;
+  opacity: 0.92;
+}
+
+.coord-box--empty {
+  background-image: none;
+  background: rgba(199, 211, 222, 0.06);
+  border-style: dashed;
+  border-color: var(--border);
+}
+
+.coord-box--selected {
+  box-shadow: 0 0 0 3px rgba(255, 203, 5, 0.6);
+}
+
+.coord-box-position {
+  position: absolute;
+  top: -0.55rem;
+  font-size: 0.55rem;
+  font-weight: 700;
+  color: var(--accent);
+  text-transform: uppercase;
+  background: var(--bg);
+  padding: 0 0.2rem;
+  white-space: nowrap;
+}
+
+.coord-box-sprite {
+  width: 78%;
+  height: 78%;
+  object-fit: contain;
+}
+
+.coord-box-empty-label {
+  font-size: 0.55rem;
+  color: var(--muted);
+}
+
+.coord-pool {
+  display: flex;
+  gap: 0.6rem;
+  overflow-x: auto;
+  padding: 0.75rem 0.25rem;
+  margin-top: 0.5rem;
+  border-top: 1px solid var(--border);
+}
+
+.coord-pool-item {
+  position: relative;
+  flex-shrink: 0;
+  width: 64px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.15rem;
+  padding: 0.3rem;
+  border: 3px solid transparent;
+  background-image: var(--coord-border-gradient), linear-gradient(var(--surface-strong), var(--surface-strong));
+  background-origin: border-box, padding-box;
+  background-clip: border-box, padding-box;
+  cursor: pointer;
+  text-align: center;
+}
+
+.coord-pool-item--selected {
+  box-shadow: 0 0 0 3px rgba(255, 203, 5, 0.6);
+}
+
+.coord-pool-item--empty {
+  background-image: none;
+  background: rgba(199, 211, 222, 0.06);
+  border-style: dashed;
+  border-color: var(--border);
+}
+
+.coord-pool-item img {
+  width: 44px;
+  height: 44px;
+  object-fit: contain;
+}
+
+.coord-pool-item span {
+  font-size: 0.55rem;
+  font-weight: 700;
+  color: var(--muted);
+  text-transform: uppercase;
+}
+
+.coord-actions {
+  position: sticky;
+  bottom: 0;
+  display: flex;
+  gap: 0.6rem;
+  align-items: center;
+  padding: 0.75rem 0;
+  margin-top: 0.5rem;
+  background: var(--bg);
+  border-top: 1px solid var(--border);
+  z-index: 10;
+}
+
+.coord-actions-status {
+  font-size: 0.75rem;
+  color: var(--muted);
+}
+
+@media (max-width: 640px) {
+  .coord-box {
+    width: clamp(40px, 15vw, 64px);
+    height: clamp(40px, 15vw, 64px);
+  }
+}
