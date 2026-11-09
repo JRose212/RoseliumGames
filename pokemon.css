@@ -2423,4 +2423,11 @@ body[data-page^="pokemon-"] .app-content {
     width: clamp(26px, 7vw, 36px);
     height: clamp(26px, 7vw, 36px);
   }
+
+  /* Position labels (QB, LT, etc.) only - 30% smaller here, nothing else
+     on the page changes size. */
+  .coord-box-position,
+  .coord-pool-item span {
+    font-size: 0.385rem;
+  }
 }
