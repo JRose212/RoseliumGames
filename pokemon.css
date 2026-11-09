@@ -1373,6 +1373,22 @@ body[data-page^="pokemon-"] .app-content {
     cursor: pointer;
     box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4);
   }
+
+  /* Unread chat on mobile - see markChatRead/updateUnreadGlow in
+     pokemon-chat.js. Pulses rather than just sitting lit so it's
+     noticeable out of the corner of your eye, not just on close look. */
+  .chat-toggle-btn--unread {
+    animation: chat-toggle-glow 1.6s ease-in-out infinite;
+  }
+
+  @keyframes chat-toggle-glow {
+    0%, 100% {
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4), 0 0 0 0 rgba(255, 203, 5, 0.65);
+    }
+    50% {
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4), 0 0 14px 6px rgba(255, 203, 5, 0.65);
+    }
+  }
 }
 
 /* Click-to-select-then-confirm live draft picks */

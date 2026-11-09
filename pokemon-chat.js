@@ -40,8 +40,41 @@
   const auth = firebase.auth();
   const db = firebase.firestore();
 
-  toggleBtn.addEventListener("click", () => sidebarEl.classList.add("open"));
+  toggleBtn.addEventListener("click", () => {
+    sidebarEl.classList.add("open");
+    markChatRead();
+  });
   closeBtn.addEventListener("click", () => sidebarEl.classList.remove("open"));
+
+  // On desktop the sidebar is always on-screen via plain CSS - it never
+  // gets the mobile-only "open" class toggled onto it - so the toggle
+  // button (hidden on desktop anyway) would otherwise never get marked
+  // read there. Treating desktop width as "always visible" keeps
+  // chatLastReadAt accurate across devices for the same account.
+  const isDesktopChatLayout = () => window.matchMedia("(min-width: 901px)").matches;
+  const isChatVisible = () => isDesktopChatLayout() || sidebarEl.classList.contains("open");
+
+  // Unread tracking for the mobile chat bubble: chatLastReadAt lives on
+  // the user's own team doc (no new collection/rules needed - the owner
+  // can already write arbitrary fields there). latestMessageAtMs comes
+  // from the live chatMessages listener below. The bubble glows only when
+  // there's a message newer than what's stored as read AND the chat isn't
+  // currently visible.
+  let myTeamRef = null;
+  let lastReadAtMs = 0;
+  let latestMessageAtMs = 0;
+
+  const updateUnreadGlow = () => {
+    const hasUnread = Boolean(auth.currentUser) && latestMessageAtMs > lastReadAtMs && !isChatVisible();
+    toggleBtn.classList.toggle("chat-toggle-btn--unread", hasUnread);
+  };
+
+  const markChatRead = () => {
+    toggleBtn.classList.remove("chat-toggle-btn--unread");
+    if (!myTeamRef || latestMessageAtMs <= lastReadAtMs) return;
+    lastReadAtMs = latestMessageAtMs;
+    myTeamRef.update({ chatLastReadAt: firebase.firestore.FieldValue.serverTimestamp() }).catch(() => {});
+  };
 
   const isAdmin = () =>
     Boolean(auth.currentUser && config.adminUid && config.adminUid !== "YOUR_ADMIN_UID" && auth.currentUser.uid === config.adminUid);
@@ -132,12 +165,26 @@
       inputEl.placeholder = "Sign in to chat…";
       messagesEl.innerHTML = `<p class="status">Sign in on <a href="pokemon-league.html">League Home</a> to view and join the chat.</p>`;
       if (clearSystemBtn) clearSystemBtn.hidden = true;
+      myTeamRef = null;
+      lastReadAtMs = 0;
+      latestMessageAtMs = 0;
+      toggleBtn.classList.remove("chat-toggle-btn--unread");
       return;
     }
 
     inputEl.disabled = false;
     sendBtn.disabled = false;
     inputEl.placeholder = "Message the league…";
+
+    myTeamRef = db.collection("teams").doc(auth.currentUser.uid);
+    myTeamRef
+      .get()
+      .then((snap) => {
+        const data = snap.data();
+        lastReadAtMs = (data && data.chatLastReadAt && data.chatLastReadAt.toMillis()) || 0;
+        updateUnreadGlow();
+      })
+      .catch(() => {});
 
     unsubscribe = db
       .collection("chatMessages")
@@ -146,7 +193,14 @@
       .onSnapshot(
         (snapshot) => {
           const messages = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() })).reverse();
+          const latest = messages[messages.length - 1];
+          if (latest && latest.createdAt) latestMessageAtMs = latest.createdAt.toMillis();
           renderMessages(messages);
+          if (isChatVisible()) {
+            markChatRead();
+          } else {
+            updateUnreadGlow();
+          }
         },
         (error) => {
           messagesEl.innerHTML = `<p class="status error">Unable to load chat: ${escapeHtml(error.message)}</p>`;
