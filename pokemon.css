@@ -2267,7 +2267,7 @@ body[data-page^="pokemon-"] .app-content {
 .coord-field {
   position: relative;
   width: 100%;
-  aspect-ratio: 16 / 8;
+  aspect-ratio: 16 / 12;
   border: 1px solid var(--border);
   overflow: visible;
 }
@@ -2282,23 +2282,9 @@ body[data-page^="pokemon-"] .app-content {
 
 .coord-los-divider {
   position: relative;
-  height: 3px;
-  background: repeating-linear-gradient(90deg, var(--accent-strong) 0 10px, transparent 10px 20px);
-  z-index: 2;
-}
-
-.coord-los-divider span {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  background: var(--bg);
-  padding: 0.1rem 0.5rem;
-  font-size: 0.6rem;
-  font-weight: 700;
-  letter-spacing: 0.04em;
-  color: var(--muted);
-  white-space: nowrap;
+  height: 1px;
+  background: repeating-linear-gradient(90deg, rgba(255, 203, 5, 0.35) 0 6px, transparent 6px 12px);
+  z-index: 0;
 }
 
 .coord-box {

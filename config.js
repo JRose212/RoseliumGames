@@ -42,59 +42,64 @@ window.siteConfig = {
   // own half (x: 0-100 left-to-right, y: 0 at the line of scrimmage up to
   // 100 deep in that unit's own territory). The Coordinator page mirrors
   // the y-axis for whichever unit is drawn on top, so both halves meet at
-  // a shared line-of-scrimmage divider. Not league-specific - same real
-  // positions, same real field - so there's no reason for this to differ
-  // between leagues. K rides along with the offensive formation (see the
-  // Coordinator page) since this league has no standalone special-teams
-  // screen.
+  // a shared line-of-scrimmage divider - y values for the line positions
+  // (LT/LG/C/RG/RT/WR1/WR2 on offense, DE/NT/DT on defense) deliberately
+  // keep real distance from y=0, not just a token amount: a box's own
+  // half-height can otherwise poke past its field's edge and into the
+  // other team's half (that's what "overlapping across the line of
+  // scrimmage" was - not a stacking/z-index problem, an actual position
+  // problem). Not league-specific - same real positions, same real field
+  // - so there's no reason for this to differ between leagues. K rides
+  // along with the offensive formation (see the Coordinator page) since
+  // this league has no standalone special-teams screen.
   fieldFormations: {
     offense: {
-      WR1: { x: 8, y: 6 },
-      TE: { x: 80, y: 8 },
-      LT: { x: 33, y: 5 },
-      LG: { x: 42, y: 5 },
-      C: { x: 50, y: 5 },
-      RG: { x: 58, y: 5 },
-      RT: { x: 67, y: 5 },
-      WR2: { x: 93, y: 6 },
-      QB: { x: 50, y: 24 },
-      RB: { x: 40, y: 40 },
-      FB: { x: 60, y: 40 },
-      K: { x: 12, y: 58 },
+      WR1: { x: 8, y: 14 },
+      LT: { x: 33, y: 14 },
+      LG: { x: 42, y: 14 },
+      C: { x: 50, y: 14 },
+      RG: { x: 58, y: 14 },
+      RT: { x: 67, y: 14 },
+      WR2: { x: 93, y: 14 },
+      TE: { x: 80, y: 27 },
+      QB: { x: 50, y: 40 },
+      RB: { x: 40, y: 58 },
+      FB: { x: 60, y: 58 },
+      K: { x: 12, y: 80 },
     },
-    // Narrow-screen-only override for the offensive formation - the
-    // desktop line's 8-9% gaps between LT/LG/C/RG/RT overlap once boxes
-    // are mobile-sized, no matter how small the box gets, so this isn't a
-    // uniform shrink of the desktop layout - it's wider line spacing
-    // (11% gaps) plus TE pulled off the line into its own row, so every
-    // same-row neighbor keeps a real buffer. Defense doesn't need this -
-    // its desktop gaps (17%+) already have enough room on mobile.
+    // Narrow-screen-only override for the offensive formation's x spacing
+    // - the desktop line's 8-9% gaps between LT/LG/C/RG/RT overlap once
+    // boxes are mobile-sized, no matter how small the box gets, so this
+    // isn't a uniform shrink of the desktop layout - it's wider line
+    // spacing (11% gaps). y values match the desktop set above. Defense
+    // doesn't need an x override - its desktop gaps (17%+) already have
+    // enough room on mobile.
     offenseMobile: {
-      WR1: { x: 10, y: 5 },
-      LT: { x: 28, y: 5 },
-      LG: { x: 39, y: 5 },
-      C: { x: 50, y: 5 },
-      RG: { x: 61, y: 5 },
-      RT: { x: 72, y: 5 },
-      WR2: { x: 92, y: 5 },
-      TE: { x: 83, y: 18 },
-      QB: { x: 50, y: 28 },
-      RB: { x: 36, y: 44 },
-      FB: { x: 64, y: 44 },
-      K: { x: 12, y: 62 },
+      WR1: { x: 10, y: 14 },
+      LT: { x: 28, y: 14 },
+      LG: { x: 39, y: 14 },
+      C: { x: 50, y: 14 },
+      RG: { x: 61, y: 14 },
+      RT: { x: 72, y: 14 },
+      WR2: { x: 92, y: 14 },
+      TE: { x: 83, y: 27 },
+      QB: { x: 50, y: 40 },
+      RB: { x: 36, y: 58 },
+      FB: { x: 64, y: 58 },
+      K: { x: 12, y: 80 },
     },
     defense: {
-      DE: { x: 33, y: 6 },
-      NT: { x: 50, y: 6 },
-      DT: { x: 67, y: 6 },
-      OLB1: { x: 24, y: 17 },
-      ILB1: { x: 42, y: 19 },
-      ILB2: { x: 58, y: 19 },
-      OLB2: { x: 76, y: 17 },
-      CB1: { x: 6, y: 33 },
-      CB2: { x: 94, y: 33 },
-      SS: { x: 40, y: 44 },
-      FS: { x: 60, y: 52 },
+      DE: { x: 33, y: 14 },
+      NT: { x: 50, y: 14 },
+      DT: { x: 67, y: 14 },
+      OLB1: { x: 20, y: 34 },
+      ILB1: { x: 42, y: 34 },
+      ILB2: { x: 58, y: 34 },
+      OLB2: { x: 80, y: 34 },
+      CB1: { x: 6, y: 50 },
+      CB2: { x: 94, y: 50 },
+      SS: { x: 40, y: 64 },
+      FS: { x: 60, y: 76 },
     },
   },
 
