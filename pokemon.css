@@ -2427,11 +2427,19 @@ body[data-page^="pokemon-"] .app-content {
     font-size: 0.385rem;
   }
 
-  /* Save/Reset/Go to My Team wrap together as one row, with the status
-     text forced onto its own line below - caps this at 2 rows instead of
-     each item potentially landing on its own line. */
+  /* Save/Reset/Go to My Team shrink to fit one row - flex-wrap stays on
+     only as a fallback if they somehow still don't fit. The status text
+     is still forced onto its own line below either way. */
   .coord-actions {
     flex-wrap: wrap;
+    gap: 0.35rem;
+  }
+
+  .coord-actions .btn {
+    padding: 0.35rem 0.5rem;
+    font-size: 0.62rem;
+    letter-spacing: 0.02em;
+    white-space: nowrap;
   }
 
   .coord-actions-status {
