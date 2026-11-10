@@ -144,6 +144,8 @@
   const mobileQuery = window.matchMedia("(max-width: 640px)");
   const offenseCoords = () =>
     mobileQuery.matches && fieldFormations.offenseMobile ? fieldFormations.offenseMobile : fieldFormations.offense;
+  const defenseCoords = () =>
+    mobileQuery.matches && fieldFormations.defenseMobile ? fieldFormations.defenseMobile : fieldFormations.defense;
 
   const shortLabel = (position) => (position.startsWith("BENCH") ? `B${position.slice(5)}` : position);
 
@@ -313,7 +315,7 @@
       applyBoxBorders(containerEl);
     };
 
-    renderHalf(fieldDefenseEl, defensePositions, defenseSlots, fieldFormations.defense, defenseEditable, true);
+    renderHalf(fieldDefenseEl, defensePositions, defenseSlots, defenseCoords(), defenseEditable, true);
     renderHalf(fieldOffenseEl, offensePositions, offenseSlots, offenseCoords(), offenseEditable, false);
 
     const poolPositions = allPositions.filter((p) => !myPositions.includes(p));

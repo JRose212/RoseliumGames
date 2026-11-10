@@ -92,6 +92,24 @@ window.siteConfig = {
       OLB2: { x: 80, y: 24 },
       CB1: { x: 6, y: 9 },
       CB2: { x: 94, y: 9 },
+      SS: { x: 40, y: 78 },
+      FS: { x: 60, y: 92 },
+    },
+    // Narrow-screen-only override - just SS/FS staying at the shallower
+    // desktop-used-to-have depth. The field's overall height is tighter
+    // on mobile, so pushing the safeties as deep as desktop does leaves
+    // less room to work with there; the rest of the defense is identical
+    // to the desktop set above.
+    defenseMobile: {
+      DE: { x: 33, y: 9 },
+      NT: { x: 50, y: 9 },
+      DT: { x: 67, y: 9 },
+      OLB1: { x: 20, y: 24 },
+      ILB1: { x: 42, y: 24 },
+      ILB2: { x: 58, y: 24 },
+      OLB2: { x: 80, y: 24 },
+      CB1: { x: 6, y: 9 },
+      CB2: { x: 94, y: 9 },
       SS: { x: 40, y: 64 },
       FS: { x: 60, y: 76 },
     },

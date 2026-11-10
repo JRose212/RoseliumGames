@@ -2267,7 +2267,7 @@ body[data-page^="pokemon-"] .app-content {
 .coord-field {
   position: relative;
   width: 100%;
-  aspect-ratio: 16 / 12;
+  aspect-ratio: 16 / 10;
   border: 1px solid var(--border);
   overflow: visible;
 }
@@ -2429,5 +2429,16 @@ body[data-page^="pokemon-"] .app-content {
   .coord-box-position,
   .coord-pool-item span {
     font-size: 0.385rem;
+  }
+
+  /* Save/Reset/Go to My Team wrap together as one row, with the status
+     text forced onto its own line below - caps this at 2 rows instead of
+     each item potentially landing on its own line. */
+  .coord-actions {
+    flex-wrap: wrap;
+  }
+
+  .coord-actions-status {
+    flex-basis: 100%;
   }
 }
