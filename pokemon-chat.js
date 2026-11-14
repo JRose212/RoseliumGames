@@ -76,8 +76,13 @@
     myTeamRef.update({ chatLastReadAt: firebase.firestore.FieldValue.serverTimestamp() }).catch(() => {});
   };
 
-  const isAdmin = () =>
+  const isRealAdmin = () =>
     Boolean(auth.currentUser && config.adminUid && config.adminUid !== "YOUR_ADMIN_UID" && auth.currentUser.uid === config.adminUid);
+  // Admin Mode toggle (pokemon-admin-toggle.js) - lets a real admin browse
+  // as a regular user without losing admin rights server-side; this only
+  // ever hides admin-only UI here, Firestore rules still check the real
+  // uid regardless of this toggle.
+  const isAdmin = () => isRealAdmin() && localStorage.getItem(`adminViewMode:${auth.currentUser.uid}`) !== "user";
 
   const scrollToBottom = () => {
     messagesEl.scrollTop = messagesEl.scrollHeight;

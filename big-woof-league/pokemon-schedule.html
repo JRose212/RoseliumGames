@@ -16,6 +16,7 @@
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
     <script src="pokemon-schedule.js" defer></script>
+    <script src="pokemon-admin-toggle.js" defer></script>
     <script src="pokemon-chat.js" defer></script>
   </head>
   <body data-page="pokemon-schedule">
@@ -57,6 +58,7 @@
         <a href="pokemon-kj-show.html">K&amp;J Show</a>
         <a href="pokemon-coordinator.html">Coordinator</a>
         <a href="pokemon-feedback.html">Feedback</a>
+        <span class="admin-mode-toggle-wrap" id="admin-mode-toggle-wrap" hidden></span>
       </nav>
 
       <a class="trade-notification-badge" id="trade-notification-badge" href="pokemon-myteam.html#trades" hidden>🔔 <span id="trade-notification-count"></span> pending trade</a>

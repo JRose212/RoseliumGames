@@ -31,8 +31,13 @@
 
   let currentUser = null;
 
-  const isAdmin = () =>
+  const isRealAdmin = () =>
     Boolean(currentUser && config.adminUid && config.adminUid !== "YOUR_ADMIN_UID" && currentUser.uid === config.adminUid);
+  // Admin Mode toggle (pokemon-admin-toggle.js) - lets a real admin browse
+  // as a regular user without losing admin rights server-side; this only
+  // ever hides admin-only UI here, Firestore rules still check the real
+  // uid regardless of this toggle.
+  const isAdmin = () => isRealAdmin() && localStorage.getItem(`adminViewMode:${currentUser.uid}`) !== "user";
 
   const showFormMessage = (text, isError) => {
     formMessageEl.hidden = false;

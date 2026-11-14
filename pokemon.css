@@ -2446,3 +2446,30 @@ body[data-page^="pokemon-"] .app-content {
     flex-basis: 100%;
   }
 }
+
+/* Admin Mode toggle (pokemon-admin-toggle.js) - sits as the last item in
+   the jump-nav row, pushed to the far end via margin-left: auto so it
+   reads as distinct from the plain page links. */
+
+#admin-mode-toggle-wrap {
+  margin-left: auto;
+}
+
+.admin-mode-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.3rem 0.7rem;
+  border-radius: 999px;
+  border: 1px solid var(--accent-strong);
+  color: var(--accent-strong);
+  font-weight: 600;
+  font-size: 0.85rem;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.admin-mode-toggle input {
+  accent-color: var(--accent-strong);
+  cursor: pointer;
+}

@@ -107,6 +107,14 @@
   const db = firebase.firestore();
   const storage = firebase.storage ? firebase.storage() : null;
 
+  const isRealAdmin = () =>
+    Boolean(auth.currentUser && config.adminUid && config.adminUid !== "YOUR_ADMIN_UID" && auth.currentUser.uid === config.adminUid);
+  // Admin Mode toggle (pokemon-admin-toggle.js) - lets a real admin browse
+  // as a regular user without losing admin rights server-side; this only
+  // ever hides admin-only UI here, Firestore rules still check the real
+  // uid regardless of this toggle.
+  const computeIsAdmin = () => isRealAdmin() && localStorage.getItem(`adminViewMode:${auth.currentUser.uid}`) !== "user";
+
   // Shared avatar renderer (duplicated per file by this repo's convention)
   // - a photo if the team has one, otherwise a circle with its first
   // letter, so every team looks consistent.
@@ -360,9 +368,7 @@
     if (!latestDraftState) return;
     const minManagers = config.minManagersToStartDraft || 8;
 
-    const isAdmin = Boolean(
-      auth.currentUser && config.adminUid && config.adminUid !== "YOUR_ADMIN_UID" && auth.currentUser.uid === config.adminUid
-    );
+    const isAdmin = computeIsAdmin();
     const restartButtonHtml = isAdmin
       ? `<button type="button" class="btn btn-secondary" id="restart-draft-btn">Restart Draft</button>`
       : "";
@@ -408,9 +414,7 @@
       return;
     }
 
-    const isAdmin = Boolean(
-      auth.currentUser && config.adminUid && config.adminUid !== "YOUR_ADMIN_UID" && auth.currentUser.uid === config.adminUid
-    );
+    const isAdmin = computeIsAdmin();
 
     const teamByUid = {};
     latestTeams.forEach((team) => {
