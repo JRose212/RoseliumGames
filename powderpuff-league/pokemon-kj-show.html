@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Radio Show • Powderpuff Pokéball League</title>
+    <meta name="theme-color" content="#fdf2f7" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="../style.css" />
+    <link rel="stylesheet" href="../pokemon.css" />
+    <link rel="stylesheet" href="powderpuff.css" />
+    <script src="config.js"></script>
+    <script src="broadcasts.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-storage-compat.js"></script>
+    <script src="pokemon-kj-show.js" defer></script>
+    <script src="pokemon-admin-toggle.js" defer></script>
+    <script src="pokemon-chat.js" defer></script>
+  </head>
+  <body data-page="pokemon-kj-show" class="powderpuff">
+  <div class="app-shell">
+  <div class="app-content">
+    <div class="sticky-top">
+      <header class="site-header">
+      <nav class="site-nav" aria-label="Primary navigation">
+        <div class="brand-group">
+          <a class="brand" href="../index.html">Roselium Games</a>
+          <a class="pokemon-nav-badge active" href="pokemon-league.html"><span class="pokemon-nav-badge-icon" aria-hidden="true"></span>Powderpuff Pokéball</a>
+        </div>
+        <div class="nav-links">
+          <a href="../index.html">Home</a>
+          <a href="../unmatched.html">Unmatched</a>
+          <a href="../dice-throne.html">Dice Throne</a>
+          <a href="../players.html">Leaderboards</a>
+          <a href="../characters.html">Champion Records</a>
+          <a href="../calendar.html">Calendar</a>
+        </div>
+      </nav>
+      </header>
+    </div>
+
+    <main class="page page-stack">
+      <section class="page-intro pp-intro">
+        <div class="pp-intro-art" aria-hidden="true">
+          <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/441.png" alt="" />
+          <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/648.png" alt="" />
+        </div>
+        <h1>📻 Radio Show</h1>
+        <p>Every episode of the league's radio show. The newest one is also featured on League Home and the Schedule page.</p>
+      </section>
+
+      <nav class="jump-nav card" aria-label="Fantasy league navigation">
+        <a href="pokemon-league.html">League Home</a>
+        <a href="pokemon-myteam.html">My Team</a>
+        <a href="pokemon-dex.html">Pokédex</a>
+        <a href="pokemon-teams.html">Rosters</a>
+        <a href="pokemon-schedule.html">Schedule</a>
+        <a href="pokemon-kj-show.html" class="active">Radio Show</a>
+        <a href="pokemon-coordinator.html">Coordinator</a>
+        <a href="pokemon-feedback.html">Feedback</a>
+        <span class="admin-mode-toggle-wrap" id="admin-mode-toggle-wrap" hidden></span>
+      </nav>
+
+      <section class="card" id="upload-episode-card" hidden>
+        <h2>Upload Episode</h2>
+        <p>Fallback for posting an episode without VS Code/git access - for the usual workflow, add it to <code>broadcasts.js</code> instead. Uploaded episodes only show to signed-in managers (the hand-added ones still work for signed-out visitors).</p>
+        <form class="auth-form" id="upload-episode-form">
+          <label for="upload-episode-type">Type</label>
+          <select id="upload-episode-type">
+            <option value="preview">Week Preview</option>
+            <option value="sunday_recap">Sunday Recap</option>
+            <option value="week_summary">Week Summary</option>
+          </select>
+          <label for="upload-episode-week">Week</label>
+          <input type="number" id="upload-episode-week" min="1" step="1" />
+          <label for="upload-episode-title">Title (optional)</label>
+          <input type="text" id="upload-episode-title" placeholder="Leave blank for an auto-generated title" />
+          <label for="upload-episode-date">Date</label>
+          <input type="date" id="upload-episode-date" />
+          <label for="upload-episode-file">Audio file</label>
+          <input type="file" id="upload-episode-file" accept="audio/*" />
+          <button type="button" class="btn" id="upload-episode-btn">Upload</button>
+        </form>
+        <p class="status" id="upload-episode-message" hidden></p>
+      </section>
+
+      <section class="card" id="kj-show-card">
+        <div id="kj-show-list"></div>
+        <p class="status" id="kj-show-empty" hidden>No episodes yet - check back after the first one airs.</p>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <p>Roselium Games • Powderpuff Pokéball League</p>
+    </footer>
+  </div>
+
+  <aside class="chat-sidebar" id="chat-sidebar">
+    <div class="chat-header">
+      <h2>League Chat</h2>
+      <button type="button" class="chat-clear-system-btn" id="chat-clear-system-btn" hidden title="Clear all system messages">Clear System Msgs</button>
+      <button type="button" class="chat-close-btn" id="chat-close-btn" aria-label="Close chat">✕</button>
+    </div>
+    <div class="chat-messages" id="chat-messages">
+      <p class="status">Loading chat…</p>
+    </div>
+    <form class="chat-input-row" id="chat-form">
+      <input type="text" id="chat-input" placeholder="Sign in to chat…" maxlength="500" disabled />
+      <button type="submit" class="btn" id="chat-send-btn" disabled>Send</button>
+    </form>
+    <p class="status" id="chat-status" hidden></p>
+  </aside>
+  </div>
+  <button type="button" class="chat-toggle-btn" id="chat-toggle-btn" aria-label="Open chat">💬</button>
+  </body>
+</html>

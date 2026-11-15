@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>League Home • Powderpuff Pokéball League</title>
+    <meta name="theme-color" content="#fdf2f7" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="../style.css" />
+    <link rel="stylesheet" href="../pokemon.css" />
+    <link rel="stylesheet" href="powderpuff.css" />
+    <script src="config.js"></script>
+    <script src="broadcasts.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-storage-compat.js"></script>
+    <script src="pokemon-league.js" defer></script>
+    <script src="pokemon-admin-toggle.js" defer></script>
+    <script src="pokemon-chat.js" defer></script>
+  </head>
+  <body data-page="pokemon-league" class="powderpuff">
+  <div class="app-shell">
+  <div class="app-content">
+    <div class="sticky-top">
+      <header class="site-header">
+      <nav class="site-nav" aria-label="Primary navigation">
+        <div class="brand-group">
+          <a class="brand" href="../index.html">Roselium Games</a>
+          <a class="pokemon-nav-badge active" href="pokemon-league.html"><span class="pokemon-nav-badge-icon" aria-hidden="true"></span>Powderpuff Pokéball</a>
+        </div>
+        <div class="nav-links">
+          <a href="../index.html">Home</a>
+          <a href="../unmatched.html">Unmatched</a>
+          <a href="../dice-throne.html">Dice Throne</a>
+          <a href="../players.html">Leaderboards</a>
+          <a href="../characters.html">Champion Records</a>
+          <a href="../calendar.html">Calendar</a>
+        </div>
+      </nav>
+      </header>
+    </div>
+
+    <main class="page page-stack">
+      <section class="page-intro pp-intro">
+        <div class="pp-intro-art" aria-hidden="true">
+          <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/39.png" alt="" />
+          <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/35.png" alt="" />
+          <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/175.png" alt="" />
+        </div>
+        <span class="eyebrow">Powderpuff Pokéball League</span>
+        <h1>Cute Pokémon, Real Football</h1>
+        <p>
+          A 7-on-7 league for the cutest Pokémon around. No draft and no trades: pick any playable Pokémon
+          for each of your 14 spots, as many of the same one as you like, and change your lineup any day
+          except Sunday. Every game kicks off on Sunday, and every team makes the playoffs.
+        </p>
+        <a href="#rules" class="rules-link-btn" id="rules-link-btn">
+          <span class="pokemon-nav-badge-icon" aria-hidden="true"></span>
+          League Rules &amp; Information
+        </a>
+        <p class="status">Playing in a different league? <a href="../pokemon-league.html">Pokéball League →</a> · <a href="../big-woof-league/pokemon-league.html">Big Woof League →</a></p>
+      </section>
+
+      <section class="card broadcast-card" id="latest-broadcast-card" hidden>
+        <h2>📻 Radio Show</h2>
+        <p id="latest-broadcast-title"></p>
+        <audio controls id="latest-broadcast-player" style="width: 100%;"></audio>
+        <p class="status" id="latest-broadcast-archive-link"><a href="pokemon-kj-show.html">Hear past episodes →</a></p>
+      </section>
+
+      <nav class="jump-nav card" aria-label="Fantasy league navigation">
+        <a href="pokemon-league.html" class="active">League Home</a>
+        <a href="pokemon-myteam.html">My Team</a>
+        <a href="pokemon-dex.html">Pokédex</a>
+        <a href="pokemon-teams.html">Rosters</a>
+        <a href="pokemon-schedule.html">Schedule</a>
+        <a href="pokemon-kj-show.html">Radio Show</a>
+        <a href="pokemon-coordinator.html">Coordinator</a>
+        <a href="pokemon-feedback.html">Feedback</a>
+        <span class="admin-mode-toggle-wrap" id="admin-mode-toggle-wrap" hidden></span>
+      </nav>
+
+      <section class="card auth-panel" id="auth-panel">
+        <p class="status">Loading account…</p>
+      </section>
+
+      <section class="card" id="league-status-card">
+        <h2>League status</h2>
+        <p id="league-status-summary" class="status">Loading league status…</p>
+        <div id="roster-picks-area"></div>
+        <ul class="manager-list" id="manager-list"></ul>
+      </section>
+    </main>
+
+    <div class="rules-modal" id="rules-modal" hidden>
+      <div class="card rules-modal-panel">
+        <button type="button" class="rules-modal-close" id="rules-modal-close" aria-label="Close">✕</button>
+
+        <h2>Welcome to the Powderpuff Pokéball League</h2>
+        <p>
+          A softer, sillier sister league to Pokéball. Same football, same fun, but only cute Pokémon can
+          play, and there's no draft: you pick your whole team yourself. Here's how it all works.
+        </p>
+
+        <h3>How to Join</h3>
+        <ol>
+          <li>Go to <a href="pokemon-league.html">League Home</a>.</li>
+          <li>Create an account with your email and a password, and give your team a name. This league has its own accounts, separate from Pokéball and Big Woof.</li>
+          <li>Once the admin opens roster picks, head to My Team and fill your 14 spots.</li>
+        </ol>
+
+        <h3>Quick Tour</h3>
+        <div class="table-wrap">
+          <table class="rules-modal-table">
+            <thead><tr><th>Page</th><th>What it's for</th></tr></thead>
+            <tbody>
+              <tr><td><a href="pokemon-league.html">League Home</a></td><td>See who's in the league, and set your team name and photo</td></tr>
+              <tr><td><a href="pokemon-myteam.html">My Team</a></td><td>Pick your Pokémon, move them around, train daily, and scout your next opponent</td></tr>
+              <tr><td><a href="pokemon-dex.html">Pokédex</a></td><td>Browse every Pokémon, see which ones are playable, and put one on your team</td></tr>
+              <tr><td><a href="pokemon-teams.html">Rosters</a></td><td>See every team's lineup</td></tr>
+              <tr><td><a href="pokemon-schedule.html">Schedule</a></td><td>Weekly matchups, results, Player of the Week, standings, and the playoff bracket</td></tr>
+              <tr><td><a href="pokemon-kj-show.html">Radio Show</a></td><td>Every episode of the league's radio show</td></tr>
+              <tr><td><a href="pokemon-coordinator.html">Coordinator</a></td><td>See your lineup on the field against your next opponent's, and try changes before saving them</td></tr>
+              <tr><td><a href="pokemon-feedback.html">Feedback</a></td><td>Send suggestions, complaints, or a matchup problem privately to the admin</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h3>Your Team</h3>
+        <p>Every team has 14 spots, 7 on offense and 7 on defense. There's no bench and no kicker.</p>
+        <div class="table-wrap">
+          <table class="rules-modal-table">
+            <thead><tr><th>Offense</th><th>Defense</th></tr></thead>
+            <tbody>
+              <tr><td>Quarterback (QB)</td><td>Safety (S)</td></tr>
+              <tr><td>Running Back (RB)</td><td>Linebacker (LB)</td></tr>
+              <tr><td>Blocker 1, 2 and 3 (BLK1–3)</td><td>Tackle 1, 2 and 3 (T1–3)</td></tr>
+              <tr><td>Wide Receiver 1 and 2 (WR1–2)</td><td>Cornerback 1 and 2 (CB1–2)</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <ul>
+          <li>Pick any playable Pokémon for any spot. Duplicates are fine: the same Pokémon can fill every spot on your team, and you can have the same Pokémon as anyone else, including your opponent.</li>
+          <li>The admin decides which Pokémon are playable. The Pokédex marks each one as playable or not.</li>
+          <li>Roster picks open when the admin switches them on. After that, change your lineup whenever you like, except on Sundays, when rosters are locked for game day (Eastern time).</li>
+          <li>Drag a Pokémon onto another spot on My Team to swap them, or tap one and then tap the spot to swap it with.</li>
+        </ul>
+
+        <h3>Season &amp; Schedule</h3>
+        <ul>
+          <li>The regular season is 6 weeks, and every game is played on Sunday.</li>
+          <li>The admin can generate the schedule once at least 4 teams have joined.</li>
+          <li>A touchdown is worth 7 points. There are no kickers, no extra points and no safeties.</li>
+          <li>Regular-season games can end in a tie.</li>
+          <li>The admin posts each result on the Schedule page with the final score and a game summary, and names a Player of the Week with a write-up.</li>
+        </ul>
+
+        <h3>Standings &amp; Playoffs</h3>
+        <ul>
+          <li>Teams are ranked by wins, then by point differential. A tie doesn't count as a win or a loss.</li>
+          <li>Every team makes the playoffs, seeded by the final standings. The playoffs are single elimination and start the week after the regular season ends.</li>
+          <li>If the number of teams isn't 4, 8 or 16, the top seeds get a first-round bye.</li>
+          <li>Playoff games can't end in a tie.</li>
+        </ul>
+
+        <h3>Daily Training</h3>
+        <p>
+          Train your team from the My Team page to help your results. Training doesn't guarantee a win, but it
+          can tip the scales. You get one session per real calendar day, with six to pick from:
+        </p>
+        <ul>
+          <li>Team Hike</li>
+          <li>Touchdown Celebration Choreo</li>
+          <li>Spa Day</li>
+          <li>Team Yoga</li>
+          <li>Play Outside</li>
+          <li>Gameplanning</li>
+        </ul>
+        <ul>
+          <li>Losing a game banks a bonus session, letting you train twice (two different types) on a later day. Bonus sessions stack across losses and clear the moment you win.</li>
+          <li>A tie doesn't add or clear bonus sessions.</li>
+          <li>A streak badge tracks consecutive days trained, shown on My Team and on the Rosters page.</li>
+          <li>The Schedule page shows what each team has trained since its last game.</li>
+        </ul>
+
+        <h3>Cheerleaders</h3>
+        <p>
+          Just for fun, you can add up to 5 cheerleaders from the Train Your Team section of My Team. Any
+          Pokémon at all can cheer, including Legendaries and Pokémon that aren't playable. They don't affect
+          your team or your results.
+        </p>
+
+        <p>Questions along the way? Ask in the league chat - it's open on every page.</p>
+      </div>
+    </div>
+
+    <footer class="site-footer">
+      <p>Roselium Games • Powderpuff Pokéball League</p>
+    </footer>
+  </div>
+
+  <aside class="chat-sidebar" id="chat-sidebar">
+    <div class="chat-header">
+      <h2>League Chat</h2>
+      <button type="button" class="chat-clear-system-btn" id="chat-clear-system-btn" hidden title="Clear all system messages">Clear System Msgs</button>
+      <button type="button" class="chat-close-btn" id="chat-close-btn" aria-label="Close chat">✕</button>
+    </div>
+    <div class="chat-messages" id="chat-messages">
+      <p class="status">Loading chat…</p>
+    </div>
+    <form class="chat-input-row" id="chat-form">
+      <input type="text" id="chat-input" placeholder="Sign in to chat…" maxlength="500" disabled />
+      <button type="submit" class="btn" id="chat-send-btn" disabled>Send</button>
+    </form>
+    <p class="status" id="chat-status" hidden></p>
+  </aside>
+  </div>
+  <button type="button" class="chat-toggle-btn" id="chat-toggle-btn" aria-label="Open chat">💬</button>
+  </body>
+</html>

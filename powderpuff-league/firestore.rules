@@ -1,0 +1,125 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    // TODO: replace with the real admin uid (Firebase Console > Authentication
+    // > Users > your row > User UID) once the admin signs up on this league.
+    // Rules can't read config.js, so this has to be a literal string here,
+    // kept in sync by hand with config.js's adminUid.
+    function isAdmin() {
+      return request.auth.uid == "REPLACE_WITH_POWDERPUFF_ADMIN_UID";
+    }
+
+    function leagueSettings() {
+      return get(/databases/$(database)/documents/leagueSettings/current).data;
+    }
+
+    // The admin's "managers can pick Pokemon" switch (League Home).
+    function rosterPicksOpen() {
+      return exists(/databases/$(database)/documents/leagueSettings/current)
+             && leagueSettings().get("rosterPicksOpen", false) == true;
+    }
+
+    // Sunday is game day - no roster changes. Rules have no time zone
+    // support, so this is Sunday at a fixed UTC-5 (US Eastern Standard
+    // Time): whole days since the epoch, shifted 5 hours, and the epoch
+    // (Jan 1 1970) was a Thursday, so Sunday is day 3 of each 7. During
+    // daylight saving time this window runs an hour behind the site's own
+    // check (which uses the real America/New_York clock), so for that one
+    // hour after Sunday ends the site allows a change these rules still
+    // refuse - never the other way around.
+    function isSundayEastern() {
+      return math.floor(float(request.time.toMillis() - 18000000) / 86400000.0) % 7 == 3;
+    }
+
+    function seasonExists() {
+      return exists(/databases/$(database)/documents/seasonState/current);
+    }
+
+    // Holds each manager's email, so it's limited to its owner and the
+    // admin.
+    match /users/{uid} {
+      allow read: if isSignedIn() && (request.auth.uid == uid || isAdmin());
+      allow create, update: if isSignedIn() && request.auth.uid == uid;
+      allow delete: if isSignedIn() && request.auth.uid == uid && !seasonExists();
+    }
+
+    // A manager can always edit their own team's name, photo, training and
+    // cheerleaders. The roster itself (slots) can only change while the
+    // admin has picks open, and never on a Sunday. Whether each picked
+    // Pokemon is currently playable is checked by the site, not here -
+    // rules can't loop over every slot against the playable list (same
+    // "honest limitation" tradeoff the other leagues make for daily
+    // training limits). The admin can write any team (results bank bonus
+    // training sessions on both teams).
+    match /teams/{uid} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn() && request.auth.uid == uid
+                     && request.resource.data.ownerUid == uid;
+      allow update: if isSignedIn() && (
+        isAdmin() ||
+        (request.auth.uid == uid && (
+          !request.resource.data.diff(resource.data).affectedKeys().hasAny(["slots"]) ||
+          (rosterPicksOpen() && !isSundayEastern())
+        ))
+      );
+      allow delete: if isSignedIn() && request.auth.uid == uid && !seasonExists();
+    }
+
+    // League-wide switches the admin controls: rosterPicksOpen, and the
+    // Pokedex's per-Pokemon playable overrides (playable.{pokemonId}).
+    match /leagueSettings/current {
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
+    }
+
+    // One training log entry per manager per calendar day (doc id is
+    // "{uid}_{YYYY-MM-DD}", enforced client-side). create covers today's
+    // first session, update covers a second session spent from a banked
+    // bonus credit.
+    match /trainingLog/{logId} {
+      allow read: if isSignedIn();
+      allow create, update: if isSignedIn() && request.resource.data.uid == request.auth.uid;
+      allow delete: if isAdmin();
+    }
+
+    // Private feedback box - only the admin can read or delete it.
+    match /feedback/{feedbackId} {
+      allow read: if isAdmin();
+      allow create: if isSignedIn() && request.resource.data.uid == request.auth.uid;
+      allow update: if false;
+      allow delete: if isAdmin();
+    }
+
+    // Season-level schedule state (also holds Player of the Week picks).
+    match /seasonState/current {
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
+    }
+
+    // The weekly schedule and results. Admin-managed; everyone reads.
+    match /matchups/{matchupId} {
+      allow read: if isSignedIn();
+      allow create, update, delete: if isAdmin();
+    }
+
+    // Radio show episodes uploaded straight from the show page - the
+    // admin's fallback for posting without VS Code/git access.
+    match /broadcasts/{broadcastId} {
+      allow read: if isSignedIn();
+      allow create, update, delete: if isAdmin();
+    }
+
+    // League chat. Anyone signed in can read/post; only the admin can
+    // delete (moderation) - nobody can edit a sent message.
+    match /chatMessages/{messageId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn() && request.resource.data.uid == request.auth.uid;
+      allow update: if false;
+      allow delete: if isAdmin();
+    }
+  }
+}

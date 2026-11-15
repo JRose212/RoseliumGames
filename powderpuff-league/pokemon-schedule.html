@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Schedule • Powderpuff Pokéball League</title>
+    <meta name="theme-color" content="#fdf2f7" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="../style.css" />
+    <link rel="stylesheet" href="../pokemon.css" />
+    <link rel="stylesheet" href="powderpuff.css" />
+    <script src="config.js"></script>
+    <script src="broadcasts.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+    <script src="pokemon-schedule.js" defer></script>
+    <script src="pokemon-admin-toggle.js" defer></script>
+    <script src="pokemon-chat.js" defer></script>
+  </head>
+  <body data-page="pokemon-schedule" class="powderpuff">
+  <div class="app-shell">
+  <div class="app-content">
+    <div class="sticky-top">
+      <header class="site-header">
+      <nav class="site-nav" aria-label="Primary navigation">
+        <div class="brand-group">
+          <a class="brand" href="../index.html">Roselium Games</a>
+          <a class="pokemon-nav-badge active" href="pokemon-league.html"><span class="pokemon-nav-badge-icon" aria-hidden="true"></span>Powderpuff Pokéball</a>
+        </div>
+        <div class="nav-links">
+          <a href="../index.html">Home</a>
+          <a href="../unmatched.html">Unmatched</a>
+          <a href="../dice-throne.html">Dice Throne</a>
+          <a href="../players.html">Leaderboards</a>
+          <a href="../characters.html">Champion Records</a>
+          <a href="../calendar.html">Calendar</a>
+        </div>
+      </nav>
+      </header>
+    </div>
+
+    <main class="page page-stack">
+      <section class="page-intro pp-intro">
+        <div class="pp-intro-art" aria-hidden="true">
+          <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/333.png" alt="" />
+          <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/468.png" alt="" />
+        </div>
+        <h1>Season Schedule</h1>
+        <p>6 weeks of Sunday games, then a playoff bracket with every team in it, ending in the Powderpuff Bowl.</p>
+      </section>
+
+      <nav class="jump-nav card" aria-label="Fantasy league navigation">
+        <a href="pokemon-league.html">League Home</a>
+        <a href="pokemon-myteam.html">My Team</a>
+        <a href="pokemon-dex.html">Pokédex</a>
+        <a href="pokemon-teams.html">Rosters</a>
+        <a href="pokemon-schedule.html" class="active">Schedule</a>
+        <a href="pokemon-kj-show.html">Radio Show</a>
+        <a href="pokemon-coordinator.html">Coordinator</a>
+        <a href="pokemon-feedback.html">Feedback</a>
+        <span class="admin-mode-toggle-wrap" id="admin-mode-toggle-wrap" hidden></span>
+      </nav>
+
+      <p class="status" id="schedule-status">Loading…</p>
+
+      <section class="card" id="broadcasts-archive-card" hidden>
+        <h2>📻 Radio Show</h2>
+        <div id="broadcasts-latest"></div>
+        <p class="status"><a href="pokemon-kj-show.html">Hear past episodes →</a></p>
+      </section>
+
+      <section class="card" id="generate-schedule-card" hidden>
+        <h2>Generate the schedule</h2>
+        <p>Pick the first Sunday of the season. Needs at least 4 teams. Safe to re-run and preview as more teams join - once any game goes final, this locks.</p>
+        <form class="auth-form" id="generate-schedule-form">
+          <label for="season-start-date">Season start date (a Sunday)</label>
+          <input type="date" id="season-start-date" required />
+          <button type="button" class="btn" id="generate-schedule-btn">Generate Schedule</button>
+        </form>
+        <p class="status" id="generate-schedule-message" hidden></p>
+      </section>
+
+      <section class="card" id="reset-season-card" hidden>
+        <h2>Schedule is locked</h2>
+        <p>A result has already been recorded, so the schedule can no longer be regenerated normally. Resetting the season deletes every matchup, Player of the Week pick and the season state, so a fresh schedule can be generated from scratch.</p>
+        <button type="button" class="btn btn-secondary" id="reset-season-btn">Reset Season</button>
+        <p class="status" id="reset-season-message" hidden></p>
+      </section>
+
+      <section class="card" id="reset-training-card" hidden>
+        <h2>Reset Training</h2>
+        <p>Clears every team's training streak and banked bonus sessions, and deletes any training log entries from before the date below - useful for wiping out pre-season/test training once the real season starts.</p>
+        <form class="auth-form" id="reset-training-form">
+          <label for="training-cutoff-date">Keep training on/after</label>
+          <input type="date" id="training-cutoff-date" />
+          <button type="button" class="btn btn-secondary" id="reset-training-btn">Reset Training</button>
+        </form>
+        <p class="status" id="reset-training-message" hidden></p>
+      </section>
+
+      <section class="card" id="swap-teams-card" hidden>
+        <h2>Swap Teams in a Week</h2>
+        <p>Pick a week and two teams, and they trade places in that week's schedule: each takes the other's opponent and home/away side. If one of them has the bye that week, the other gets the bye instead. Other weeks don't change. Games that are already final can't be changed.</p>
+        <form class="auth-form" id="swap-teams-form">
+          <label for="swap-teams-week">Week</label>
+          <select id="swap-teams-week"></select>
+          <label for="swap-teams-a">Team A</label>
+          <select id="swap-teams-a"></select>
+          <label for="swap-teams-b">Team B</label>
+          <select id="swap-teams-b"></select>
+          <button type="button" class="btn btn-secondary" id="swap-teams-btn">Swap Teams</button>
+        </form>
+        <p class="status" id="swap-teams-message" hidden></p>
+      </section>
+
+      <section class="card" id="standings-card" hidden>
+        <h2>Standings</h2>
+        <p class="status">Every team makes the playoffs - this is the seeding order.</p>
+        <div class="table-wrap">
+          <table class="standings-table">
+            <thead>
+              <tr>
+                <th>Seed</th>
+                <th>Team</th>
+                <th>W</th>
+                <th>L</th>
+                <th>T</th>
+                <th>Pts For</th>
+                <th>Pts Against</th>
+                <th>Diff</th>
+              </tr>
+            </thead>
+            <tbody id="standings-body"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="card" id="playoff-admin-card" hidden>
+        <h2>Playoffs</h2>
+        <div id="playoff-admin-area"></div>
+      </section>
+
+      <section class="card" id="bracket-card" hidden>
+        <h2>Bracket</h2>
+        <div id="bracket-area"></div>
+      </section>
+
+      <section id="schedule-weeks"></section>
+    </main>
+
+    <div class="slot-picker-modal" id="result-modal" hidden>
+      <div class="card slot-picker-panel" style="max-width: 640px;">
+        <h2>Declare result — <span id="result-modal-title"></span></h2>
+        <p class="status">A touchdown is worth 7 points - there are no kicks or safeties.</p>
+        <form class="auth-form" id="result-form">
+          <label for="result-home-score" id="result-home-label">Home score</label>
+          <input type="number" id="result-home-score" min="0" step="1" required />
+          <label for="result-away-score" id="result-away-label">Away score</label>
+          <input type="number" id="result-away-score" min="0" step="1" required />
+          <label for="result-drive-summary">Game summary</label>
+          <textarea id="result-drive-summary" class="pp-textarea" rows="6"></textarea>
+          <label for="result-short-summary">Short summary</label>
+          <textarea id="result-short-summary" class="pp-textarea" rows="2"></textarea>
+        </form>
+        <p class="status" id="result-message" hidden></p>
+        <div style="display:flex; gap:0.5rem; margin-top: 1rem;">
+          <button type="button" class="btn" id="result-submit-btn">Save Result</button>
+          <button type="button" class="btn btn-secondary" id="result-cancel-btn">Cancel</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="slot-picker-modal" id="potw-modal" hidden>
+      <div class="card slot-picker-panel" style="max-width: 560px; position: relative;">
+        <button type="button" class="poke-detail-close-btn" id="potw-close-btn" aria-label="Close">✕</button>
+        <h2>Player of the Week — <span id="potw-modal-title"></span></h2>
+        <form class="auth-form" id="potw-form" autocomplete="off">
+          <label for="potw-search">Pokémon</label>
+          <input type="search" id="potw-search" placeholder="Start typing a Pokémon from this week's lineups…" />
+          <div class="potw-suggestions" id="potw-suggestions"></div>
+          <p class="status" id="potw-selected" hidden></p>
+          <label for="potw-writeup">Write-up</label>
+          <textarea id="potw-writeup" class="pp-textarea" rows="5"></textarea>
+        </form>
+        <p class="status" id="potw-message" hidden></p>
+        <div style="display:flex; gap:0.5rem; margin-top: 1rem; flex-wrap: wrap;">
+          <button type="button" class="btn" id="potw-save-btn" disabled>Save</button>
+          <button type="button" class="btn btn-secondary" id="potw-remove-btn" hidden>Remove</button>
+          <button type="button" class="btn btn-secondary" id="potw-cancel-btn">Cancel</button>
+        </div>
+      </div>
+    </div>
+
+    <footer class="site-footer">
+      <p>Roselium Games • Powderpuff Pokéball League</p>
+    </footer>
+  </div>
+
+  <aside class="chat-sidebar" id="chat-sidebar">
+    <div class="chat-header">
+      <h2>League Chat</h2>
+      <button type="button" class="chat-clear-system-btn" id="chat-clear-system-btn" hidden title="Clear all system messages">Clear System Msgs</button>
+      <button type="button" class="chat-close-btn" id="chat-close-btn" aria-label="Close chat">✕</button>
+    </div>
+    <div class="chat-messages" id="chat-messages">
+      <p class="status">Loading chat…</p>
+    </div>
+    <form class="chat-input-row" id="chat-form">
+      <input type="text" id="chat-input" placeholder="Sign in to chat…" maxlength="500" disabled />
+      <button type="submit" class="btn" id="chat-send-btn" disabled>Send</button>
+    </form>
+    <p class="status" id="chat-status" hidden></p>
+  </aside>
+  </div>
+  <button type="button" class="chat-toggle-btn" id="chat-toggle-btn" aria-label="Open chat">💬</button>
+  </body>
+</html>

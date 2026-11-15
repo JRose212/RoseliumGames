@@ -1,0 +1,975 @@
+/* Powderpuff Pokeball League theme. Loaded after style.css and
+   pokemon.css on the powderpuff-league pages only (body.powderpuff), so
+   the Pokeball and Big Woof leagues keep their dark theme. Re-skins the
+   shared dark components into a soft, whimsical pastel look: cream-pink
+   page, white rounded cards, Fredoka/Nunito type, pill buttons, and
+   pastel pink / mint / sky / butter / lilac accents.
+
+   Every rule is prefixed with body.powderpuff[data-page] so it outranks
+   pokemon.css's own body[data-page^="pokemon-"] overrides. */
+
+body.powderpuff[data-page] {
+  color-scheme: light;
+  --pp-pink: #f7a8c8;
+  --pp-pink-soft: #fde4ef;
+  --pp-pink-deep: #d9578f;
+  --pp-mint: #a8e6cf;
+  --pp-mint-soft: #e3f7ee;
+  --pp-mint-deep: #2f9a6e;
+  --pp-sky: #a9d8f5;
+  --pp-sky-soft: #e4f2fc;
+  --pp-sky-deep: #3a82bf;
+  --pp-butter: #fde68a;
+  --pp-butter-soft: #fff6d6;
+  --pp-butter-deep: #b7860f;
+  --pp-lilac: #d4c1f5;
+  --pp-lilac-soft: #f1eafd;
+  --pp-lilac-deep: #7d5ec4;
+  --pp-plum: #4d3a57;
+  --pp-shadow: 0 10px 30px rgba(217, 87, 143, 0.12), 0 2px 6px rgba(77, 58, 87, 0.06);
+
+  --bg: #fff7fb;
+  --surface: #ffffff;
+  --surface-strong: #fffafc;
+  --border: #f3d3e2;
+  --text: var(--pp-plum);
+  --muted: #8a7693;
+  --accent: var(--pp-pink-deep);
+  --accent-strong: var(--pp-pink-deep);
+  --warning: var(--pp-butter-deep);
+  --danger: #d6455d;
+
+  font-family: "Nunito", "Segoe UI", Arial, sans-serif;
+  background:
+    radial-gradient(circle at 8% 12%, rgba(247, 168, 200, 0.35) 0, transparent 32%),
+    radial-gradient(circle at 92% 6%, rgba(169, 216, 245, 0.4) 0, transparent 30%),
+    radial-gradient(circle at 85% 70%, rgba(168, 230, 207, 0.35) 0, transparent 34%),
+    radial-gradient(circle at 10% 85%, rgba(253, 230, 138, 0.35) 0, transparent 30%),
+    var(--bg);
+  background-attachment: fixed;
+}
+
+/* Faint scattered Poke Ball outlines over the whole page. */
+body.powderpuff[data-page]::before {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120' viewBox='0 0 120 120'%3E%3Cg fill='none' stroke='%23e9a3c3' stroke-width='1.6' opacity='0.35'%3E%3Ccircle cx='30' cy='30' r='11'/%3E%3Cpath d='M19 30h22'/%3E%3Ccircle cx='30' cy='30' r='3.5'/%3E%3C/g%3E%3Cg fill='none' stroke='%238fc9ec' stroke-width='1.6' opacity='0.35'%3E%3Ccircle cx='90' cy='88' r='9'/%3E%3Cpath d='M81 88h18'/%3E%3Ccircle cx='90' cy='88' r='3'/%3E%3C/g%3E%3Cpath d='M88 26l2 5 5 2-5 2-2 5-2-5-5-2 5-2z' fill='%23f6d36b' opacity='0.5'/%3E%3Cpath d='M28 92l1.5 3.5 3.5 1.5-3.5 1.5-1.5 3.5-1.5-3.5-3.5-1.5 3.5-1.5z' fill='%23b9e8d3' opacity='0.6'/%3E%3C/svg%3E");
+  background-size: 120px 120px;
+}
+
+/* --- Type --- */
+
+body.powderpuff[data-page] h1,
+body.powderpuff[data-page] h2,
+body.powderpuff[data-page] h3,
+body.powderpuff[data-page] h4,
+body.powderpuff[data-page] .brand,
+body.powderpuff[data-page] .potw-name,
+body.powderpuff[data-page] .roster-set-title {
+  font-family: "Fredoka", "Nunito", "Segoe UI", Arial, sans-serif;
+  color: var(--pp-plum);
+  letter-spacing: 0.01em;
+}
+
+body.powderpuff[data-page] h2 {
+  font-weight: 600;
+}
+
+body.powderpuff[data-page] a {
+  color: var(--pp-pink-deep);
+}
+
+body.powderpuff[data-page] a.btn {
+  color: #fff;
+  text-decoration: none;
+}
+
+body.powderpuff[data-page] a.btn-secondary {
+  color: var(--pp-pink-deep);
+}
+
+/* --- Header + nav badge --- */
+
+body.powderpuff[data-page] .site-header {
+  background: rgba(255, 250, 252, 0.88);
+  border-bottom: 2px solid var(--border);
+  box-shadow: 0 4px 18px rgba(217, 87, 143, 0.08);
+}
+
+body.powderpuff[data-page] .brand {
+  color: var(--pp-plum);
+  font-weight: 700;
+}
+
+body.powderpuff[data-page] .nav-links a {
+  color: var(--muted);
+}
+
+body.powderpuff[data-page] .nav-links a:hover {
+  color: var(--pp-pink-deep);
+}
+
+body.powderpuff[data-page] .pokemon-nav-badge,
+body.powderpuff[data-page] .pokemon-nav-badge.active {
+  background: linear-gradient(135deg, #ffd1e4, #fbb6d2);
+  border: 2px solid #fff;
+  color: var(--pp-plum);
+  font-family: "Fredoka", "Nunito", sans-serif;
+  font-size: 0.85rem;
+  font-weight: 600;
+  text-shadow: none;
+  box-shadow: 0 4px 14px rgba(217, 87, 143, 0.3);
+}
+
+body.powderpuff[data-page] .pokemon-nav-badge:hover {
+  box-shadow: 0 8px 20px rgba(217, 87, 143, 0.4);
+}
+
+/* A pink-topped "Powderpuff" Poke Ball. */
+body.powderpuff[data-page] .pokemon-nav-badge-icon {
+  background: linear-gradient(to bottom, #f27aac 0%, #f27aac 46%, var(--pp-plum) 46%, var(--pp-plum) 54%, #fff 54%, #fff 100%);
+  border-color: var(--pp-plum);
+}
+
+body.powderpuff[data-page] .pokemon-nav-badge-icon::after {
+  border-color: var(--pp-plum);
+}
+
+/* --- Cards and panels --- */
+
+body.powderpuff[data-page] .card,
+body.powderpuff[data-page] .page-intro,
+body.powderpuff[data-page] .selector-card,
+body.powderpuff[data-page] .table-wrap,
+body.powderpuff[data-page] .roster-set,
+body.powderpuff[data-page] details.roster-set {
+  background: var(--surface);
+  border: 2px solid var(--border);
+  border-radius: 22px;
+  box-shadow: var(--pp-shadow);
+}
+
+/* A pastel stripe across the top of each card, cycling colors down the
+   page so it reads playful rather than uniform. */
+body.powderpuff[data-page] main > .card,
+body.powderpuff[data-page] .page-stack > .card {
+  box-shadow: inset 0 5px 0 var(--pp-pink), var(--pp-shadow);
+}
+body.powderpuff[data-page] main > .card:nth-of-type(4n + 2) {
+  box-shadow: inset 0 5px 0 var(--pp-sky), var(--pp-shadow);
+}
+body.powderpuff[data-page] main > .card:nth-of-type(4n + 3) {
+  box-shadow: inset 0 5px 0 var(--pp-mint), var(--pp-shadow);
+}
+body.powderpuff[data-page] main > .card:nth-of-type(4n + 4) {
+  box-shadow: inset 0 5px 0 var(--pp-butter), var(--pp-shadow);
+}
+
+body.powderpuff[data-page] .table-wrap {
+  box-shadow: none;
+  border-radius: 16px;
+}
+
+body.powderpuff[data-page] .card p,
+body.powderpuff[data-page] .page-intro p {
+  color: var(--muted);
+}
+
+/* Page intro: a soft gradient hero with cute Pokemon peeking in. */
+body.powderpuff[data-page] .page-intro {
+  position: relative;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 100% 0%, rgba(253, 230, 138, 0.45) 0, transparent 40%),
+    linear-gradient(135deg, #fff 0%, #fff0f6 55%, #eef7ff 100%);
+  border-color: #f6cfe0;
+}
+
+body.powderpuff[data-page] .page-intro h1 {
+  border-left: none;
+  padding-left: 0;
+  text-transform: none;
+  font-weight: 700;
+  font-size: clamp(1.8rem, 3.4vw, 2.6rem);
+  background: linear-gradient(transparent 62%, rgba(247, 168, 200, 0.55) 62%, rgba(247, 168, 200, 0.55) 88%, transparent 88%);
+  width: fit-content;
+  max-width: 100%;
+}
+
+body.powderpuff[data-page] .page-intro > *:not(.pp-intro-art) {
+  position: relative;
+  z-index: 1;
+}
+
+body.powderpuff[data-page] .pp-intro {
+  padding-right: 17rem;
+}
+
+body.powderpuff[data-page] .pp-intro-art {
+  position: absolute;
+  right: 1rem;
+  bottom: 0.25rem;
+  display: flex;
+  align-items: flex-end;
+  gap: 0;
+  pointer-events: none;
+}
+
+body.powderpuff[data-page] .pp-intro-art img {
+  width: 108px;
+  height: 108px;
+  object-fit: contain;
+  filter: drop-shadow(0 6px 10px rgba(77, 58, 87, 0.18));
+  animation: pp-bob 3.6s ease-in-out infinite;
+}
+
+body.powderpuff[data-page] .pp-intro-art img:nth-child(2) {
+  width: 86px;
+  height: 86px;
+  margin-left: -18px;
+  animation-delay: -1.2s;
+}
+
+body.powderpuff[data-page] .pp-intro-art img:nth-child(3) {
+  width: 74px;
+  height: 74px;
+  margin-left: -14px;
+  animation-delay: -2.4s;
+}
+
+@keyframes pp-bob {
+  0%, 100% { transform: translateY(0) rotate(-2deg); }
+  50% { transform: translateY(-8px) rotate(2deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  body.powderpuff[data-page] .pp-intro-art img {
+    animation: none;
+  }
+}
+
+@media (max-width: 720px) {
+  body.powderpuff[data-page] .pp-intro {
+    padding-right: 1.25rem;
+    padding-top: 5.5rem;
+  }
+  body.powderpuff[data-page] .pp-intro-art {
+    top: 0.5rem;
+    bottom: auto;
+    right: 0.75rem;
+  }
+  body.powderpuff[data-page] .pp-intro-art img {
+    width: 76px;
+    height: 76px;
+  }
+  body.powderpuff[data-page] .pp-intro-art img:nth-child(2),
+  body.powderpuff[data-page] .pp-intro-art img:nth-child(3) {
+    width: 60px;
+    height: 60px;
+  }
+}
+
+body.powderpuff[data-page] .eyebrow {
+  border-radius: 999px;
+  background: var(--pp-lilac-soft);
+  color: var(--pp-lilac-deep);
+  border: 1px solid var(--pp-lilac);
+  font-weight: 700;
+}
+
+/* --- Status notes --- */
+
+body.powderpuff[data-page] .status {
+  border-radius: 14px;
+  background: var(--pp-lilac-soft);
+  border: 1px solid #e3d6fa;
+  color: var(--pp-plum);
+}
+
+body.powderpuff[data-page] .status.error {
+  background: #ffe8ec;
+  border-color: #f7c1cb;
+  color: #a8324a;
+}
+
+/* --- Buttons --- */
+
+body.powderpuff[data-page] .btn {
+  border-radius: 999px;
+  border: 2px solid transparent;
+  background: linear-gradient(135deg, #f7a8c8, #f07fb0);
+  color: #fff;
+  font-family: "Fredoka", "Nunito", sans-serif;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  text-transform: none;
+  box-shadow: 0 4px 12px rgba(217, 87, 143, 0.28);
+}
+
+body.powderpuff[data-page] .btn:hover:not(:disabled) {
+  background: linear-gradient(135deg, #f493bb, #e8689f);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 18px rgba(217, 87, 143, 0.35);
+}
+
+body.powderpuff[data-page] .btn-secondary {
+  background: #fff;
+  color: var(--pp-pink-deep);
+  border-color: var(--pp-pink);
+  box-shadow: none;
+}
+
+body.powderpuff[data-page] .btn-secondary:hover:not(:disabled) {
+  background: var(--pp-pink-soft);
+  box-shadow: 0 4px 12px rgba(217, 87, 143, 0.15);
+}
+
+body.powderpuff[data-page] .rules-link-btn {
+  background: linear-gradient(135deg, #a9d8f5, #c3b0f2);
+  border: 2px solid #fff;
+  color: var(--pp-plum);
+  font-family: "Fredoka", "Nunito", sans-serif;
+  font-weight: 600;
+  border-radius: 999px;
+  box-shadow: 0 6px 16px rgba(125, 94, 196, 0.25);
+}
+
+body.powderpuff[data-page] .rules-link-btn:hover {
+  box-shadow: 0 10px 22px rgba(125, 94, 196, 0.35);
+}
+
+/* --- Jump nav: candy-colored pills --- */
+
+body.powderpuff[data-page] .jump-nav {
+  gap: 0.5rem;
+}
+
+body.powderpuff[data-page] .jump-nav a {
+  border-radius: 999px;
+  border: 2px solid transparent;
+  color: var(--pp-plum);
+  font-weight: 700;
+  padding: 0.35rem 0.9rem;
+}
+
+body.powderpuff[data-page] .jump-nav a:nth-of-type(5n + 1) { background: var(--pp-pink-soft); }
+body.powderpuff[data-page] .jump-nav a:nth-of-type(5n + 2) { background: var(--pp-mint-soft); }
+body.powderpuff[data-page] .jump-nav a:nth-of-type(5n + 3) { background: var(--pp-sky-soft); }
+body.powderpuff[data-page] .jump-nav a:nth-of-type(5n + 4) { background: var(--pp-butter-soft); }
+body.powderpuff[data-page] .jump-nav a:nth-of-type(5n + 5) { background: var(--pp-lilac-soft); }
+
+body.powderpuff[data-page] .jump-nav a:hover {
+  border-color: var(--pp-pink);
+  color: var(--pp-pink-deep);
+}
+
+body.powderpuff[data-page] .jump-nav a.active {
+  background: linear-gradient(135deg, #f7a8c8, #f07fb0);
+  color: #fff;
+  border-color: #fff;
+  box-shadow: 0 4px 10px rgba(217, 87, 143, 0.3);
+}
+
+body.powderpuff[data-page] .admin-mode-toggle {
+  border-color: var(--pp-lilac-deep);
+  color: var(--pp-lilac-deep);
+  background: var(--pp-lilac-soft);
+}
+
+/* --- Form controls --- */
+
+body.powderpuff[data-page] input[type="text"],
+body.powderpuff[data-page] input[type="email"],
+body.powderpuff[data-page] input[type="password"],
+body.powderpuff[data-page] input[type="search"],
+body.powderpuff[data-page] input[type="number"],
+body.powderpuff[data-page] input[type="date"],
+body.powderpuff[data-page] select,
+body.powderpuff[data-page] textarea,
+body.powderpuff[data-page] .pp-textarea,
+body.powderpuff[data-page] .pp-search-input {
+  border-radius: 14px;
+  border: 2px solid var(--border);
+  background: #fff;
+  color: var(--pp-plum);
+  font: inherit;
+  padding: 0.6rem 0.85rem;
+}
+
+body.powderpuff[data-page] .pp-textarea,
+body.powderpuff[data-page] .pp-search-input {
+  width: 100%;
+}
+
+body.powderpuff[data-page] .pp-search-input {
+  margin-bottom: 0.75rem;
+}
+
+body.powderpuff[data-page] input:focus,
+body.powderpuff[data-page] select:focus,
+body.powderpuff[data-page] textarea:focus {
+  outline: none;
+  border-color: var(--pp-pink);
+  box-shadow: 0 0 0 4px rgba(247, 168, 200, 0.3);
+}
+
+/* --- Tables --- */
+
+body.powderpuff[data-page] .standings-table th,
+body.powderpuff[data-page] .rules-modal-table th {
+  color: var(--pp-lilac-deep);
+  font-family: "Fredoka", "Nunito", sans-serif;
+  font-weight: 600;
+}
+
+body.powderpuff[data-page] .standings-table td,
+body.powderpuff[data-page] .rules-modal-table td {
+  border-bottom-color: #f6e2ec;
+}
+
+body.powderpuff[data-page] .standings-playoff-row {
+  background: transparent;
+}
+
+body.powderpuff[data-page] .standings-playoff-row:nth-child(odd) {
+  background: rgba(253, 228, 239, 0.45);
+}
+
+body.powderpuff[data-page] .standings-seed-cell {
+  color: var(--pp-pink-deep);
+  font-weight: 800;
+}
+
+/* --- League home --- */
+
+body.powderpuff[data-page] .manager-item {
+  border-bottom-color: #f6e2ec;
+}
+
+body.powderpuff[data-page] .team-avatar-placeholder {
+  background: linear-gradient(135deg, var(--pp-sky), var(--pp-lilac));
+  color: #fff;
+  border: 2px solid #fff;
+  font-family: "Fredoka", sans-serif;
+}
+
+body.powderpuff[data-page] .pp-picks-state {
+  margin: 0.75rem 0;
+  padding: 0.75rem 1rem;
+  border-radius: 16px;
+  background: var(--pp-butter-soft);
+  border: 2px dashed var(--pp-butter);
+  color: var(--pp-plum);
+  font-weight: 700;
+}
+
+body.powderpuff[data-page] .pp-picks-state--open {
+  background: var(--pp-mint-soft);
+  border-color: var(--pp-mint);
+}
+
+/* --- Pokedex --- */
+
+body.powderpuff[data-page] .poke-card {
+  border-radius: 20px;
+  transition: transform 0.15s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+body.powderpuff[data-page] .poke-card--pickable:hover {
+  border-color: var(--pp-pink);
+  transform: translateY(-3px);
+  box-shadow: 0 12px 26px rgba(217, 87, 143, 0.22);
+}
+
+body.powderpuff[data-page] .poke-card--selected {
+  border-color: var(--pp-pink-deep) !important;
+  box-shadow: 0 0 0 4px rgba(247, 168, 200, 0.45) !important;
+}
+
+body.powderpuff[data-page] .poke-card--unplayable .poke-sprite {
+  filter: grayscale(0.85) opacity(0.55);
+}
+
+body.powderpuff[data-page] .poke-card-name {
+  font-family: "Fredoka", "Nunito", sans-serif;
+  font-weight: 600;
+  text-transform: capitalize;
+}
+
+body.powderpuff[data-page] .pp-card-badge-area {
+  display: grid;
+  gap: 0.35rem;
+  justify-items: center;
+}
+
+body.powderpuff[data-page] .pp-playable-badge {
+  margin: 0;
+  padding: 0.15rem 0.65rem;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 800;
+}
+
+body.powderpuff[data-page] .pp-playable-badge--yes {
+  background: var(--pp-mint-soft);
+  color: var(--pp-mint-deep);
+  border: 1px solid var(--pp-mint);
+}
+
+body.powderpuff[data-page] .pp-playable-badge--no {
+  background: #f4eff6;
+  color: var(--muted);
+  border: 1px solid #e4d9ea;
+}
+
+body.powderpuff[data-page] .pp-playable-toggle {
+  padding: 0.25rem 0.7rem;
+  font-size: 0.72rem;
+}
+
+/* --- Modals --- */
+
+body.powderpuff[data-page] .slot-picker-modal,
+body.powderpuff[data-page] .rules-modal {
+  background: rgba(77, 58, 87, 0.32);
+  backdrop-filter: blur(4px);
+}
+
+body.powderpuff[data-page] .slot-picker-panel,
+body.powderpuff[data-page] .rules-modal-panel {
+  border-radius: 26px;
+}
+
+body.powderpuff[data-page] .rules-modal-panel h3 {
+  color: var(--pp-pink-deep);
+}
+
+body.powderpuff[data-page] .rules-modal-close,
+body.powderpuff[data-page] .poke-detail-close-btn,
+body.powderpuff[data-page] .chat-close-btn {
+  border-radius: 50%;
+  background: var(--pp-pink-soft);
+  border: 1px solid var(--pp-pink);
+  color: var(--pp-pink-deep);
+}
+
+body.powderpuff[data-page] .slot-picker-slot {
+  border-radius: 14px;
+  border: 2px solid var(--border);
+  background: #fff;
+}
+
+body.powderpuff[data-page] .slot-picker-slot:hover:not(:disabled) {
+  border-color: var(--pp-pink);
+  background: var(--pp-pink-soft);
+}
+
+body.powderpuff[data-page] .slot-picker-slot--selected {
+  border-color: var(--pp-pink-deep) !important;
+  background: var(--pp-pink-soft);
+}
+
+body.powderpuff[data-page] .slot-picker-slot-position {
+  color: var(--pp-pink-deep);
+}
+
+body.powderpuff[data-page] .cheer-pick-card {
+  border-radius: 16px;
+  border: 2px solid var(--border);
+  background: #fff;
+}
+
+body.powderpuff[data-page] .cheer-pick-card:hover {
+  border-color: var(--pp-pink);
+  background: var(--pp-pink-soft);
+}
+
+/* --- My Team --- */
+
+body.powderpuff[data-page] .myteam-grid {
+  gap: 0.75rem;
+}
+
+body.powderpuff[data-page] .myteam-slot {
+  border-radius: 20px;
+  border: 2px solid var(--border);
+  background: #fff;
+  transition: transform 0.15s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+body.powderpuff[data-page] .myteam-slot--filled:hover,
+body.powderpuff[data-page] .myteam-slot--pickable:hover {
+  transform: translateY(-2px);
+  border-color: var(--pp-pink);
+  box-shadow: 0 10px 20px rgba(217, 87, 143, 0.15);
+}
+
+body.powderpuff[data-page] .myteam-slot--pickable {
+  border-style: dashed;
+  border-color: var(--pp-pink);
+  background: var(--pp-pink-soft);
+}
+
+body.powderpuff[data-page] .myteam-slot--pickable .myteam-slot-empty {
+  color: var(--pp-pink-deep);
+  font-weight: 800;
+}
+
+body.powderpuff[data-page] .myteam-slot--selected {
+  border-color: var(--pp-sky-deep);
+  box-shadow: 0 0 0 4px rgba(169, 216, 245, 0.7);
+}
+
+body.powderpuff[data-page] .myteam-slot--dragover {
+  border-color: var(--pp-mint-deep);
+  box-shadow: 0 0 0 4px rgba(168, 230, 207, 0.7);
+}
+
+body.powderpuff[data-page] .myteam-slot--unplayable .myteam-slot-sprite {
+  filter: grayscale(0.85) opacity(0.6);
+}
+
+body.powderpuff[data-page] .myteam-slot-position {
+  padding: 0.1rem 0.5rem;
+  border-radius: 999px;
+  background: var(--pp-lilac-soft);
+  color: var(--pp-lilac-deep);
+}
+
+body.powderpuff[data-page] .myteam-slot-name {
+  font-family: "Fredoka", "Nunito", sans-serif;
+  font-weight: 600;
+  text-transform: capitalize;
+}
+
+body.powderpuff[data-page] .myteam-out-badge,
+body.powderpuff[data-page] .out-badge {
+  border-radius: 999px;
+  background: #f4eff6;
+  color: var(--muted);
+  border: 1px solid #e4d9ea;
+  padding: 0.1rem 0.5rem;
+  font-size: 0.7rem;
+  font-weight: 800;
+}
+
+body.powderpuff[data-page] .pp-roster-note {
+  margin: 0.75rem 0;
+}
+
+body.powderpuff[data-page] .pp-roster-note--locked {
+  background: var(--pp-butter-soft);
+  border-color: var(--pp-butter);
+}
+
+body.powderpuff[data-page] .pp-selection-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6rem;
+  margin: 0.75rem 0;
+  padding: 0.75rem 1rem;
+  border-radius: 18px;
+  background: var(--pp-sky-soft);
+  border: 2px solid var(--pp-sky);
+}
+
+body.powderpuff[data-page] .pp-selection-bar[hidden] {
+  display: none;
+}
+
+body.powderpuff[data-page] .pp-selection-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+body.powderpuff[data-page] .roster-column-heading {
+  color: var(--pp-lilac-deep);
+  font-family: "Fredoka", "Nunito", sans-serif;
+}
+
+body.powderpuff[data-page] .roster-row {
+  border-bottom-color: #f6e2ec;
+}
+
+body.powderpuff[data-page] .roster-row-position {
+  color: var(--pp-pink-deep);
+  font-weight: 800;
+}
+
+/* --- Training --- */
+
+body.powderpuff[data-page] .training-btn {
+  border-radius: 20px;
+  background: color-mix(in srgb, var(--training-color) 22%, #fff);
+  border: 2px solid var(--training-color);
+  color: var(--pp-plum);
+  text-transform: none;
+  font-family: "Fredoka", "Nunito", sans-serif;
+  font-weight: 600;
+  font-size: 0.85rem;
+}
+
+body.powderpuff[data-page] .training-btn:hover:not(:disabled) {
+  transform: translateY(-3px) rotate(-1deg);
+  box-shadow: 0 10px 18px color-mix(in srgb, var(--training-color) 45%, transparent);
+}
+
+body.powderpuff[data-page] .training-btn--done {
+  background: color-mix(in srgb, var(--training-color) 40%, #fff);
+}
+
+body.powderpuff[data-page] .training-badge {
+  border-radius: 999px;
+}
+
+body.powderpuff[data-page] .training-badge--streak {
+  background: var(--pp-butter-soft);
+  color: var(--pp-butter-deep);
+  border: 1px solid var(--pp-butter);
+}
+
+body.powderpuff[data-page] .training-badge--bonus {
+  background: var(--pp-mint-soft);
+  color: var(--pp-mint-deep);
+  border: 1px solid var(--pp-mint);
+}
+
+body.powderpuff[data-page] .info-tooltip-btn {
+  border-radius: 50%;
+  border-color: var(--pp-lilac);
+  color: var(--pp-lilac-deep);
+}
+
+body.powderpuff[data-page] .info-tooltip-popover {
+  border-radius: 16px;
+  border-color: var(--pp-lilac);
+  background: var(--pp-lilac-soft);
+}
+
+body.powderpuff[data-page] .cheer-toggle-btn {
+  border-color: var(--pp-pink);
+  color: var(--pp-pink-deep);
+  background: var(--pp-pink-soft);
+}
+
+body.powderpuff[data-page] .cheer-slot {
+  border-radius: 50%;
+  border: 2px dashed var(--pp-pink);
+  background: #fff;
+}
+
+/* --- Schedule --- */
+
+body.powderpuff[data-page] .week-collapse > .roster-set-title {
+  text-transform: none;
+  font-size: 1.15rem;
+}
+
+body.powderpuff[data-page] .roster-set-title::after {
+  color: var(--pp-pink-deep);
+}
+
+body.powderpuff[data-page] .roster-set-count {
+  background: var(--pp-sky-soft);
+  color: var(--pp-sky-deep);
+}
+
+body.powderpuff[data-page] .matchup-card {
+  border-radius: 18px;
+  box-shadow: none;
+}
+
+body.powderpuff[data-page] .matchup-teams .winner {
+  color: var(--pp-mint-deep);
+}
+
+body.powderpuff[data-page] .matchup-teams .winner .matchup-team-name::after {
+  content: " 🎀";
+}
+
+body.powderpuff[data-page] .matchup-score {
+  font-family: "Fredoka", "Nunito", sans-serif;
+  font-weight: 700;
+  font-size: 1.1rem;
+  color: var(--pp-plum);
+}
+
+body.powderpuff[data-page] .matchup-week-heading {
+  color: var(--pp-lilac-deep);
+  font-family: "Fredoka", "Nunito", sans-serif;
+  text-transform: none;
+  letter-spacing: 0.02em;
+}
+
+body.powderpuff[data-page] .potw-card {
+  border-left: none;
+  background: linear-gradient(135deg, #fff6d6, #fde4ef);
+  border-color: var(--pp-butter);
+}
+
+body.powderpuff[data-page] .potw-label {
+  color: var(--pp-butter-deep);
+}
+
+body.powderpuff[data-page] .potw-suggestion {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  border-radius: 14px;
+  border: 2px solid var(--border);
+  background: #fff;
+}
+
+body.powderpuff[data-page] .potw-suggestion img {
+  width: 36px;
+  height: 36px;
+  image-rendering: pixelated;
+}
+
+body.powderpuff[data-page] .potw-suggestion:hover {
+  border-color: var(--pp-pink);
+  background: var(--pp-pink-soft);
+}
+
+body.powderpuff[data-page] .pp-bracket-seed {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.4rem;
+  height: 1.4rem;
+  padding: 0 0.3rem;
+  border-radius: 999px;
+  background: var(--pp-lilac-soft);
+  color: var(--pp-lilac-deep);
+  font-size: 0.72rem;
+  font-weight: 800;
+}
+
+body.powderpuff[data-page] .pp-bracket-bye {
+  justify-content: flex-start;
+  gap: 0.6rem;
+  background: var(--pp-mint-soft);
+}
+
+body.powderpuff[data-page] .pp-bracket-bye .status {
+  padding: 0.2rem 0.6rem;
+  background: #fff;
+}
+
+body.powderpuff[data-page] .pp-champion {
+  margin-top: 1rem;
+  padding: 1rem;
+  border-radius: 18px;
+  text-align: center;
+  font-family: "Fredoka", "Nunito", sans-serif;
+  font-size: 1.3rem;
+  font-weight: 700;
+  background: linear-gradient(135deg, #fff6d6, #fde4ef, #e4f2fc);
+  color: var(--pp-plum);
+}
+
+/* --- Coordinator: a striped mint field --- */
+
+body.powderpuff[data-page] .coord-field {
+  border-color: #bfe8d6;
+  background: repeating-linear-gradient(0deg, #e8f8f0 0 24px, #dff4ea 24px 48px);
+}
+
+body.powderpuff[data-page] .coord-field--top {
+  border-radius: 20px 20px 0 0;
+}
+
+body.powderpuff[data-page] .coord-field--bottom {
+  border-radius: 0 0 20px 20px;
+}
+
+body.powderpuff[data-page] .coord-los-divider {
+  background: repeating-linear-gradient(90deg, var(--pp-pink) 0 8px, transparent 8px 14px);
+}
+
+body.powderpuff[data-page] .coord-box {
+  background: #fff;
+  border-radius: 14px;
+}
+
+body.powderpuff[data-page] .coord-box--empty,
+body.powderpuff[data-page] .coord-pool-item--empty {
+  background: rgba(255, 255, 255, 0.7);
+}
+
+body.powderpuff[data-page] .coord-box--selected,
+body.powderpuff[data-page] .coord-pool-item--selected {
+  box-shadow: 0 0 0 4px rgba(247, 168, 200, 0.8);
+}
+
+body.powderpuff[data-page] .coord-pool-item {
+  border-radius: 14px;
+  background: #fff;
+}
+
+body.powderpuff[data-page] .coord-mode-tab {
+  border-radius: 999px;
+  background: #fff;
+  border: 2px solid var(--border);
+  color: var(--pp-plum);
+  font-family: "Fredoka", "Nunito", sans-serif;
+}
+
+body.powderpuff[data-page] .coord-mode-tab--active {
+  background: var(--pp-pink-soft);
+  border-color: var(--pp-pink);
+  color: var(--pp-pink-deep);
+}
+
+/* --- Chat --- */
+
+body.powderpuff[data-page] .chat-sidebar {
+  background: linear-gradient(180deg, #fff 0%, #fff5fa 100%);
+  border-left: 2px solid var(--border);
+}
+
+body.powderpuff[data-page] .chat-header {
+  border-bottom: 3px dotted var(--pp-pink);
+}
+
+body.powderpuff[data-page] .chat-message-name {
+  color: var(--pp-pink-deep);
+}
+
+body.powderpuff[data-page] .chat-clear-system-btn {
+  border-radius: 999px;
+  background: #fff;
+}
+
+body.powderpuff[data-page] .chat-toggle-btn {
+  background: linear-gradient(135deg, #f7a8c8, #c3b0f2);
+  border-color: #fff;
+  box-shadow: 0 8px 20px rgba(217, 87, 143, 0.35);
+}
+
+/* --- Type radar charts --- */
+
+body.powderpuff[data-page] .type-radar-ring {
+  stroke: #f1d6e3;
+}
+
+body.powderpuff[data-page] .type-radar-spoke {
+  stroke: #f6e2ec;
+}
+
+body.powderpuff[data-page] .type-radar-shape {
+  fill: rgba(247, 168, 200, 0.35);
+  stroke: var(--pp-pink-deep);
+}
+
+body.powderpuff[data-page] .type-radar-type-label {
+  fill: var(--pp-plum);
+}
+
+/* --- Footer --- */
+
+body.powderpuff[data-page] .site-footer {
+  border-top: 2px dotted var(--border);
+  color: var(--muted);
+}
