@@ -4,7 +4,7 @@ service firebase.storage {
     // Same "literal admin uid" tradeoff as firestore.rules - Storage rules
     // can't read config.js either.
     function isAdmin() {
-      return request.auth != null && request.auth.uid == "REPLACE_WITH_POWDERPUFF_ADMIN_UID";
+      return request.auth != null && request.auth.uid == "7pr4oGgKMtaB8vaPWhBEYAfU0Mk1";
     }
 
     // One profile picture per team, keyed by the owning manager's uid.

@@ -411,6 +411,39 @@
     }
   }
 
+  // A signed-in account with no team - e.g. one whose sign-up made the
+  // login but failed to save the team (such as before the database rules
+  // were in place) - gets its team created here, once per page load.
+  let ensureMyTeamTried = false;
+  const ensureMyTeam = async () => {
+    const user = auth.currentUser;
+    if (!user || ensureMyTeamTried) return;
+    ensureMyTeamTried = true;
+    // A brand-new sign-up writes its own team a moment after the login
+    // exists - give it time, then only step in if there's still no team.
+    await new Promise((resolve) => setTimeout(resolve, 3000));
+    try {
+      if ((await db.collection("teams").doc(user.uid).get()).exists) return;
+    } catch (error) {
+      return;
+    }
+    const displayName = user.displayName || (user.email || "").split("@")[0] || "Unnamed Manager";
+    try {
+      await db.collection("users").doc(user.uid).set(
+        { displayName, email: user.email || "", createdAt: firebase.firestore.FieldValue.serverTimestamp() },
+        { merge: true }
+      );
+      await db.collection("teams").doc(user.uid).set({
+        ownerUid: user.uid,
+        teamName: `${displayName}'s Team`,
+        createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+        slots: emptyRoster(),
+      });
+    } catch (error) {
+      statusSummaryEl.textContent = `Couldn't set up your team: ${error.message}`;
+    }
+  };
+
   // Firestore listeners that error out (e.g. because auth hadn't resolved
   // yet) don't retry on their own, so these are torn down and restarted
   // every time the sign-in state changes.
@@ -436,6 +469,7 @@
         .doc(auth.currentUser.uid)
         .onSnapshot((doc) => {
           myTeam = doc.exists ? doc.data() : null;
+          if (!doc.exists) ensureMyTeam();
           rerenderMe();
         }, () => {})
     );

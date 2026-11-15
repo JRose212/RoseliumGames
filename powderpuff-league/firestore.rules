@@ -5,12 +5,11 @@ service cloud.firestore {
       return request.auth != null;
     }
 
-    // TODO: replace with the real admin uid (Firebase Console > Authentication
-    // > Users > your row > User UID) once the admin signs up on this league.
-    // Rules can't read config.js, so this has to be a literal string here,
-    // kept in sync by hand with config.js's adminUid.
+    // The admin's uid (Firebase Console > Authentication > Users). Rules
+    // can't read config.js, so this has to be a literal string here, kept
+    // in sync by hand with config.js's adminUid and storage.rules.
     function isAdmin() {
-      return request.auth.uid == "REPLACE_WITH_POWDERPUFF_ADMIN_UID";
+      return request.auth.uid == "7pr4oGgKMtaB8vaPWhBEYAfU0Mk1";
     }
 
     function leagueSettings() {

@@ -120,9 +120,8 @@ window.siteConfig = {
 
   // Client-side only - controls whether admin buttons/screens are shown.
   // The real enforcement is isAdmin() in firestore.rules/storage.rules,
-  // which hardcode this same uid separately. Placeholder until the admin
-  // signs up on this league and sends back their UID.
-  adminUid: "YOUR_ADMIN_UID",
+  // which hardcode this same uid separately - keep all three in sync.
+  adminUid: "7pr4oGgKMtaB8vaPWhBEYAfU0Mk1",
 
   // Season shape: every game is on Sunday, 6 regular-season weeks, at
   // least 4 teams before a schedule can be generated, and every team
