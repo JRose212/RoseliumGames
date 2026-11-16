@@ -52,6 +52,69 @@
     return `<span class="${cls} team-avatar-placeholder">${escapeHtml(name.charAt(0) || "?")}</span>`;
   };
 
+  // Box scores name a Pokemon however its roster or the pasted JSON did:
+  // sometimes the plain name ("Basculegion"), sometimes PokeAPI's name for
+  // its default form ("basculegion-male", "palafin-zero"). These are the
+  // PokeAPI names that carry a form suffix - each counts as, and shows as,
+  // its plain name. Names that really are hyphenated (mr-mime, ho-oh,
+  // iron-valiant) aren't listed, so they stay as they are.
+  const formSuffixedNames = {
+    "deoxys-normal": "deoxys",
+    "wormadam-plant": "wormadam",
+    "giratina-altered": "giratina",
+    "shaymin-land": "shaymin",
+    "basculin-red-striped": "basculin",
+    "darmanitan-standard": "darmanitan",
+    "frillish-male": "frillish",
+    "jellicent-male": "jellicent",
+    "tornadus-incarnate": "tornadus",
+    "thundurus-incarnate": "thundurus",
+    "landorus-incarnate": "landorus",
+    "keldeo-ordinary": "keldeo",
+    "meloetta-aria": "meloetta",
+    "pyroar-male": "pyroar",
+    "meowstic-male": "meowstic",
+    "aegislash-shield": "aegislash",
+    "pumpkaboo-average": "pumpkaboo",
+    "gourgeist-average": "gourgeist",
+    "zygarde-50": "zygarde",
+    "oricorio-baile": "oricorio",
+    "lycanroc-midday": "lycanroc",
+    "wishiwashi-solo": "wishiwashi",
+    "minior-red-meteor": "minior",
+    "mimikyu-disguised": "mimikyu",
+    "toxtricity-amped": "toxtricity",
+    "eiscue-ice": "eiscue",
+    "indeedee-male": "indeedee",
+    "morpeko-full-belly": "morpeko",
+    "urshifu-single-strike": "urshifu",
+    "basculegion-male": "basculegion",
+    "enamorus-incarnate": "enamorus",
+    "oinkologne-male": "oinkologne",
+    "maushold-family-of-four": "maushold",
+    "squawkabilly-green-plumage": "squawkabilly",
+    "palafin-zero": "palafin",
+    "tatsugiri-curly": "tatsugiri",
+    "dudunsparce-two-segment": "dudunsparce",
+  };
+
+  // { key, name }: key groups every spelling of the same Pokemon together
+  // the way PokeAPI writes it - case, accents, apostrophes and periods
+  // don't matter ("Mr. Mime" = "mr-mime", "Farfetch'd" = "farfetchd",
+  // "Flabébé" = "flabebe") - and name is what the page shows.
+  const statsPokemonName = (rawName) => {
+    const name = String(rawName || "").trim();
+    const slug = name
+      .normalize("NFD")
+      .replace(/[̀-ͯ]/g, "")
+      .toLowerCase()
+      .replace(/['’.]/g, "")
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, "");
+    const base = formSuffixedNames[slug];
+    return base ? { key: base, name: base } : { key: slug, name };
+  };
+
   // Leaderboards only - per-game summaries and box scores live on the
   // Schedule page itself, right on each matchup's own row. This page is
   // purely the season-wide aggregate, summed live from every box score
@@ -83,10 +146,12 @@
             const value = Number(stats[cat.key]) || 0;
             if (!value) return;
             const map = totals[cat.key];
-            const existing = map.get(entry.pokemonName) || { total: 0, uid };
+            const { key, name } = statsPokemonName(entry.pokemonName);
+            if (!key) return;
+            const existing = map.get(key) || { total: 0, uid, pokemonName: name };
             existing.total += value;
             existing.uid = uid;
-            map.set(entry.pokemonName, existing);
+            map.set(key, existing);
           });
         });
       });
@@ -105,7 +170,7 @@
     leaderboardsAreaEl.innerHTML = leaderboardCategories
       .map((cat) => {
         const entries = [...totals[cat.key].entries()]
-          .map(([pokemonName, data]) => ({ pokemonName, ...data }))
+          .map(([, data]) => data)
           .sort((a, b) => b.total - a.total)
           .slice(0, 5);
         if (!entries.length) return "";
@@ -357,10 +422,9 @@
         ].forEach(({ side, uid }) => {
           (side || []).forEach((entry) => {
             if (!table.slots.includes(entry.slot)) return;
-            const name = String(entry.pokemonName || "").trim();
-            if (!name) return;
+            const { key: rowKey, name } = statsPokemonName(entry.pokemonName);
+            if (!rowKey) return;
             const stats = entry.stats || {};
-            const rowKey = name.toLowerCase();
             const row = rows.get(rowKey) || { name, games: [], primary: false, active: false };
             row.uid = uid;
             row.slot = entry.slot;
