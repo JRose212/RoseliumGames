@@ -213,6 +213,17 @@ service cloud.firestore {
       allow read: if isSignedIn();
       allow create, update: if isAdmin();
       allow delete: if isAdmin();
+
+      // Each publish writes a new version doc instead of overwriting the
+      // last one - a resim never silently rewrites what's already been
+      // revealed to anyone watching. Versions are append-only: created by
+      // admin, never updated, since "fixing" one means publishing a new
+      // version and pointing the parent doc at it, not editing in place.
+      match /versions/{versionId} {
+        allow read: if isSignedIn();
+        allow create: if isAdmin();
+        allow delete: if isAdmin();
+      }
     }
 
     // Broadcast episodes uploaded straight from the K&J Show page - the

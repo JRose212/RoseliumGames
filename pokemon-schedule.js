@@ -230,22 +230,10 @@
   // schema on purpose - pacing (secondsPerPlay below) is a site decision,
   // not a simulation one.
   //
-  // Validates loosely, same philosophy as validateBoxScoreSide - this is
-  // admin-pasted LLM output, not adversarial input, so it's just enough
-  // checking to catch a malformed paste before it reaches Firestore.
-  const validatePlays = (plays) => {
-    if (!Array.isArray(plays) || !plays.length) throw new Error(`"plays" must be a non-empty array.`);
-    plays.forEach((play, i) => {
-      if (!play || typeof play !== "object") throw new Error(`plays[${i}] isn't an object.`);
-      if (play.poss !== "home" && play.poss !== "away") throw new Error(`plays[${i}] has an invalid "poss": ${play.poss}`);
-      if (play.stats !== undefined && !Array.isArray(play.stats)) throw new Error(`plays[${i}].stats must be an array.`);
-      (play.stats || []).forEach((entry, j) => {
-        if (!entry || typeof entry !== "object") throw new Error(`plays[${i}].stats[${j}] isn't an object.`);
-        if (entry.team !== "home" && entry.team !== "away") throw new Error(`plays[${i}].stats[${j}] has an invalid "team": ${entry.team}`);
-        if (!entry.slot || !entry.pokemonName) throw new Error(`plays[${i}].stats[${j}] is missing "slot" or "pokemonName".`);
-      });
-    });
-  };
+  // Real validation (continuity, clock direction, score reconciliation,
+  // stat-key whitelisting, speaker whitelisting) lives in
+  // pokemon-gamecast-validator.js, loaded on this page - see that file for
+  // the full rule list.
 
   // The box score becomes a derived view of the plays instead of a
   // separately-pasted document - the two can no longer disagree, because
@@ -299,6 +287,33 @@
       Array.from(map.entries()).map(([slot, entry]) => ({ slot, pokemonName: entry.pokemonName, stats: entry.stats }));
     return { home: toArray(accum.home), away: toArray(accum.away) };
   };
+
+  // Storage: gamePlays/{matchupId} is a lightweight pointer doc
+  // (segments.full.activeVersion/revealStart/secondsPerPlay); the heavy
+  // play list lives in gamePlays/{matchupId}/versions/full_v{N}. A resim
+  // writes a new version doc and repoints the pointer rather than
+  // overwriting the old version, so anyone already watching never has
+  // what they're mid-reveal of silently rewritten underneath them. Only
+  // the "full" segment exists for now - h1/h2 segments are a later build
+  // stage (see GAMECAST_SPEC.md).
+  const loadActiveGamecastVersion = (matchupId) =>
+    db
+      .collection("gamePlays")
+      .doc(matchupId)
+      .get()
+      .then((pointerDoc) => {
+        if (!pointerDoc.exists) return null;
+        const pointer = pointerDoc.data();
+        const activeVersion = pointer.segments && pointer.segments.full && pointer.segments.full.activeVersion;
+        if (!activeVersion) return null;
+        return db
+          .collection("gamePlays")
+          .doc(matchupId)
+          .collection("versions")
+          .doc(`full_v${activeVersion}`)
+          .get()
+          .then((versionDoc) => (versionDoc.exists ? { pointer, version: versionDoc.data() } : null));
+      });
 
   // --- Round-robin schedule generation ---
 
@@ -1482,20 +1497,17 @@
     gamecastMessageEl.hidden = true;
     gamecastInputEl.value = "Loading existing play-by-play (if any)…";
     gamecastInputEl.disabled = true;
-    db.collection("gamePlays")
-      .doc(matchupId)
-      .get()
-      .then((doc) => {
+    loadActiveGamecastVersion(matchupId)
+      .then((result) => {
         if (pendingMatchupId !== matchupId) return;
         gamecastInputEl.disabled = false;
-        if (doc.exists) {
-          const data = doc.data();
+        if (result) {
           gamecastInputEl.value = JSON.stringify(
-            { schemaVersion: data.schemaVersion, game: data.game, plays: data.plays },
+            { schemaVersion: result.version.schemaVersion, game: result.version.game, plays: result.version.plays },
             null,
             2
           );
-          gamecastSecondsPerPlayEl.value = data.secondsPerPlay || 20;
+          gamecastSecondsPerPlayEl.value = (result.pointer.segments.full && result.pointer.segments.full.secondsPerPlay) || 20;
         } else {
           gamecastInputEl.value = "";
         }
@@ -1704,28 +1716,68 @@
       showGamecastMessage(`Invalid JSON: ${error.message}`, true);
       return;
     }
-    try {
-      validatePlays(parsed.plays);
-    } catch (error) {
-      showGamecastMessage(error.message, true);
+
+    const errors = [
+      ...window.validateGamecastPlays(parsed.plays, {
+        expectedGame: { week: matchup.week, home: teamName(matchup.homeUid), away: teamName(matchup.awayUid) },
+        payloadGame: parsed.game,
+      }),
+      ...window.validateGamecastBreaks(parsed.breaks),
+    ];
+    if (errors.length) {
+      const shown = errors.slice(0, 10).join("\n");
+      const more = errors.length > 10 ? `\n...and ${errors.length - 10} more.` : "";
+      showGamecastMessage(`${errors.length} issue(s) found:\n${shown}${more}`, true);
       return;
     }
+
     const secondsPerPlay = Number(gamecastSecondsPerPlayEl.value) || 20;
 
     try {
+      const pointerDoc = await db.collection("gamePlays").doc(pendingMatchupId).get();
+      const pointer = pointerDoc.exists ? pointerDoc.data() : null;
+      const currentSegment = pointer && pointer.segments && pointer.segments.full;
+      const currentVersion = (currentSegment && currentSegment.activeVersion) || 0;
+
+      // Resim lock: once reveal would already be underway (or over) for
+      // anyone watching, republishing silently would rewrite what they've
+      // already seen or are mid-watching. Not a hard block - games get
+      // corrected after the fact - just a confirmation instead of a quiet
+      // overwrite.
+      if (currentVersion > 0 && currentSegment.revealStart && currentSegment.revealStart.toMillis() <= Date.now()) {
+        const confirmed = window.confirm(
+          "This game's Gamecast has already started revealing (or finished). Publishing a new version restarts the reveal from the top for anyone watching. Continue?"
+        );
+        if (!confirmed) {
+          showGamecastMessage("Publish cancelled.", true);
+          return;
+        }
+      }
+
+      const nextVersion = currentVersion + 1;
       const homeTeam = teamsByUid.get(matchup.homeUid);
       const awayTeam = teamsByUid.get(matchup.awayUid);
       const derivedBoxScore = deriveBoxScoreFromPlays(parsed.plays, homeTeam, awayTeam);
 
       const batch = db.batch();
-      batch.set(db.collection("gamePlays").doc(pendingMatchupId), {
+      batch.set(db.collection("gamePlays").doc(pendingMatchupId).collection("versions").doc(`full_v${nextVersion}`), {
         schemaVersion: parsed.schemaVersion || 1,
         game: parsed.game || null,
+        plays: parsed.plays,
+        breaks: parsed.breaks || null,
+        createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+        enteredBy: auth.currentUser.uid,
+      });
+      batch.set(db.collection("gamePlays").doc(pendingMatchupId), {
         homeUid: matchup.homeUid,
         awayUid: matchup.awayUid,
-        plays: parsed.plays,
-        kickoffAt: matchup.date,
-        secondsPerPlay,
+        segments: {
+          full: {
+            activeVersion: nextVersion,
+            revealStart: matchup.date,
+            secondsPerPlay,
+          },
+        },
         enteredAt: firebase.firestore.FieldValue.serverTimestamp(),
         enteredBy: auth.currentUser.uid,
       });
@@ -1738,7 +1790,7 @@
       await batch.commit();
 
       boxScoreInputEl.value = JSON.stringify(derivedBoxScore, null, 2);
-      showGamecastMessage("Gamecast published - box score recomputed from the plays.", false);
+      showGamecastMessage(`Gamecast published as version ${nextVersion} - box score recomputed from the plays.`, false);
     } catch (error) {
       showGamecastMessage(error.message, true);
     }

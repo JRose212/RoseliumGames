@@ -1,7 +1,11 @@
-// Gamecast - reveals a pre-simulated play-by-play (gamePlays/{matchupId},
-// see pokemon-schedule.js's Publish Gamecast admin tool) on a timer
-// instead of all at once. Every visitor's browser just compares now()
-// against each play's own computed reveal time (kickoffAt + index *
+// Gamecast - reveals a pre-simulated play-by-play on a timer instead of
+// all at once. Storage is a lightweight pointer doc at
+// gamePlays/{matchupId} (segments.full.activeVersion/revealStart/
+// secondsPerPlay) plus the heavy play list in a versioned subcollection
+// doc at gamePlays/{matchupId}/versions/full_v{N} - see
+// pokemon-schedule.js's Publish Gamecast admin tool, which is what
+// creates these. Every visitor's browser just compares now() against
+// each play's own computed reveal time (revealStart + index *
 // secondsPerPlay) - no server push needed, so it works on a static site
 // with no backend.
 //
@@ -80,8 +84,8 @@
   };
 
   const revealCount = () => {
-    if (!gameDoc || !gameDoc.kickoffAt) return 0;
-    const kickoffMs = gameDoc.kickoffAt.toMillis();
+    if (!gameDoc || !gameDoc.revealStart) return 0;
+    const kickoffMs = gameDoc.revealStart.toMillis();
     const perPlayMs = (gameDoc.secondsPerPlay || 20) * 1000;
     const elapsed = Date.now() - kickoffMs;
     if (elapsed < 0) return 0;
@@ -202,27 +206,45 @@
       showTestMessage(`Invalid JSON: ${error.message}`, true);
       return;
     }
-    if (!Array.isArray(parsed.plays) || !parsed.plays.length) {
-      showTestMessage(`"plays" must be a non-empty array.`, true);
+    const errors = [
+      ...window.validateGamecastPlays(parsed.plays, {}),
+      ...window.validateGamecastBreaks(parsed.breaks),
+    ];
+    if (errors.length) {
+      const shown = errors.slice(0, 10).join("\n");
+      const more = errors.length > 10 ? `\n...and ${errors.length - 10} more.` : "";
+      showTestMessage(`${errors.length} issue(s) found:\n${shown}${more}`, true);
       return;
     }
     const secondsPerPlay = Number(testSecondsPerPlayEl.value) || 20;
 
+    // The test slot always publishes as version 1 and overwrites itself -
+    // it's a sandbox, not a real matchup, so none of the resim-lock
+    // concerns that apply to savePlays() in pokemon-schedule.js apply here.
     try {
-      await db
-        .collection("gamePlays")
-        .doc(TEST_MATCHUP_ID)
-        .set({
-          schemaVersion: parsed.schemaVersion || 1,
-          game: parsed.game || null,
-          homeUid,
-          awayUid,
-          plays: parsed.plays,
-          kickoffAt: firebase.firestore.Timestamp.now(),
-          secondsPerPlay,
-          enteredAt: firebase.firestore.FieldValue.serverTimestamp(),
-          enteredBy: currentUser.uid,
-        });
+      const batch = db.batch();
+      batch.set(db.collection("gamePlays").doc(TEST_MATCHUP_ID).collection("versions").doc("full_v1"), {
+        schemaVersion: parsed.schemaVersion || 1,
+        game: parsed.game || null,
+        plays: parsed.plays,
+        breaks: parsed.breaks || null,
+        createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+        enteredBy: currentUser.uid,
+      });
+      batch.set(db.collection("gamePlays").doc(TEST_MATCHUP_ID), {
+        homeUid,
+        awayUid,
+        segments: {
+          full: {
+            activeVersion: 1,
+            revealStart: firebase.firestore.Timestamp.now(),
+            secondsPerPlay,
+          },
+        },
+        enteredAt: firebase.firestore.FieldValue.serverTimestamp(),
+        enteredBy: currentUser.uid,
+      });
+      await batch.commit();
       showTestMessage("Test Gamecast published - kickoff is now. Open \"View Test Gamecast\" to watch it.", false);
     } catch (error) {
       showTestMessage(error.message, true);
@@ -271,20 +293,62 @@
 
     if (!matchupId) return;
 
+    // Storage: gamePlays/{matchupId} is a lightweight pointer doc
+    // (segments.full.activeVersion/revealStart/secondsPerPlay); the heavy
+    // play list lives in gamePlays/{matchupId}/versions/full_v{N}. A
+    // resim bumps the pointer to a new version rather than overwriting an
+    // old one, so this always re-fetches whichever version is current
+    // rather than assuming the one it already has is still active.
     unsubscribeGamePlays = db
       .collection("gamePlays")
       .doc(matchupId)
       .onSnapshot(
-        (doc) => {
-          if (!doc.exists) {
+        (pointerDoc) => {
+          if (!pointerDoc.exists) {
             statusEl.hidden = false;
             statusEl.className = "status";
             statusEl.textContent = "No Gamecast has been published for this game yet.";
             cardEl.hidden = true;
             return;
           }
-          gameDoc = doc.data();
-          startTicking();
+          const pointer = pointerDoc.data();
+          const segment = pointer.segments && pointer.segments.full;
+          if (!segment || !segment.activeVersion) {
+            statusEl.hidden = false;
+            statusEl.className = "status";
+            statusEl.textContent = "No Gamecast has been published for this game yet.";
+            cardEl.hidden = true;
+            return;
+          }
+          db.collection("gamePlays")
+            .doc(matchupId)
+            .collection("versions")
+            .doc(`full_v${segment.activeVersion}`)
+            .get()
+            .then((versionDoc) => {
+              if (!versionDoc.exists) {
+                statusEl.hidden = false;
+                statusEl.className = "status error";
+                statusEl.textContent = "This Gamecast's active version is missing - check with the admin.";
+                cardEl.hidden = true;
+                return;
+              }
+              const version = versionDoc.data();
+              gameDoc = {
+                homeUid: pointer.homeUid,
+                awayUid: pointer.awayUid,
+                revealStart: segment.revealStart,
+                secondsPerPlay: segment.secondsPerPlay,
+                plays: version.plays,
+                game: version.game,
+              };
+              startTicking();
+            })
+            .catch((error) => {
+              statusEl.hidden = false;
+              statusEl.className = "status error";
+              statusEl.textContent = `Unable to load this Gamecast: ${error.message}`;
+            });
         },
         (error) => {
           statusEl.hidden = false;
