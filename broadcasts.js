@@ -25,6 +25,7 @@ window.broadcasts = [
   { type: "sunday_recap", week: 4, file: "audio/week04-sunday-recap.mp3", title: "Week 4: Sunday Slate Recap", date: "2026-11-08" },
   { type: "monday_recap", week: 4, file: "audio/week04-monday-recap.mp3", title: "Week 4: Monday Night Football Recap", date: "2026-11-09" },
   { type: "thursday_recap", week: 5, file: "audio/week05-thursday-recap.mp3", title: "Week 5: Thursday Night Primetime Recap", date: "2026-11-12" },
+  { type: "monday_recap", week: 5, file: "audio/week05-monday-recap.mp3", title: "Week 5: Monday Night Football Recap", date: "2026-11-16" },
 ];
 
 window.broadcastTypeLabels = {
