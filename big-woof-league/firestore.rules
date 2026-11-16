@@ -205,6 +205,16 @@ service cloud.firestore {
       allow delete: if isAdmin();
     }
 
+    // Full play-by-play for the Gamecast reveal-on-a-timer view (keyed by
+    // matchupId) - same shape of admin-entered per-game record as
+    // boxScores above, which is in fact derived from this collection's
+    // plays rather than pasted in separately.
+    match /gamePlays/{matchupId} {
+      allow read: if isSignedIn();
+      allow create, update: if isAdmin();
+      allow delete: if isAdmin();
+    }
+
     // Broadcast episodes uploaded straight from the K&J Show page - the
     // admin's fallback for posting an episode without VS Code/git access.
     // The hand-maintained broadcasts.js file is still the primary method;

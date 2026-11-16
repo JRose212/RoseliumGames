@@ -76,6 +76,10 @@
   const boxScoreInputEl = document.getElementById("box-score-input");
   const boxScoreMessageEl = document.getElementById("box-score-message");
   const boxScoreSaveBtnEl = document.getElementById("box-score-save-btn");
+  const gamecastInputEl = document.getElementById("gamecast-input");
+  const gamecastSecondsPerPlayEl = document.getElementById("gamecast-seconds-per-play");
+  const gamecastMessageEl = document.getElementById("gamecast-message");
+  const gamecastSaveBtnEl = document.getElementById("gamecast-save-btn");
   const resultMessageEl = document.getElementById("result-message");
   const resultSubmitBtnEl = document.getElementById("result-submit-btn");
   const resultCancelBtnEl = document.getElementById("result-cancel-btn");
@@ -158,6 +162,7 @@
   let seasonState = null;
   let trainingLog = [];
   let boxScoresByMatchupId = new Map();
+  let gamePlayMatchupIds = new Set();
 
   const isRealAdmin = () =>
     Boolean(currentUser && config.adminUid && config.adminUid !== "YOUR_ADMIN_UID" && currentUser.uid === config.adminUid);
@@ -212,6 +217,87 @@
         </div>
       </div>
     `;
+  };
+
+  // --- Gamecast (play-by-play) ---
+
+  // Schema v1, agreed with the desktop project: { schemaVersion, game:
+  // {week, home, away}, plays: [{q, clock, poss, down, dist, ballOn,
+  // type, result, yards, kickDist, desc, highlight, penalty, scoreAfter,
+  // stats: [{team, slot, pokemonName, stats}]}] }. "home"/"away" in the
+  // play's own fields are just tags - this page is the one that knows
+  // which uid they map to for the current matchup. No timestamps in the
+  // schema on purpose - pacing (secondsPerPlay below) is a site decision,
+  // not a simulation one.
+  //
+  // Validates loosely, same philosophy as validateBoxScoreSide - this is
+  // admin-pasted LLM output, not adversarial input, so it's just enough
+  // checking to catch a malformed paste before it reaches Firestore.
+  const validatePlays = (plays) => {
+    if (!Array.isArray(plays) || !plays.length) throw new Error(`"plays" must be a non-empty array.`);
+    plays.forEach((play, i) => {
+      if (!play || typeof play !== "object") throw new Error(`plays[${i}] isn't an object.`);
+      if (play.poss !== "home" && play.poss !== "away") throw new Error(`plays[${i}] has an invalid "poss": ${play.poss}`);
+      if (play.stats !== undefined && !Array.isArray(play.stats)) throw new Error(`plays[${i}].stats must be an array.`);
+      (play.stats || []).forEach((entry, j) => {
+        if (!entry || typeof entry !== "object") throw new Error(`plays[${i}].stats[${j}] isn't an object.`);
+        if (entry.team !== "home" && entry.team !== "away") throw new Error(`plays[${i}].stats[${j}] has an invalid "team": ${entry.team}`);
+        if (!entry.slot || !entry.pokemonName) throw new Error(`plays[${i}].stats[${j}] is missing "slot" or "pokemonName".`);
+      });
+    });
+  };
+
+  // The box score becomes a derived view of the plays instead of a
+  // separately-pasted document - the two can no longer disagree, because
+  // there's only one source of truth now. Kicker stats are a special
+  // case: fgMade/fgAtt/long/xpMade are tallied from each fg/xp play's own
+  // type/result/kickDist (same reasoning the desktop project gave for why
+  // "long" specifically can't be a per-play stat - it's a running
+  // derivation, not something to sum), attributed to whichever Pokemon
+  // currently holds that team's K slot rather than needing the play's
+  // stats array to name a kicker at all.
+  const deriveBoxScoreFromPlays = (plays, homeTeam, awayTeam) => {
+    const accum = { home: new Map(), away: new Map() };
+    const addStat = (teamKey, slot, pokemonName, deltas) => {
+      if (!accum[teamKey].has(slot)) accum[teamKey].set(slot, { pokemonName, stats: {} });
+      const entry = accum[teamKey].get(slot);
+      entry.pokemonName = pokemonName;
+      Object.entries(deltas || {}).forEach(([key, value]) => {
+        entry.stats[key] = (entry.stats[key] || 0) + (Number(value) || 0);
+      });
+    };
+
+    const kicking = {
+      home: { fgAtt: 0, fgMade: 0, long: 0, xpMade: 0 },
+      away: { fgAtt: 0, fgMade: 0, long: 0, xpMade: 0 },
+    };
+
+    plays.forEach((play) => {
+      (play.stats || []).forEach((entry) => addStat(entry.team, entry.slot, entry.pokemonName, entry.stats));
+
+      const kickingTeam = play.poss === "home" ? "home" : "away";
+      if (play.type === "fg") {
+        kicking[kickingTeam].fgAtt += 1;
+        if (play.result === "fg_good") {
+          kicking[kickingTeam].fgMade += 1;
+          kicking[kickingTeam].long = Math.max(kicking[kickingTeam].long, Number(play.kickDist) || 0);
+        }
+      } else if (play.type === "xp" && play.result === "xp_good") {
+        kicking[kickingTeam].xpMade += 1;
+      }
+    });
+
+    [
+      ["home", homeTeam],
+      ["away", awayTeam],
+    ].forEach(([teamKey, team]) => {
+      const kicker = team && team.slots && team.slots.K;
+      if (kicker) addStat(teamKey, "K", kicker.pokemonName, kicking[teamKey]);
+    });
+
+    const toArray = (map) =>
+      Array.from(map.entries()).map(([slot, entry]) => ({ slot, pokemonName: entry.pokemonName, stats: entry.stats }));
+    return { home: toArray(accum.home), away: toArray(accum.away) };
   };
 
   // --- Round-robin schedule generation ---
@@ -1262,6 +1348,10 @@
               `
               : "";
 
+            const gamecastLink = gamePlayMatchupIds.has(m.id)
+              ? `<a class="btn btn-secondary" href="pokemon-gamecast.html?matchup=${m.id}">Watch Gamecast</a>`
+              : "";
+
             const box = m.status === "final" ? boxScoresByMatchupId.get(m.id) : null;
             const boxScoreHtml = box
               ? `
@@ -1280,6 +1370,7 @@
                       <span class="matchup-score">${scoreText}</span>
                       ${declareBtn}
                       ${exportBtn}
+                      ${gamecastLink}
                       ${summaryLine}
                       ${driveSummaryHtml}
                       ${boxScoreHtml}
@@ -1384,6 +1475,33 @@
         if (pendingMatchupId !== matchupId) return;
         boxScoreInputEl.disabled = false;
         boxScoreInputEl.value = "";
+      });
+
+    gamecastMessageEl.hidden = true;
+    gamecastInputEl.value = "Loading existing play-by-play (if any)…";
+    gamecastInputEl.disabled = true;
+    db.collection("gamePlays")
+      .doc(matchupId)
+      .get()
+      .then((doc) => {
+        if (pendingMatchupId !== matchupId) return;
+        gamecastInputEl.disabled = false;
+        if (doc.exists) {
+          const data = doc.data();
+          gamecastInputEl.value = JSON.stringify(
+            { schemaVersion: data.schemaVersion, game: data.game, plays: data.plays },
+            null,
+            2
+          );
+          gamecastSecondsPerPlayEl.value = data.secondsPerPlay || 20;
+        } else {
+          gamecastInputEl.value = "";
+        }
+      })
+      .catch(() => {
+        if (pendingMatchupId !== matchupId) return;
+        gamecastInputEl.disabled = false;
+        gamecastInputEl.value = "";
       });
   };
 
@@ -1561,6 +1679,71 @@
 
   if (boxScoreSaveBtnEl) boxScoreSaveBtnEl.addEventListener("click", saveBoxScore);
 
+  const showGamecastMessage = (text, isError) => {
+    gamecastMessageEl.hidden = false;
+    gamecastMessageEl.className = `status${isError ? " error" : ""}`;
+    gamecastMessageEl.textContent = text;
+  };
+
+  async function savePlays() {
+    if (!pendingMatchupId) return;
+    const matchup = matchups.find((m) => m.id === pendingMatchupId);
+    if (!matchup) return;
+
+    const raw = gamecastInputEl.value.trim();
+    if (!raw) {
+      showGamecastMessage("Paste the play-by-play JSON first.", true);
+      return;
+    }
+    let parsed;
+    try {
+      parsed = JSON.parse(raw);
+    } catch (error) {
+      showGamecastMessage(`Invalid JSON: ${error.message}`, true);
+      return;
+    }
+    try {
+      validatePlays(parsed.plays);
+    } catch (error) {
+      showGamecastMessage(error.message, true);
+      return;
+    }
+    const secondsPerPlay = Number(gamecastSecondsPerPlayEl.value) || 20;
+
+    try {
+      const homeTeam = teamsByUid.get(matchup.homeUid);
+      const awayTeam = teamsByUid.get(matchup.awayUid);
+      const derivedBoxScore = deriveBoxScoreFromPlays(parsed.plays, homeTeam, awayTeam);
+
+      const batch = db.batch();
+      batch.set(db.collection("gamePlays").doc(pendingMatchupId), {
+        schemaVersion: parsed.schemaVersion || 1,
+        game: parsed.game || null,
+        homeUid: matchup.homeUid,
+        awayUid: matchup.awayUid,
+        plays: parsed.plays,
+        kickoffAt: matchup.date,
+        secondsPerPlay,
+        enteredAt: firebase.firestore.FieldValue.serverTimestamp(),
+        enteredBy: auth.currentUser.uid,
+      });
+      batch.set(db.collection("boxScores").doc(pendingMatchupId), {
+        home: derivedBoxScore.home,
+        away: derivedBoxScore.away,
+        enteredAt: firebase.firestore.FieldValue.serverTimestamp(),
+        enteredBy: auth.currentUser.uid,
+      });
+      await batch.commit();
+
+      boxScoreInputEl.value = JSON.stringify(derivedBoxScore, null, 2);
+      showGamecastMessage("Gamecast published - box score recomputed from the plays.", false);
+    } catch (error) {
+      showGamecastMessage(error.message, true);
+    }
+  }
+
+  if (gamecastSaveBtnEl) gamecastSaveBtnEl.addEventListener("click", savePlays);
+
   // --- Playoffs ---
 
   const allFinal = (round) => {
@@ -1732,6 +1915,7 @@
   let unsubscribeSeason = null;
   let unsubscribeTrainingLog = null;
   let unsubscribeBoxScores = null;
+  let unsubscribeGamePlays = null;
 
   const renderAll = () => {
     renderStandings();
@@ -1745,10 +1929,10 @@
   };
 
   const subscribe = () => {
-    [unsubscribeTeams, unsubscribeMatchups, unsubscribeSeason, unsubscribeTrainingLog, unsubscribeBoxScores].forEach(
+    [unsubscribeTeams, unsubscribeMatchups, unsubscribeSeason, unsubscribeTrainingLog, unsubscribeBoxScores, unsubscribeGamePlays].forEach(
       (unsubscribe) => unsubscribe && unsubscribe()
     );
-    unsubscribeTeams = unsubscribeMatchups = unsubscribeSeason = unsubscribeTrainingLog = unsubscribeBoxScores = null;
+    unsubscribeTeams = unsubscribeMatchups = unsubscribeSeason = unsubscribeTrainingLog = unsubscribeBoxScores = unsubscribeGamePlays = null;
 
     if (!currentUser) {
       statusEl.hidden = false;
@@ -1804,6 +1988,16 @@
     unsubscribeBoxScores = db.collection("boxScores").onSnapshot(
       (snapshot) => {
         boxScoresByMatchupId = new Map(snapshot.docs.map((doc) => [doc.id, doc.data()]));
+        renderAll();
+      },
+      () => {}
+    );
+
+    // Just which matchups have a Gamecast published - the full play list
+    // is loaded by the Gamecast page itself, not needed here.
+    unsubscribeGamePlays = db.collection("gamePlays").onSnapshot(
+      (snapshot) => {
+        gamePlayMatchupIds = new Set(snapshot.docs.map((doc) => doc.id));
         renderAll();
       },
       () => {}
