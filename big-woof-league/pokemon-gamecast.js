@@ -4,12 +4,25 @@
 // against each play's own computed reveal time (kickoffAt + index *
 // secondsPerPlay) - no server push needed, so it works on a static site
 // with no backend.
+//
+// Admin-only for now, on purpose - this is being saved for the PokéBowl,
+// not turned on for regular games yet. Also carries a small admin-only
+// test harness (publishes to a fixed gamePlays/gamecast-test doc, not
+// tied to any real matchup) so it can be tried out with two arbitrary
+// teams before the real thing matters.
 (function () {
   const config = window.siteConfig || {};
   const statusEl = document.getElementById("gamecast-status");
   const cardEl = document.getElementById("gamecast-card");
   const scorebugEl = document.getElementById("gamecast-scorebug");
   const feedEl = document.getElementById("gamecast-feed");
+  const testCardEl = document.getElementById("gamecast-test-card");
+  const testHomeEl = document.getElementById("gamecast-test-home");
+  const testAwayEl = document.getElementById("gamecast-test-away");
+  const testInputEl = document.getElementById("gamecast-test-input");
+  const testSecondsPerPlayEl = document.getElementById("gamecast-test-seconds-per-play");
+  const testMessageEl = document.getElementById("gamecast-test-message");
+  const testPublishBtnEl = document.getElementById("gamecast-test-publish-btn");
 
   if (!cardEl) return;
 
@@ -21,11 +34,8 @@
       .replace(/\"/g, "&quot;")
       .replace(/'/g, "&#39;");
 
+  const TEST_MATCHUP_ID = "gamecast-test";
   const matchupId = new URLSearchParams(location.search).get("matchup");
-  if (!matchupId) {
-    statusEl.textContent = "No game specified - open this page from a \"Watch Gamecast\" link on the Schedule page.";
-    return;
-  }
 
   if (!config.firebaseConfig || config.firebaseConfig.apiKey === "YOUR_FIREBASE_API_KEY") {
     statusEl.className = "status error";
@@ -42,7 +52,13 @@
   let teamsByUid = new Map();
   let tickTimer = null;
 
-  const typeLabels = { fg: "Field Goal", xp: "Extra Point", kickoff: "Kickoff", punt: "Punt" };
+  const isRealAdmin = () =>
+    Boolean(currentUser && config.adminUid && config.adminUid !== "YOUR_ADMIN_UID" && currentUser.uid === config.adminUid);
+  // Admin Mode toggle (pokemon-admin-toggle.js) - when switched to user
+  // view, this page hides itself exactly like a non-admin would see it,
+  // same as every other admin-gated page.
+  const isAdmin = () => isRealAdmin() && localStorage.getItem(`adminViewMode:${currentUser.uid}`) !== "user";
+
   const resultLabels = {
     td: "TOUCHDOWN",
     int: "INTERCEPTION",
@@ -148,6 +164,75 @@
     tick();
   };
 
+  // --- Admin test harness ---
+
+  const populateTestTeamSelects = () => {
+    const options = [...teamsByUid.entries()]
+      .map(([uid, team]) => `<option value="${uid}">${escapeHtml((team && team.teamName) || uid)}</option>`)
+      .join("");
+    [testHomeEl, testAwayEl].forEach((selectEl) => {
+      const previous = selectEl.value;
+      selectEl.innerHTML = options;
+      if (previous && teamsByUid.has(previous)) selectEl.value = previous;
+    });
+  };
+
+  const showTestMessage = (text, isError) => {
+    testMessageEl.hidden = false;
+    testMessageEl.className = `status${isError ? " error" : ""}`;
+    testMessageEl.textContent = text;
+  };
+
+  async function publishTestGamecast() {
+    const homeUid = testHomeEl.value;
+    const awayUid = testAwayEl.value;
+    if (!homeUid || !awayUid || homeUid === awayUid) {
+      showTestMessage("Pick two different teams.", true);
+      return;
+    }
+    const raw = testInputEl.value.trim();
+    if (!raw) {
+      showTestMessage("Paste the play-by-play JSON first.", true);
+      return;
+    }
+    let parsed;
+    try {
+      parsed = JSON.parse(raw);
+    } catch (error) {
+      showTestMessage(`Invalid JSON: ${error.message}`, true);
+      return;
+    }
+    if (!Array.isArray(parsed.plays) || !parsed.plays.length) {
+      showTestMessage(`"plays" must be a non-empty array.`, true);
+      return;
+    }
+    const secondsPerPlay = Number(testSecondsPerPlayEl.value) || 20;
+
+    try {
+      await db
+        .collection("gamePlays")
+        .doc(TEST_MATCHUP_ID)
+        .set({
+          schemaVersion: parsed.schemaVersion || 1,
+          game: parsed.game || null,
+          homeUid,
+          awayUid,
+          plays: parsed.plays,
+          kickoffAt: firebase.firestore.Timestamp.now(),
+          secondsPerPlay,
+          enteredAt: firebase.firestore.FieldValue.serverTimestamp(),
+          enteredBy: currentUser.uid,
+        });
+      showTestMessage("Test Gamecast published - kickoff is now. Open \"View Test Gamecast\" to watch it.", false);
+    } catch (error) {
+      showTestMessage(error.message, true);
+    }
+  }
+
+  if (testPublishBtnEl) testPublishBtnEl.addEventListener("click", publishTestGamecast);
+
+  // --- Live data ---
+
   let unsubscribeGamePlays = null;
 
   const subscribe = () => {
@@ -160,25 +245,31 @@
       tickTimer = null;
     }
 
-    if (!currentUser) {
+    if (!isAdmin()) {
       cardEl.hidden = true;
+      testCardEl.hidden = true;
       statusEl.hidden = false;
       statusEl.className = "status";
-      statusEl.innerHTML = `Sign in on the <a href="pokemon-league.html">League Home</a> page to watch the Gamecast.`;
+      statusEl.textContent = "Gamecast isn't available yet - check back during a live game.";
       return;
     }
 
+    testCardEl.hidden = false;
+
     statusEl.hidden = false;
     statusEl.className = "status";
-    statusEl.textContent = "Loading…";
+    statusEl.textContent = matchupId ? "Loading…" : "Pick a game above, or open this page from a \"Watch Gamecast\" link.";
 
     db.collection("teams")
       .get()
       .then((snapshot) => {
         teamsByUid = new Map(snapshot.docs.map((doc) => [doc.id, doc.data()]));
+        populateTestTeamSelects();
         render();
       })
       .catch(() => {});
+
+    if (!matchupId) return;
 
     unsubscribeGamePlays = db
       .collection("gamePlays")

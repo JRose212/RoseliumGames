@@ -1348,7 +1348,9 @@
               `
               : "";
 
-            const gamecastLink = gamePlayMatchupIds.has(m.id)
+            // Admin-only for now - the Gamecast feature is being saved for
+            // the PokéBowl, not turned on for regular users yet.
+            const gamecastLink = isAdmin() && gamePlayMatchupIds.has(m.id)
               ? `<a class="btn btn-secondary" href="pokemon-gamecast.html?matchup=${m.id}">Watch Gamecast</a>`
               : "";
 

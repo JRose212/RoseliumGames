@@ -60,6 +60,29 @@
         <span class="admin-mode-toggle-wrap" id="admin-mode-toggle-wrap" hidden></span>
       </nav>
 
+      <section class="card" id="gamecast-test-card" hidden>
+        <h2>Admin: Test Gamecast</h2>
+        <p>Not tied to a real matchup - pick any two teams (your test teams work fine), paste a play list, and it publishes to a fixed test slot you can reload and re-test freely. Kickoff is "right now," so reveal starts immediately.</p>
+        <div style="display:flex; gap:0.75rem; flex-wrap:wrap; margin-bottom:0.75rem;">
+          <label style="flex:1; min-width:160px;">Home team
+            <select id="gamecast-test-home" style="width:100%; padding:0.5rem; border-radius:2px; border:1px solid var(--border); background:var(--surface-strong); color:var(--text); font:inherit;"></select>
+          </label>
+          <label style="flex:1; min-width:160px;">Away team
+            <select id="gamecast-test-away" style="width:100%; padding:0.5rem; border-radius:2px; border:1px solid var(--border); background:var(--surface-strong); color:var(--text); font:inherit;"></select>
+          </label>
+        </div>
+        <textarea id="gamecast-test-input" rows="8" style="width: 100%; padding:0.6rem 0.8rem;border-radius:2px;border:1px solid var(--border);background:var(--surface-strong);color:var(--text);font:inherit;font-family:monospace;font-size:0.8rem;"></textarea>
+        <label style="display:flex; align-items:center; gap:0.4rem; margin-top:0.6rem; font-size:0.85rem;">
+          Seconds revealed per play
+          <input type="number" id="gamecast-test-seconds-per-play" value="20" min="1" style="width:70px; padding:0.3rem 0.5rem; border-radius:2px; border:1px solid var(--border); background:var(--surface-strong); color:var(--text); font:inherit;" />
+        </label>
+        <p class="status" id="gamecast-test-message" hidden></p>
+        <div style="display:flex; gap:0.5rem; margin-top: 0.75rem;">
+          <button type="button" class="btn btn-secondary" id="gamecast-test-publish-btn">Publish Test Gamecast</button>
+          <a class="btn btn-secondary" href="pokemon-gamecast.html?matchup=gamecast-test">View Test Gamecast</a>
+        </div>
+      </section>
+
       <p class="status" id="gamecast-status">Loading…</p>
 
       <section class="card" id="gamecast-card" hidden>
