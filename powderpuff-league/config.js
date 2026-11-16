@@ -123,6 +123,12 @@ window.siteConfig = {
   // which hardcode this same uid separately - keep all three in sync.
   adminUid: "7pr4oGgKMtaB8vaPWhBEYAfU0Mk1",
 
+  // Accounts that may mark Pokemon playable / not playable on the Pokedex
+  // page - and nothing else the admin can do. Like adminUid, this only
+  // shows the buttons; firestore.rules has the same list (isPlayableEditor)
+  // and is what actually allows the change, so keep the two in sync.
+  playableEditorUids: ["G2uevylbwdXHXWqoOtSnc2myR0j1"],
+
   // Season shape: every game is on Sunday, 6 regular-season weeks, at
   // least 4 teams before a schedule can be generated, and every team
   // makes the playoffs (seeded by standings; top seeds get byes when the

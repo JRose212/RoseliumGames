@@ -128,6 +128,10 @@
   // Admin Mode toggle (pokemon-admin-toggle.js) - only hides admin-only UI.
   const isAdmin = () => isRealAdmin() && localStorage.getItem(`adminViewMode:${currentUser.uid}`) !== "user";
 
+  // The admin, or an account given just this one job in config.js.
+  const canEditPlayable = () =>
+    isAdmin() || Boolean(currentUser && (config.playableEditorUids || []).includes(currentUser.uid));
+
   // Every Pokemon starts playable except Legendaries/Mythicals; the admin's
   // per-Pokemon overrides (leagueSettings/current.playable) win.
   const isPlayable = (id) => {
@@ -162,7 +166,7 @@
       : `<p class="pp-playable-badge pp-playable-badge--no">${legendaryIds.has(id) ? "Legendary · " : ""}Not playable</p>`;
 
   const applyOverlay = () => {
-    const admin = isAdmin();
+    const admin = canEditPlayable();
     gridEl.querySelectorAll(".poke-card").forEach((card) => {
       const id = Number(card.dataset.id);
       const playable = isPlayable(id);

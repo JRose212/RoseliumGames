@@ -12,6 +12,12 @@ service cloud.firestore {
       return request.auth.uid == "7pr4oGgKMtaB8vaPWhBEYAfU0Mk1";
     }
 
+    // Accounts that may only edit the Pokedex playable list (kept in sync
+    // by hand with config.js's playableEditorUids).
+    function isPlayableEditor() {
+      return request.auth.uid in ["G2uevylbwdXHXWqoOtSnc2myR0j1"];
+    }
+
     function leagueSettings() {
       return get(/databases/$(database)/documents/leagueSettings/current).data;
     }
@@ -70,9 +76,15 @@ service cloud.firestore {
 
     // League-wide switches the admin controls: rosterPicksOpen, and the
     // Pokedex's per-Pokemon playable overrides (playable.{pokemonId}).
+    // A playable-list editor can change the playable map and nothing else
+    // here - not the roster-picks switch.
     match /leagueSettings/current {
       allow read: if isSignedIn();
-      allow write: if isAdmin();
+      allow write: if isSignedIn() && isAdmin();
+      allow create: if isSignedIn() && isPlayableEditor()
+                     && request.resource.data.keys().hasOnly(["playable"]);
+      allow update: if isSignedIn() && isPlayableEditor()
+                     && request.resource.data.diff(resource.data).affectedKeys().hasOnly(["playable"]);
     }
 
     // One training log entry per manager per calendar day (doc id is
