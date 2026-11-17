@@ -759,6 +759,97 @@ body.powderpuff[data-page] .cheer-slot {
   background: #fff;
 }
 
+/* My Team's cheer squad only (not the small inline badge next to a team
+   name on Rosters, which shares the same .cheer-slot/.cheer-slot-sprite
+   classes but would overflow its row at this size) - 100% bigger than
+   the shared base, with a longer, multi-phase routine instead of one
+   same-for-everyone sway. Of the 5 slots (0-4), the middle one (2) is
+   the lead and gets the biggest, most independent moves; the two on
+   each side (0+1 left, 3+4 right) are the supporting pair for that
+   side, mirroring each other's side for some phases (an opposite,
+   scissoring wave) and matching the lead for others (a synchronized
+   group jump/bob), rather than everyone doing the same thing at once. */
+body.powderpuff[data-page="pokemon-myteam"] .cheer-slot {
+  width: 72px;
+  height: 72px;
+}
+
+body.powderpuff[data-page="pokemon-myteam"] .cheer-slot-sprite {
+  width: 60px;
+  height: 60px;
+  animation-duration: 6s;
+}
+
+body.powderpuff[data-page="pokemon-myteam"] .cheer-slot[data-slot="2"] .cheer-slot-sprite {
+  animation-name: pp-cheer-lead;
+}
+
+body.powderpuff[data-page="pokemon-myteam"] .cheer-slot[data-slot="0"] .cheer-slot-sprite,
+body.powderpuff[data-page="pokemon-myteam"] .cheer-slot[data-slot="1"] .cheer-slot-sprite {
+  animation-name: pp-cheer-left;
+}
+
+body.powderpuff[data-page="pokemon-myteam"] .cheer-slot[data-slot="3"] .cheer-slot-sprite,
+body.powderpuff[data-page="pokemon-myteam"] .cheer-slot[data-slot="4"] .cheer-slot-sprite {
+  animation-name: pp-cheer-right;
+}
+
+/* The inner slot of each supporting pair (1 on the left, 3 on the
+   right - the ones closer to the lead) lags a beat behind its partner,
+   so a pair reads as two dancers rather than one sprite duplicated. */
+body.powderpuff[data-page="pokemon-myteam"] .cheer-slot[data-slot="1"] .cheer-slot-sprite,
+body.powderpuff[data-page="pokemon-myteam"] .cheer-slot[data-slot="3"] .cheer-slot-sprite {
+  animation-delay: 0.15s;
+}
+
+/* Lead (middle): the biggest, most independent movement - a rock, a
+   big solo jump, a bigger rock, then a flourish into the group finish. */
+@keyframes pp-cheer-lead {
+  0% { transform: rotate(0deg) translateY(0) scale(1); }
+  10% { transform: rotate(-14deg) translateY(-6px) scale(1.05); }
+  20% { transform: rotate(14deg) translateY(-6px) scale(1.05); }
+  30% { transform: rotate(0deg) translateY(0) scale(1); }
+  45% { transform: rotate(0deg) translateY(-16px) scale(1.14); }
+  55% { transform: rotate(0deg) translateY(0) scale(1); }
+  65% { transform: rotate(-20deg) translateY(-4px) scale(1.06); }
+  75% { transform: rotate(20deg) translateY(-4px) scale(1.06); }
+  85% { transform: rotate(0deg) translateY(-10px) scale(1.08); }
+  95% { transform: rotate(0deg) translateY(2px) scale(0.97); }
+  100% { transform: rotate(0deg) translateY(0) scale(1); }
+}
+
+/* Left pair: rocks one way during the "opposite" phases (mirrored by
+   pp-cheer-right below), then matches lead/right exactly during the
+   "synchronized" phases (the group jump at 45% and the finish at 90%). */
+@keyframes pp-cheer-left {
+  0% { transform: rotate(0deg) translateY(0) translateX(0); }
+  10% { transform: rotate(-20deg) translateY(-2px) translateX(-3px); }
+  20% { transform: rotate(10deg) translateY(0) translateX(2px); }
+  30% { transform: rotate(0deg) translateY(0) translateX(0); }
+  45% { transform: rotate(0deg) translateY(-11px) translateX(0); }
+  55% { transform: rotate(0deg) translateY(0) translateX(0); }
+  65% { transform: rotate(-16deg) translateY(-3px) translateX(-4px); }
+  75% { transform: rotate(8deg) translateY(1px) translateX(2px); }
+  90% { transform: rotate(0deg) translateY(-7px) translateX(0); }
+  100% { transform: rotate(0deg) translateY(0) translateX(0); }
+}
+
+/* Right pair: the left routine's phases mirrored (opposite rotation and
+   lean) wherever left/right are meant to contrast, identical to left at
+   every phase they're meant to move as one group. */
+@keyframes pp-cheer-right {
+  0% { transform: rotate(0deg) translateY(0) translateX(0); }
+  10% { transform: rotate(20deg) translateY(-2px) translateX(3px); }
+  20% { transform: rotate(-10deg) translateY(0) translateX(-2px); }
+  30% { transform: rotate(0deg) translateY(0) translateX(0); }
+  45% { transform: rotate(0deg) translateY(-11px) translateX(0); }
+  55% { transform: rotate(0deg) translateY(0) translateX(0); }
+  65% { transform: rotate(16deg) translateY(-3px) translateX(4px); }
+  75% { transform: rotate(-8deg) translateY(1px) translateX(-2px); }
+  90% { transform: rotate(0deg) translateY(-7px) translateX(0); }
+  100% { transform: rotate(0deg) translateY(0) translateX(0); }
+}
+
 /* --- Schedule --- */
 
 body.powderpuff[data-page] .week-collapse > .roster-set-title {
