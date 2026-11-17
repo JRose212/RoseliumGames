@@ -455,17 +455,37 @@
       .map((type) => {
         const alreadyDone = doneToday.includes(type.key);
         const disabled = alreadyDone || quotaUsed;
-        return `<button type="button" class="training-btn${alreadyDone ? " training-btn--done" : ""}" data-key="${type.key}"
-                  style="--training-color: ${type.color}" ${disabled ? "disabled" : ""}>
-                  <img class="training-btn-sprite" src="${itemSpriteUrl(type.item)}" alt="" loading="lazy" />
-                  <span>${escapeHtml(type.label)}</span>
-                  ${alreadyDone ? `<span class="training-btn-check">✓ Done today</span>` : ""}
-                </button>`;
+        return `<div class="training-option">
+                  <button type="button" class="training-btn${alreadyDone ? " training-btn--done" : ""}" data-key="${type.key}"
+                    style="--training-color: ${type.color}" ${disabled ? "disabled" : ""}>
+                    <img class="training-btn-sprite" src="${itemSpriteUrl(type.item)}" alt="" loading="lazy" />
+                    <span>${escapeHtml(type.label)}</span>
+                    ${alreadyDone ? `<span class="training-btn-check">✓ Done today</span>` : ""}
+                  </button>
+                  <button type="button" class="info-tooltip-btn training-type-info-btn" data-info-key="${type.key}"
+                    aria-label="What is ${escapeHtml(type.label)}?">?</button>
+                  <div class="info-tooltip-popover training-type-info-popover" data-info-key="${type.key}" hidden>
+                    <p>${escapeHtml(type.description || "")}</p>
+                  </div>
+                </div>`;
       })
       .join("");
 
     trainingButtonsEl.querySelectorAll(".training-btn:not([disabled])").forEach((btn) => {
       btn.addEventListener("click", () => logTraining(btn.dataset.key));
+    });
+
+    // Per-type "what does this do" tooltip - same toggle-on-click,
+    // close-on-outside-click pattern as the overall training-info one
+    // below, just scoped to one popover at a time among the six.
+    trainingButtonsEl.querySelectorAll(".training-type-info-btn").forEach((btn) => {
+      btn.addEventListener("click", (event) => {
+        event.stopPropagation();
+        const popover = btn.nextElementSibling;
+        const willShow = popover.hidden;
+        trainingButtonsEl.querySelectorAll(".training-type-info-popover").forEach((p) => (p.hidden = true));
+        popover.hidden = !willShow;
+      });
     });
 
     renderCheerArea(myTeam);
@@ -524,6 +544,9 @@
   document.addEventListener("click", (event) => {
     if (!trainingInfoPopoverEl.hidden && !trainingInfoPopoverEl.contains(event.target) && event.target !== trainingInfoBtnEl) {
       trainingInfoPopoverEl.hidden = true;
+    }
+    if (!event.target.closest(".training-option")) {
+      trainingButtonsEl.querySelectorAll(".training-type-info-popover").forEach((p) => (p.hidden = true));
     }
   });
   if (trainingInfoPopoverEl) {

@@ -1616,6 +1616,38 @@ body[data-page^="pokemon-"] .app-content {
   margin-top: 1rem;
 }
 
+.training-option {
+  position: relative;
+}
+
+.training-option .training-btn {
+  width: 100%;
+}
+
+/* Small "?" badge in the corner of each training button, opening a
+   popover with that type's flavor description - same toggle/close
+   pattern as the one overall training-info tooltip above, just one
+   popover per type instead of one for the whole section. */
+.training-type-info-btn {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  background: var(--surface);
+  z-index: 2;
+}
+
+.training-type-info-popover {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  z-index: 5;
+  margin-top: 0.4rem;
+  text-transform: none;
+  font-weight: 400;
+  letter-spacing: normal;
+}
+
 .training-btn {
   display: flex;
   flex-direction: column;

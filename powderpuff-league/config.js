@@ -94,12 +94,54 @@ window.siteConfig = {
   // this league's own six activities. "item" is the PokeAPI sprites repo
   // item slug shown on each button.
   trainingTypes: [
-    { key: "teamHike", label: "Team Hike", color: "#7cc89a", item: "leaf-stone" },
-    { key: "touchdownChoreo", label: "Touchdown Celebration Choreo", color: "#f49ac1", item: "silk-scarf" },
-    { key: "spaDay", label: "Spa Day", color: "#9ad4f0", item: "heal-ball" },
-    { key: "teamYoga", label: "Team Yoga", color: "#c3a6ec", item: "lax-incense" },
-    { key: "playOutside", label: "Play Outside", color: "#f6d36b", item: "miracle-seed" },
-    { key: "gameplanning", label: "Gameplanning", color: "#f6a98a", item: "town-map" },
+    {
+      key: "teamHike",
+      label: "Team Hike",
+      color: "#7cc89a",
+      item: "leaf-stone",
+      description:
+        "Friendship power. The team moves like a little family on a field trip: crisp handoffs, players who always know where their buddies are, and a tendency to pile on together for a group tackle.",
+    },
+    {
+      key: "touchdownChoreo",
+      label: "Touchdown Celebration Choreo",
+      color: "#f49ac1",
+      item: "silk-scarf",
+      description:
+        "Sparkle. Scores turn into full dance numbers, and the rehearsed routine fires up the whole sideline. A well-drilled team can get the crowd clapping along hard enough to rattle the other side.",
+    },
+    {
+      key: "spaDay",
+      label: "Spa Day",
+      color: "#9ad4f0",
+      item: "heal-ball",
+      description:
+        "Fluff and good vibes. Freshly groomed Pokémon are bouncy and unbothered. They pop right back up after a tumble, shrug off trash talk, and might nap on the bench happily without losing their edge.",
+    },
+    {
+      key: "teamYoga",
+      label: "Team Yoga",
+      color: "#c3a6ec",
+      item: "lax-incense",
+      description:
+        "Wobble-proof. Tiny Pokémon hold impossible poses mid-catch, spin out of tackles like ballerinas, and stay calm enough to avoid silly penalties.",
+    },
+    {
+      key: "playOutside",
+      label: "Play Outside",
+      color: "#f6d36b",
+      item: "miracle-seed",
+      description:
+        "Zoomies. Pure chaos-gremlin energy: surprise scrambles, trick plays nobody called, chasing butterflies (and occasionally the ball carrier), and puddle splashing on rainy days.",
+    },
+    {
+      key: "gameplanning",
+      label: "Gameplanning",
+      color: "#f6a98a",
+      item: "town-map",
+      description:
+        "Crayon playbook. The team arrives with plays drawn in marker, complete with stickers. They know the other team's favorite tricks and sometimes run a \"secret play\" they invented at snack time.",
+    },
   ],
 
   trainingInfoBlurb:
