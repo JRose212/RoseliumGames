@@ -969,10 +969,12 @@
     const otherUid = isIncoming ? trade.fromUid : trade.toUid;
     const otherTeam = teamsByUid.get(otherUid);
     const otherName = isIncoming ? trade.fromTeamName : trade.toTeamName;
-    const giveLabel = isIncoming ? "They give" : "You give";
-    const receiveLabel = isIncoming ? "They receive" : "You receive";
     // From the viewer's own perspective: an incoming trade's "give" (the
     // proposer's offer) is what the viewer would receive, and vice versa.
+    // Always framed as "You give"/"You receive" - the "From"/"To" line
+    // above already says who the other side is, so there's no need to
+    // (confusingly) swap to "They give"/"They receive" for incoming
+    // trades when these lists are already the viewer's own perspective.
     const viewerReceives = isIncoming ? trade.give : trade.receive;
     const viewerGives = isIncoming ? trade.receive : trade.give;
     const listNames = (items) => items.map((p) => escapeHtml(p.pokemonName)).join(", ");
@@ -982,8 +984,8 @@
       : `<button type="button" class="btn btn-secondary trade-cancel-btn" data-id="${trade.id}">Cancel Proposal</button>`;
     return `<div class="card trade-pending-card">
               <p><strong>${isIncoming ? "From" : "To"}:</strong> ${teamAvatarHtml(otherTeam, "team-avatar--sm")} ${escapeHtml(otherName)}</p>
-              <p><strong>${receiveLabel}:</strong> ${listNames(viewerReceives)}</p>
-              <p><strong>${giveLabel}:</strong> ${listNames(viewerGives)}</p>
+              <p><strong>You receive:</strong> ${listNames(viewerReceives)}</p>
+              <p><strong>You give:</strong> ${listNames(viewerGives)}</p>
               ${actions}
             </div>`;
   };
