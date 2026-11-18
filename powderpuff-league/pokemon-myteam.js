@@ -813,8 +813,19 @@
               <div class="myteam-slot-types" data-poke-id="${pick.pokemonId}"></div>
               <span class="myteam-slot-dims"></span>
               ${unplayable ? `<span class="myteam-out-badge">Not playable</span>` : ""}
+              ${isSelected && !locked ? selectedSlotActionsHtml() : ""}
             </div>`;
   };
+
+  // Shown right on the selected card, so changing a Pokemon never means
+  // scrolling back up to a bar at the top of the roster.
+  const selectedSlotActionsHtml = () => `
+    <button type="button" class="pp-slot-deselect" data-slot-action="cancel" aria-label="Cancel" title="Cancel">&times;</button>
+    <span class="pp-slot-actions">
+      <button type="button" class="btn pp-slot-action-btn" data-slot-action="change">Change</button>
+      <button type="button" class="btn btn-secondary pp-slot-action-btn" data-slot-action="remove">Remove</button>
+    </span>
+    <span class="pp-slot-swap-hint">or tap another spot to swap</span>`;
 
   // Fills in type badges + height/weight for every filled slot in a grid,
   // once it's in the DOM (only pokemonId/pokemonName are on the team doc).
@@ -870,6 +881,17 @@
   };
 
   const wireSlotClicks = (gridEl) => {
+    gridEl.querySelectorAll("[data-slot-action]").forEach((btn) => {
+      btn.addEventListener("click", (event) => {
+        event.stopPropagation();
+        const position = btn.closest(".myteam-slot").dataset.position;
+        const action = btn.dataset.slotAction;
+        selectedPosition = null;
+        renderMyRoster();
+        if (action === "change") openSlotPickModal(position);
+        else if (action === "remove") setSlot(position, null);
+      });
+    });
     gridEl.querySelectorAll(".myteam-slot").forEach((slotEl) => {
       slotEl.addEventListener("click", () => {
         if (rosterLockReason()) return;
@@ -900,36 +922,11 @@
     });
   };
 
-  const renderSelectionBar = (slots) => {
-    const pick = selectedPosition && slots[selectedPosition];
-    if (!pick) {
-      selectionBarEl.hidden = true;
-      selectionBarEl.innerHTML = "";
-      return;
-    }
-    selectionBarEl.hidden = false;
-    selectionBarEl.innerHTML = `
-      <span><strong>${escapeHtml(pick.pokemonName)}</strong> (${escapeHtml(positionLabels[selectedPosition] || selectedPosition)}) selected - tap another spot to swap, or:</span>
-      <span class="pp-selection-actions">
-        <button type="button" class="btn" id="selection-change-btn">Change Pokémon</button>
-        <button type="button" class="btn btn-secondary" id="selection-remove-btn">Remove</button>
-        <button type="button" class="btn btn-secondary" id="selection-cancel-btn">Cancel</button>
-      </span>`;
-    const position = selectedPosition;
-    document.getElementById("selection-change-btn").addEventListener("click", () => {
-      selectedPosition = null;
-      renderMyRoster();
-      openSlotPickModal(position);
-    });
-    document.getElementById("selection-remove-btn").addEventListener("click", () => {
-      selectedPosition = null;
-      renderMyRoster();
-      setSlot(position, null);
-    });
-    document.getElementById("selection-cancel-btn").addEventListener("click", () => {
-      selectedPosition = null;
-      renderMyRoster();
-    });
+  // Change/Remove now live on the selected card itself
+  // (selectedSlotActionsHtml), so the old bar above the roster stays hidden.
+  const renderSelectionBar = () => {
+    selectionBarEl.hidden = true;
+    selectionBarEl.innerHTML = "";
   };
 
   const renderMyRoster = () => {
