@@ -253,8 +253,15 @@
                 <span class="coord-box-empty-label">—</span>
               </div>`;
     }
+    // On your own (editable) side, clicking the box itself still
+    // selects/swaps - the position label is a separate, already-outside-
+    // the-sprite element, so on your side only it doubles as the "view
+    // details" trigger instead, the same info the opponent's read-only
+    // side shows on a click anywhere on the box.
+    const labelClass = editable ? "coord-box-position coord-box-position--info" : "coord-box-position";
+    const labelAttrs = editable ? ` data-poke-id="${pick.pokemonId}" data-poke-name="${escapeHtml(pick.pokemonName)}"` : "";
     return `<div class="${classes.join(" ")}" style="${style}" data-position="${escapeHtml(position)}" data-poke-id="${pick.pokemonId}" data-poke-name="${escapeHtml(pick.pokemonName)}">
-              <span class="coord-box-position">${escapeHtml(shortLabel(position))}</span>
+              <span class="${labelClass}"${labelAttrs}>${escapeHtml(shortLabel(position))} ${editable ? `<span class="coord-info-icon">ⓘ</span>` : ""}</span>
               <img class="coord-box-sprite" src="${smallSpriteUrl(pick.pokemonId)}" alt="${escapeHtml(pick.pokemonName)}" loading="lazy" />
             </div>`;
   };
@@ -265,7 +272,11 @@
   };
 
   const applyBoxBorders = (containerEl) => {
-    containerEl.querySelectorAll("[data-poke-id]").forEach((el) => {
+    // Scoped to the box/pool-item itself, not the bare attribute - the
+    // info-trigger label inside an editable box also carries
+    // data-poke-id (so its own click handler can read it), and this
+    // isn't meant to touch that.
+    containerEl.querySelectorAll(".coord-box[data-poke-id], .coord-pool-item[data-poke-id]").forEach((el) => {
       setBoxColors(el, { a: NEUTRAL_COLOR, b: NEUTRAL_COLOR });
       fetchDetail(Number(el.dataset.pokeId))
         .then((detail) => setBoxColors(el, colorsForTypes(detail.types)))
@@ -283,8 +294,11 @@
                 <span style="font-size:0.6rem; color:var(--muted);">— empty —</span>
               </div>`;
     }
+    // Every pool item is your own roster (the opponent's side never
+    // shows here), so its label always doubles as the "view details"
+    // trigger, same as an editable field box above.
     return `<div class="${classes.join(" ")}" data-position="${escapeHtml(position)}" data-poke-id="${pick.pokemonId}" data-poke-name="${escapeHtml(pick.pokemonName)}">
-              <span>${escapeHtml(shortLabel(position))}</span>
+              <span class="coord-pool-item-label coord-pool-item-label--info" data-poke-id="${pick.pokemonId}" data-poke-name="${escapeHtml(pick.pokemonName)}">${escapeHtml(shortLabel(position))} <span class="coord-info-icon">ⓘ</span></span>
               <img src="${smallSpriteUrl(pick.pokemonId)}" alt="${escapeHtml(pick.pokemonName)}" loading="lazy" />
             </div>`;
   };
@@ -334,6 +348,16 @@
       containerEl.querySelectorAll(".coord-box").forEach((el) => {
         if (editable) {
           el.addEventListener("click", () => handleSlotClick(el.dataset.position));
+          // The label's own click is the "view details" trigger on your
+          // side - stopPropagation keeps it from also firing the box's
+          // select/swap click above.
+          const infoLabel = el.querySelector(".coord-box-position--info");
+          if (infoLabel) {
+            infoLabel.addEventListener("click", (event) => {
+              event.stopPropagation();
+              openDetail(Number(infoLabel.dataset.pokeId), infoLabel.dataset.pokeName);
+            });
+          }
         } else if (el.dataset.pokeId) {
           el.addEventListener("click", () => openDetail(Number(el.dataset.pokeId), el.dataset.pokeName));
         }
@@ -348,6 +372,13 @@
     poolEl.innerHTML = poolPositions.map((position) => poolItemHtml(position, draftSlots[position])).join("");
     poolEl.querySelectorAll(".coord-pool-item").forEach((el) => {
       el.addEventListener("click", () => handleSlotClick(el.dataset.position));
+      const infoLabel = el.querySelector(".coord-pool-item-label--info");
+      if (infoLabel) {
+        infoLabel.addEventListener("click", (event) => {
+          event.stopPropagation();
+          openDetail(Number(infoLabel.dataset.pokeId), infoLabel.dataset.pokeName);
+        });
+      }
     });
     applyBoxBorders(poolEl);
 

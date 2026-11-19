@@ -2368,6 +2368,26 @@ body[data-page^="pokemon-"] .app-content {
   white-space: nowrap;
 }
 
+/* On your own (editable) side, the position label doubles as the "view
+   details" button - it's already a separate element sitting above the
+   box's sprite, so it can take its own click without disturbing the
+   select/swap click on the box underneath it. z-index lifts it above
+   the box's own stacking context so that click actually lands on it. */
+.coord-box-position--info {
+  z-index: 2;
+  cursor: pointer;
+}
+
+.coord-box-position--info:hover {
+  color: var(--accent-strong);
+  text-decoration: underline;
+}
+
+.coord-info-icon {
+  font-size: 0.6em;
+  opacity: 0.85;
+}
+
 .coord-box-sprite {
   width: 78%;
   height: 78%;
@@ -2430,6 +2450,19 @@ body[data-page^="pokemon-"] .app-content {
   font-weight: 700;
   color: var(--muted);
   text-transform: uppercase;
+}
+
+/* Every pool item is your own roster, so its label is always the "view
+   details" trigger - same reasoning as .coord-box-position--info above. */
+.coord-pool-item-label--info {
+  position: relative;
+  z-index: 2;
+  cursor: pointer;
+}
+
+.coord-pool-item-label--info:hover {
+  color: var(--accent-strong);
+  text-decoration: underline;
 }
 
 .coord-actions {
