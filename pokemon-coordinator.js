@@ -420,6 +420,23 @@
       await db.runTransaction(async (tx) => {
         const snap = await tx.get(teamRef);
         if (!snap.exists) throw new Error("Team not found.");
+        // baselineSlots can go stale while this tab sits open (another
+        // tab/device, a trade, free agency, a draft pick) - the sandbox
+        // deliberately doesn't auto-resync (see the subscribe() comment
+        // below), so check here instead of trusting it: if Firestore's
+        // current value at any position we're about to write no longer
+        // matches what we diffed against, writing draftSlots[p] anyway
+        // would stomp whatever changed it, which is exactly how the same
+        // Pokemon ends up written into two slots at once.
+        const freshSlots = snap.data().slots || {};
+        const stale = changedPositions.find(
+          (p) => JSON.stringify(freshSlots[p] || null) !== JSON.stringify(baselineSlots[p] || null)
+        );
+        if (stale) {
+          throw new Error(
+            `Your roster changed elsewhere since this page loaded (${shortLabel(stale)}) - reload the Coordinator page and redo your changes.`
+          );
+        }
         const updates = {};
         changedPositions.forEach((p) => {
           updates[`slots.${p}`] = draftSlots[p] || null;
