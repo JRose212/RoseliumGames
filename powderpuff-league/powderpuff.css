@@ -1064,3 +1064,43 @@ body.powderpuff[data-page] .site-footer {
   border-top: 2px dotted var(--border);
   color: var(--muted);
 }
+
+/* Change/Remove buttons on the selected My Team card */
+body.powderpuff[data-page] .pp-slot-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.3rem;
+  margin-top: 0.2rem;
+}
+
+body.powderpuff[data-page] .pp-slot-action-btn {
+  padding: 0.3rem 0.7rem;
+  font-size: 0.75rem;
+  min-height: 0;
+}
+
+body.powderpuff[data-page] .pp-slot-swap-hint {
+  font-size: 0.65rem;
+  color: var(--muted);
+}
+
+body.powderpuff[data-page] .pp-slot-deselect {
+  position: absolute;
+  top: 0.3rem;
+  right: 0.3rem;
+  width: 1.6rem;
+  height: 1.6rem;
+  border-radius: 999px;
+  border: 1px solid var(--pp-sky);
+  background: #fff;
+  color: var(--pp-sky-deep);
+  font-size: 1rem;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0;
+}
+
+body.powderpuff[data-page] .myteam-slot--selected .myteam-out-badge {
+  position: static;
+}
