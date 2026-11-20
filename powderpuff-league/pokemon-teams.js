@@ -358,6 +358,40 @@
     URL.revokeObjectURL(url);
   };
 
+  // Admin "Export All Rosters": every team (hidden ones included) in one
+  // flat CSV, one row per roster position, so it opens cleanly as a single
+  // sortable/filterable sheet.
+  const exportAllRostersCsv = (teams) => {
+    const positions = config.pokemonPositions || [];
+    const sorted = [...teams].sort((a, b) => (a.teamName || "").localeCompare(b.teamName || ""));
+    let csv = csvRow(["Team", "Hidden", "Roster Position", "Position Name", "Pokemon ID", "Pokemon Name", "Playable"]);
+    sorted.forEach((team) => {
+      const slots = team.slots || {};
+      positions.forEach((position) => {
+        const pick = slots[position];
+        csv += csvRow([
+          team.teamName || "Unnamed Team",
+          team.hidden ? "Yes" : "",
+          position,
+          positionLabels[position] || position,
+          pick ? pick.pokemonId : "",
+          pick ? pick.pokemonName : "",
+          pick ? (isPlayable(pick.pokemonId) ? "Yes" : "No") : "",
+        ]);
+      });
+    });
+
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `all-rosters-${new Date().toISOString().slice(0, 10)}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
+  };
+
   // --- Rendering (view-only - rosters are edited on My Team) ---
 
   const renderRow = (position, slots) => {
@@ -389,7 +423,12 @@
       return;
     }
     statusEl.hidden = true;
-    listEl.innerHTML = visibleTeams
+    const adminToolbar = isAdminViewer
+      ? `<div class="admin-export-all-bar" style="display: flex; justify-content: flex-end;">
+           <button type="button" class="btn btn-secondary" id="export-all-rosters-btn">Export All Rosters</button>
+         </div>`
+      : "";
+    listEl.innerHTML = adminToolbar + visibleTeams
       .map((team) => {
         const isMine = currentUser && team.ownerUid === currentUser.uid;
         const slots = team.slots || {};
@@ -436,6 +475,8 @@
     });
 
     if (isAdminViewer) {
+      const exportAllBtn = document.getElementById("export-all-rosters-btn");
+      if (exportAllBtn) exportAllBtn.addEventListener("click", () => exportAllRostersCsv(teams));
       listEl.querySelectorAll(".export-team-btn").forEach((btn) => {
         const team = teams.find((t) => t.uid === btn.dataset.uid);
         if (team) btn.addEventListener("click", () => exportTeamCsv(team));
