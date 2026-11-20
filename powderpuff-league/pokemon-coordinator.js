@@ -196,9 +196,21 @@
 
   const cloneSlots = (slots) => JSON.parse(JSON.stringify(slots || {}));
 
+  // Compare slots by content, not by JSON text: Firestore does not promise
+  // the same key order for a map field on every read (the live listener vs
+  // the transaction read in Save can disagree), so a plain JSON.stringify
+  // compare flagged identical slots as different and Save always refused.
+  const canonical = (v) =>
+    v && typeof v === "object" && !Array.isArray(v)
+      ? Object.keys(v).sort().reduce((o, k) => ((o[k] = canonical(v[k])), o), {})
+      : Array.isArray(v)
+        ? v.map(canonical)
+        : v;
+  const sameSlot = (a, b) => JSON.stringify(canonical(a || null)) === JSON.stringify(canonical(b || null));
+
   const isDirty = () => {
     if (!draftSlots || !baselineSlots) return false;
-    return allPositions.some((p) => JSON.stringify(draftSlots[p] || null) !== JSON.stringify(baselineSlots[p] || null));
+    return allPositions.some((p) => !sameSlot(draftSlots[p], baselineSlots[p]));
   };
 
   const findOpponentMatchup = () => {
@@ -439,7 +451,7 @@
   saveBtnEl.addEventListener("click", async () => {
     if (!currentUser || !draftSlots || !baselineSlots) return;
     const changedPositions = allPositions.filter(
-      (p) => JSON.stringify(draftSlots[p] || null) !== JSON.stringify(baselineSlots[p] || null)
+      (p) => !sameSlot(draftSlots[p], baselineSlots[p])
     );
     if (!changedPositions.length) return;
     const lockReason = rosterLockReason();
@@ -469,7 +481,7 @@
         // Pokemon ends up written into two slots at once.
         const freshSlots = snap.data().slots || {};
         const stale = changedPositions.find(
-          (p) => JSON.stringify(freshSlots[p] || null) !== JSON.stringify(baselineSlots[p] || null)
+          (p) => !sameSlot(freshSlots[p], baselineSlots[p])
         );
         if (stale) {
           throw new Error(
