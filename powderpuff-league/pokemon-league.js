@@ -183,6 +183,7 @@
         });
         await db.collection("teams").doc(credential.user.uid).set({
           ownerUid: credential.user.uid,
+          managerName: displayName,
           teamName: `${displayName}'s Team`,
           createdAt: firebase.firestore.FieldValue.serverTimestamp(),
           slots: emptyRoster(),
@@ -477,6 +478,7 @@
       );
       await db.collection("teams").doc(user.uid).set({
         ownerUid: user.uid,
+        managerName: displayName,
         teamName: `${displayName}'s Team`,
         createdAt: firebase.firestore.FieldValue.serverTimestamp(),
         slots: emptyRoster(),
