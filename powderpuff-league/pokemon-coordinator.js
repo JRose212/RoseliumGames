@@ -165,16 +165,14 @@
   let matchups = [];
   let leagueSettings = null;
 
-  // Same roster rules as My Team: the admin's picks switch, no changes on
-  // Sundays, and only playable Pokemon (a swap can't add a new Pokemon,
-  // but one the admin has since made unplayable can't be moved around).
-  const isRosterLockDay = () =>
-    new Intl.DateTimeFormat("en-US", { timeZone: config.rosterLockTimeZone || "America/New_York", weekday: "short" }).format(
-      new Date()
-    ) === "Sun";
+  // Same roster rules as My Team: the admin's picks switch, the admin's
+  // roster-lock switch (game day, or whenever they toggle it on), and
+  // only playable Pokemon (a swap can't add a new Pokemon, but one the
+  // admin has since made unplayable can't be moved around).
+  const isRosterLocked = () => Boolean(leagueSettings && leagueSettings.rostersLocked);
   const rosterLockReason = () => {
     if (!(leagueSettings && leagueSettings.rosterPicksOpen)) return "Roster picks aren't open right now, so changes can't be saved.";
-    if (isRosterLockDay()) return "Rosters are locked on Sundays - you can test changes here, but save them tomorrow.";
+    if (isRosterLocked()) return "Rosters are locked right now - you can test changes here, but save them once the admin unlocks.";
     return null;
   };
   const isPlayable = (pokemonId) => {

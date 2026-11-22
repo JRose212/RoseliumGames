@@ -28,16 +28,11 @@ service cloud.firestore {
              && leagueSettings().get("rosterPicksOpen", false) == true;
     }
 
-    // Sunday is game day - no roster changes. Rules have no time zone
-    // support, so this is Sunday at a fixed UTC-5 (US Eastern Standard
-    // Time): whole days since the epoch, shifted 5 hours, and the epoch
-    // (Jan 1 1970) was a Thursday, so Sunday is day 3 of each 7. During
-    // daylight saving time this window runs an hour behind the site's own
-    // check (which uses the real America/New_York clock), so for that one
-    // hour after Sunday ends the site allows a change these rules still
-    // refuse - never the other way around.
-    function isSundayEastern() {
-      return math.floor(float(request.time.toMillis() - 18000000) / 86400000.0) % 7 == 3;
+    // The admin's "no roster changes right now" switch (League Home) -
+    // was a hardcoded Sunday-is-game-day check, now a manual toggle.
+    function rostersLocked() {
+      return exists(/databases/$(database)/documents/leagueSettings/current)
+             && leagueSettings().get("rostersLocked", false) == true;
     }
 
     function seasonExists() {
@@ -54,7 +49,7 @@ service cloud.firestore {
 
     // A manager can always edit their own team's name, photo, training and
     // cheerleaders. The roster itself (slots) can only change while the
-    // admin has picks open, and never on a Sunday. Whether each picked
+    // admin has picks open and hasn't locked rosters. Whether each picked
     // Pokemon is currently playable is checked by the site, not here -
     // rules can't loop over every slot against the playable list (same
     // "honest limitation" tradeoff the other leagues make for daily
@@ -68,16 +63,16 @@ service cloud.firestore {
         isAdmin() ||
         (request.auth.uid == uid && (
           !request.resource.data.diff(resource.data).affectedKeys().hasAny(["slots"]) ||
-          (rosterPicksOpen() && !isSundayEastern())
+          (rosterPicksOpen() && !rostersLocked())
         ))
       );
       allow delete: if isSignedIn() && request.auth.uid == uid && !seasonExists();
     }
 
-    // League-wide switches the admin controls: rosterPicksOpen, and the
-    // Pokedex's per-Pokemon playable overrides (playable.{pokemonId}).
-    // A playable-list editor can change the playable map and nothing else
-    // here - not the roster-picks switch.
+    // League-wide switches the admin controls: rosterPicksOpen,
+    // rostersLocked, and the Pokedex's per-Pokemon playable overrides
+    // (playable.{pokemonId}). A playable-list editor can change the
+    // playable map and nothing else here - not either admin switch.
     match /leagueSettings/current {
       allow read: if isSignedIn();
       allow write: if isSignedIn() && isAdmin();

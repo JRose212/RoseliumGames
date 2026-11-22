@@ -85,6 +85,7 @@
   const authPanelEl = document.getElementById("auth-panel");
   const statusSummaryEl = document.getElementById("league-status-summary");
   const rosterPicksAreaEl = document.getElementById("roster-picks-area");
+  const rosterLockAreaEl = document.getElementById("roster-lock-area");
   const managerListEl = document.getElementById("manager-list");
 
   const escapeHtml = (value) => {
@@ -340,6 +341,7 @@
   let unsubscribers = [];
 
   const picksOpen = () => Boolean(latestSettings && latestSettings.rosterPicksOpen);
+  const rostersLocked = () => Boolean(latestSettings && latestSettings.rostersLocked);
   const minTeams = config.minTeamsToGenerateSchedule || 4;
 
   const renderManagerList = () => {
@@ -371,7 +373,7 @@
     statusSummaryEl.textContent = summary;
 
     const pickLine = picksOpen()
-      ? `<p class="pp-picks-state pp-picks-state--open">🌸 Roster picks are open - fill your 14 spots on <a href="pokemon-myteam.html">My Team</a>. Rosters lock every Sunday for game day.</p>`
+      ? `<p class="pp-picks-state pp-picks-state--open">🌸 Roster picks are open - fill your 14 spots on <a href="pokemon-myteam.html">My Team</a>.</p>`
       : `<p class="pp-picks-state">🔒 Roster picks aren't open yet. The admin will open them soon.</p>`;
     const adminBtn = computeIsAdmin()
       ? `<button type="button" class="btn${picksOpen() ? " btn-secondary" : ""}" id="toggle-picks-btn">${picksOpen() ? "Close Roster Picks" : "Open Roster Picks"}</button>
@@ -380,6 +382,17 @@
     rosterPicksAreaEl.innerHTML = pickLine + adminBtn;
     const btn = document.getElementById("toggle-picks-btn");
     if (btn) btn.addEventListener("click", toggleRosterPicks);
+
+    const lockLine = rostersLocked()
+      ? `<p class="pp-picks-state">🔒 Rosters are locked right now - no lineup changes until the admin unlocks them.</p>`
+      : `<p class="pp-picks-state pp-picks-state--open">Rosters are unlocked - managers can change their lineup.</p>`;
+    const lockAdminBtn = computeIsAdmin()
+      ? `<button type="button" class="btn${rostersLocked() ? "" : " btn-secondary"}" id="toggle-roster-lock-btn">${rostersLocked() ? "Unlock Rosters" : "Lock Rosters"}</button>
+         <p class="status" id="toggle-roster-lock-message" hidden></p>`
+      : "";
+    rosterLockAreaEl.innerHTML = lockLine + lockAdminBtn;
+    const lockBtn = document.getElementById("toggle-roster-lock-btn");
+    if (lockBtn) lockBtn.addEventListener("click", toggleRosterLock);
   };
 
   async function toggleRosterPicks() {
@@ -388,7 +401,7 @@
     if (
       !window.confirm(
         opening
-          ? "Open roster picks? Every manager will be able to pick Pokémon for their team (except on Sundays)."
+          ? "Open roster picks? Every manager will be able to pick Pokémon for their team."
           : "Close roster picks? Nobody will be able to change their roster until you open them again."
       )
     ) {
@@ -398,6 +411,35 @@
     try {
       const batch = db.batch();
       batch.set(db.collection("leagueSettings").doc("current"), { rosterPicksOpen: opening }, { merge: true });
+      batch.set(db.collection("chatMessages").doc(), {
+        uid: auth.currentUser.uid,
+        system: true,
+        text,
+        createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+      });
+      await batch.commit();
+      notifyDiscord(text);
+    } catch (error) {
+      showMessage(error.message, true);
+    }
+  }
+
+  async function toggleRosterLock() {
+    const showMessage = messageShower("toggle-roster-lock-message");
+    const locking = !rostersLocked();
+    if (
+      !window.confirm(
+        locking
+          ? "Lock rosters? Nobody will be able to change their lineup until you unlock them again."
+          : "Unlock rosters? Managers will be able to change their lineup right away."
+      )
+    ) {
+      return;
+    }
+    const text = locking ? "Rosters are locked - no lineup changes for now." : "Rosters are unlocked - go make your changes!";
+    try {
+      const batch = db.batch();
+      batch.set(db.collection("leagueSettings").doc("current"), { rostersLocked: locking }, { merge: true });
       batch.set(db.collection("chatMessages").doc(), {
         uid: auth.currentUser.uid,
         system: true,
@@ -455,6 +497,7 @@
       managerListEl.innerHTML = `<li class="manager-item">Sign in to see who's joined.</li>`;
       statusSummaryEl.textContent = "Sign in to see league status.";
       rosterPicksAreaEl.innerHTML = "";
+      rosterLockAreaEl.innerHTML = "";
       myTeam = null;
       return;
     }

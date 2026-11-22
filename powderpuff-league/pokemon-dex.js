@@ -141,11 +141,8 @@
   };
 
   const picksOpen = () => Boolean(leagueSettings && leagueSettings.rosterPicksOpen);
-  const isRosterLockDay = () =>
-    new Intl.DateTimeFormat("en-US", { timeZone: config.rosterLockTimeZone || "America/New_York", weekday: "short" }).format(
-      new Date()
-    ) === "Sun";
-  const canPick = () => Boolean(currentUser && myTeam && picksOpen() && !isRosterLockDay());
+  const isRosterLocked = () => Boolean(leagueSettings && leagueSettings.rostersLocked);
+  const canPick = () => Boolean(currentUser && myTeam && picksOpen() && !isRosterLocked());
 
   const renderPickStatus = () => {
     if (!pickStatusEl) return;
@@ -156,7 +153,7 @@
     pickStatusEl.hidden = false;
     pickStatusEl.className = "status";
     if (!picksOpen()) pickStatusEl.textContent = "Roster picks aren't open yet - browse away, and the admin will open them soon.";
-    else if (isRosterLockDay()) pickStatusEl.textContent = "It's game day - rosters are locked on Sundays. Come back tomorrow to pick.";
+    else if (isRosterLocked()) pickStatusEl.textContent = "Rosters are locked right now - come back once the admin unlocks them to pick.";
     else pickStatusEl.textContent = "Tap any playable Pokémon to put it on your team.";
   };
 
@@ -350,7 +347,7 @@
     if (!pendingAdd || !pendingAdd.slot || !currentUser) return;
     const { pokemonId, pokemonName, slot } = pendingAdd;
     if (!canPick()) {
-      showAddMessage(isRosterLockDay() ? "Rosters are locked on Sundays." : "Roster picks aren't open right now.", true);
+      showAddMessage(isRosterLocked() ? "Rosters are locked right now." : "Roster picks aren't open right now.", true);
       return;
     }
     if (!isPlayable(pokemonId)) {

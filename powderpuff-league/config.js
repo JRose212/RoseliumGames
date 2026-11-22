@@ -179,12 +179,6 @@ window.siteConfig = {
   minTeamsToGenerateSchedule: 4,
   touchdownPoints: 7,
 
-  // No roster changes on Sundays (game day), judged in this time zone so
-  // every manager hits the same cutoff wherever they are. firestore.rules
-  // enforces the same window with a fixed UTC-5 offset (rules have no
-  // time zone support) - see the note there.
-  rosterLockTimeZone: "America/New_York",
-
   // Fixed circular axis order for the type-composition radar charts -
   // same computed ordering as the other leagues (a function of type
   // effectiveness, nothing league-specific).

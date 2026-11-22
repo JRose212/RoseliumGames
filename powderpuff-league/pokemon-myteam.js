@@ -327,21 +327,19 @@
   let trainingLog = [];
   let leagueSettings = null;
 
-  // --- Roster rules: picks open/closed (admin switch), the Sunday lock,
-  // and which Pokemon are playable. firestore.rules enforces the first
-  // two; playability is checked here and on the Pokedex page. ---
+  // --- Roster rules: picks open/closed (admin switch), the admin's
+  // roster-lock switch, and which Pokemon are playable. firestore.rules
+  // enforces the first two; playability is checked here and on the
+  // Pokedex page. ---
 
   const picksOpen = () => Boolean(leagueSettings && leagueSettings.rosterPicksOpen);
 
-  const isRosterLockDay = () =>
-    new Intl.DateTimeFormat("en-US", { timeZone: config.rosterLockTimeZone || "America/New_York", weekday: "short" }).format(
-      new Date()
-    ) === "Sun";
+  const isRosterLocked = () => Boolean(leagueSettings && leagueSettings.rostersLocked);
 
   // null when the roster can be edited, otherwise why it can't.
   const rosterLockReason = () => {
     if (!picksOpen()) return "Roster picks aren't open yet - the admin will open them soon.";
-    if (isRosterLockDay()) return "It's game day! Rosters are locked on Sundays - come back tomorrow to make changes.";
+    if (isRosterLocked()) return "Rosters are locked right now - come back once the admin unlocks them to make changes.";
     return null;
   };
 
@@ -1183,20 +1181,16 @@
   });
 
   // If the page is left open across local midnight, re-point the today's-
-  // log listener and re-render, so a new day's training unlocks and the
-  // Sunday roster lock turns on/off without a manual refresh.
+  // log listener and re-render so a new day's training unlocks without a
+  // manual refresh. The roster lock is now a plain admin switch, so its
+  // own leagueSettings listener above already re-renders when it flips -
+  // no polling needed for that part.
   let lastSeenDateKey = dateKey();
-  let lastLockDay = isRosterLockDay();
   setInterval(() => {
     const nowKey = dateKey();
     if (nowKey !== lastSeenDateKey) {
       lastSeenDateKey = nowKey;
       subscribe();
-    }
-    const lockDay = isRosterLockDay();
-    if (lockDay !== lastLockDay) {
-      lastLockDay = lockDay;
-      renderAll();
     }
   }, 30000);
 })();
