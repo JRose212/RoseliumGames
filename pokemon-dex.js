@@ -5,6 +5,8 @@
   const gridEl = document.getElementById("dex-grid");
   const searchEl = document.getElementById("dex-search");
   const typeFilterEl = document.getElementById("dex-type-filter");
+  const sortWrapEl = document.getElementById("dex-sort-wrap");
+  const sortEl = document.getElementById("dex-sort");
   const faModalEl = document.getElementById("fa-sign-modal");
   const faModalNameEl = document.getElementById("fa-sign-pokemon-name");
   const faModalMessageEl = document.getElementById("fa-sign-message");
@@ -152,6 +154,48 @@
     return new Set(ids);
   };
 
+  // Base stat totals for every Pokemon, keyed by id - used only to sort
+  // the grid (admin-only, never displayed). PokeAPI has no bulk stats
+  // endpoint, so the first load fetches each Pokemon (a few at a time) and
+  // caches the whole map; after that it's instant until the cache expires.
+  let bstById = null;
+  let bstLoading = null;
+
+  const fetchAllBst = (ids, onProgress) => {
+    if (bstById) return Promise.resolve(bstById);
+    if (bstLoading) return bstLoading;
+    bstLoading = (async () => {
+      const cacheKey = "pokedex:bst:v1";
+      const cached = readCache(cacheKey, detailTtl) || {};
+      const map = new Map(Object.entries(cached).map(([id, bst]) => [Number(id), bst]));
+      const missing = ids.filter((id) => !map.has(id));
+      let done = 0;
+      let next = 0;
+      const worker = async () => {
+        while (next < missing.length) {
+          const id = missing[next++];
+          try {
+            const response = await fetch(`${apiBase}/pokemon/${id}`);
+            if (response.ok) {
+              const payload = await response.json();
+              map.set(id, (payload.stats || []).reduce((total, s) => total + (s.base_stat || 0), 0));
+            }
+          } catch (error) {
+            // Skip it - an unknown BST just sorts to the end.
+          }
+          done += 1;
+          if (onProgress) onProgress(done, missing.length);
+        }
+      };
+      await Promise.all(Array.from({ length: 12 }, worker));
+      if (missing.length) writeCache(cacheKey, Object.fromEntries(map));
+      bstById = map;
+      bstLoading = null;
+      return map;
+    })();
+    return bstLoading;
+  };
+
   // --- Firebase (drafted overlay + free agency) ---
 
   let db = null;
@@ -261,6 +305,7 @@
 
     auth.onAuthStateChanged((user) => {
       currentUser = user;
+      updateSortVisibility();
       [unsubscribeDrafted, unsubscribeTeam, unsubscribeSeason, unsubscribeMatchups].forEach((u) => u && u());
       unsubscribeDrafted = unsubscribeTeam = unsubscribeSeason = unsubscribeMatchups = null;
 
@@ -556,6 +601,18 @@
     if (activeTypeIds) {
       filtered = filtered.filter((entry) => activeTypeIds.has(entry.id));
     }
+    const sort = isAdminView() ? sortEl.value : "";
+    if (sort && bstById) {
+      const direction = sort === "bst-asc" ? 1 : -1;
+      filtered = [...filtered].sort((a, b) => {
+        const left = bstById.get(a.id);
+        const right = bstById.get(b.id);
+        if (left === undefined && right === undefined) return a.id - b.id;
+        if (left === undefined) return 1;
+        if (right === undefined) return -1;
+        return (left - right) * direction || a.id - b.id;
+      });
+    }
     statusEl.hidden = true;
     renderGrid(filtered.slice(0, 500));
     if (filtered.length > 500) {
@@ -569,6 +626,42 @@
     clearTimeout(searchDebounce);
     searchDebounce = setTimeout(applySearch, 150);
   });
+
+  // Admin Mode on (same localStorage flag pokemon-admin-toggle.js sets).
+  const isAdminView = () =>
+    Boolean(
+      currentUser &&
+        config.adminUid &&
+        currentUser.uid === config.adminUid &&
+        localStorage.getItem(`adminViewMode:${currentUser.uid}`) !== "user"
+    );
+
+  const updateSortVisibility = () => {
+    if (!sortWrapEl) return;
+    const show = isAdminView();
+    sortWrapEl.hidden = !show;
+    if (!show && sortEl.value) {
+      sortEl.value = "";
+      if (fullList.length) applySearch();
+    }
+  };
+
+  if (sortEl) {
+    sortEl.addEventListener("change", async () => {
+      if (sortEl.value && !bstById) {
+        sortEl.disabled = true;
+        statusEl.hidden = false;
+        statusEl.className = "status";
+        statusEl.textContent = "Loading base stats…";
+        await fetchAllBst(
+          fullList.map((entry) => entry.id),
+          (done, total) => (statusEl.textContent = `Loading base stats… ${done} of ${total}`)
+        );
+        sortEl.disabled = false;
+      }
+      applySearch();
+    });
+  }
 
   typeFilterEl.addEventListener("change", async () => {
     const typeName = typeFilterEl.value;
