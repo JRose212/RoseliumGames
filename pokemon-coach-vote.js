@@ -14,7 +14,7 @@
 //   even though the site never displays them.
 // - Voting closes automatically once every regular-season game is final.
 //   firestore.rules enforces the ballot shape and finality (8 max, no
-//   repeats, only these 35, picks can only be added); the close itself is
+//   repeats, only these 36, picks can only be added); the close itself is
 //   enforced here, since rules can't check every matchup.
 (function () {
   const config = window.siteConfig || {};
@@ -60,6 +60,7 @@
     { id: 638, name: "Cobalion" },
     { id: 640, name: "Virizion" },
     { id: 643, name: "Reshiram" },
+    { id: 644, name: "Zekrom" },
     { id: 646, name: "Kyurem" },
     { id: 716, name: "Xerneas" },
     { id: 717, name: "Yveltal" },

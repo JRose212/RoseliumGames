@@ -238,7 +238,7 @@ service cloud.firestore {
     }
 
     // Legendary Coach Voting (pokemon-coach-vote.js). One ballot per
-    // manager with a team: up to 8 picks, no repeats, only from the 35
+    // manager with a team: up to 8 picks, no repeats, only from the 36
     // hand-picked Legendaries (keep this list in sync with the script's).
     // Saved votes are final - an update can only add picks, never remove
     // or swap one. Ballots are readable so the leaderboard can count them;
@@ -254,7 +254,7 @@ service cloud.firestore {
              && data.picks.toSet().hasOnly([
                   144, 145, 146, 150, 151, 243, 244, 245, 249, 250, 251,
                   380, 381, 382, 383, 384, 385, 386, 483, 484, 486, 487,
-                  488, 491, 493, 638, 640, 643, 646, 716, 717, 718, 721,
+                  488, 491, 493, 638, 640, 643, 644, 646, 716, 717, 718, 721,
                   800, 1007
                 ])
              && exists(/databases/$(database)/documents/teams/$(request.auth.uid));
