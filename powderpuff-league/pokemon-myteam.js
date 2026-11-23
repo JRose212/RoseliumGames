@@ -93,7 +93,15 @@
   const apiBase = config.pokeApiBaseUrl || "https://pokeapi.co/api/v2";
   const legendaryIds = new Set(config.legendaryPokemonIds || []);
 
-  const fetchList = async () => {
+  // The 1025 species plus config.regionalForms, each form placed right
+  // after its regular version (same as the Pokedex page).
+  const regionalForms = (config.regionalForms || []).map(([id, dexNumber, name]) => ({ id, dexNumber, name }));
+  const withRegionalForms = (list) =>
+    [...list, ...regionalForms].sort((a, b) => (a.dexNumber || a.id) - (b.dexNumber || b.id) || a.id - b.id);
+
+  const fetchList = async () => withRegionalForms(await fetchSpeciesList());
+
+  const fetchSpeciesList = async () => {
     const cached = readCache("pokedex:list:v1", listTtl);
     if (cached) return cached;
     const response = await fetch(`${apiBase}/pokemon?limit=1025`, { cache: "no-store" });
