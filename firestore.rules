@@ -237,6 +237,37 @@ service cloud.firestore {
       allow create, update, delete: if isAdmin();
     }
 
+    // Legendary Coach Voting (pokemon-coach-vote.js). One ballot per
+    // manager with a team: up to 8 picks, no repeats, only from the 35
+    // hand-picked Legendaries (keep this list in sync with the script's).
+    // Saved votes are final - an update can only add picks, never remove
+    // or swap one. Ballots are readable so the leaderboard can count them;
+    // the site only ever shows the totals. Closing the vote at the end of
+    // the regular season is handled by the site, not here.
+    function validCoachBallot() {
+      let data = request.resource.data;
+      return data.keys().hasOnly(["uid", "picks", "updatedAt"])
+             && data.uid == request.auth.uid
+             && data.picks is list
+             && data.picks.size() >= 1 && data.picks.size() <= 8
+             && data.picks.toSet().size() == data.picks.size()
+             && data.picks.toSet().hasOnly([
+                  144, 145, 146, 150, 151, 243, 244, 245, 249, 250, 251,
+                  380, 381, 382, 383, 384, 385, 386, 483, 484, 486, 487,
+                  488, 491, 493, 638, 640, 643, 646, 716, 717, 718, 721,
+                  800, 1007
+                ])
+             && exists(/databases/$(database)/documents/teams/$(request.auth.uid));
+    }
+
+    match /coachVotes/{uid} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn() && request.auth.uid == uid && validCoachBallot();
+      allow update: if isSignedIn() && request.auth.uid == uid && validCoachBallot()
+                     && request.resource.data.picks.hasAll(resource.data.picks);
+      allow delete: if isSignedIn() && isAdmin();
+    }
+
     // League chat. Anyone signed in can read/post; only the admin can
     // delete (moderation) - nobody can edit a sent message.
     match /chatMessages/{messageId} {
