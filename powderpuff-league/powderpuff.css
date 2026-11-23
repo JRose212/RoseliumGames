@@ -802,6 +802,30 @@ body.powderpuff[data-page="pokemon-myteam"] .cheer-slot[data-slot="3"] .cheer-sl
   animation-delay: 0.15s;
 }
 
+/* Phones: five 72px slots plus gaps (~390px) don't fit a card's width,
+   which pushed the fifth cheerleader onto a second row. Here the five
+   share the row evenly instead - still capped at 72px, square, with the
+   sprite at the same 60/72 proportion. */
+@media (max-width: 720px) {
+  body.powderpuff[data-page="pokemon-myteam"] .cheer-slots-row {
+    flex-wrap: nowrap;
+  }
+
+  body.powderpuff[data-page="pokemon-myteam"] .cheer-slot {
+    flex: 1 1 0;
+    min-width: 0;
+    max-width: 72px;
+    width: auto;
+    height: auto;
+    aspect-ratio: 1;
+  }
+
+  body.powderpuff[data-page="pokemon-myteam"] .cheer-slot-sprite {
+    width: 83%;
+    height: 83%;
+  }
+}
+
 /* Lead (middle): the biggest, most independent movement - a rock, a
    big solo jump, a bigger rock, then a flourish into the group finish. */
 @keyframes pp-cheer-lead {
