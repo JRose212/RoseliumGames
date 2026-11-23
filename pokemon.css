@@ -1272,6 +1272,12 @@ body[data-page^="pokemon-"] .app-content {
   text-transform: uppercase;
 }
 
+.chat-message-team {
+  font-weight: 600;
+  color: var(--muted);
+  text-transform: none;
+}
+
 .chat-message-time {
   color: var(--muted);
   font-size: 0.7rem;

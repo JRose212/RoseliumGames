@@ -100,6 +100,10 @@
   // and are owner/admin-only, so each manager's own page copies their name
   // onto their (public) team doc - see syncMyManagerName below.
   let managerNames = {};
+  // Current team names, keyed by uid, shown in parentheses after the
+  // sender's name - live from teams/{uid}.teamName, so a renamed team
+  // updates on every message.
+  let teamNames = {};
   let lastMessages = [];
 
   const renderMessages = (messages) => {
@@ -123,7 +127,9 @@
         return `
           <div class="chat-message">
             <div class="chat-message-meta">
-              <span class="chat-message-name">${escapeHtml(managerNames[m.uid] || m.displayName || "Unknown")}</span>
+              <span class="chat-message-name">${escapeHtml(managerNames[m.uid] || m.displayName || "Unknown")}${
+                teamNames[m.uid] ? ` <span class="chat-message-team">(${escapeHtml(teamNames[m.uid])})</span>` : ""
+              }</span>
               <span class="chat-message-time">${formatTime(m.createdAt)}</span>
               ${isAdmin() ? `<button type="button" class="chat-delete-btn" data-id="${m.id}" title="Delete message">✕</button>` : ""}
             </div>
@@ -199,6 +205,7 @@
       unsubscribeNames = null;
     }
     managerNames = {};
+    teamNames = {};
 
     if (!auth.currentUser) {
       inputEl.disabled = true;
@@ -232,11 +239,14 @@
     unsubscribeNames = db.collection("teams").onSnapshot(
       (snapshot) => {
         const names = {};
+        const teams = {};
         snapshot.docs.forEach((doc) => {
-          const name = doc.data().managerName;
-          if (name) names[doc.id] = name;
+          const data = doc.data();
+          if (data.managerName) names[doc.id] = data.managerName;
+          if (data.teamName) teams[doc.id] = data.teamName;
         });
         managerNames = names;
+        teamNames = teams;
         if (lastMessages.length) renderMessages(lastMessages);
       },
       () => {}
