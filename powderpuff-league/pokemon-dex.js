@@ -51,7 +51,15 @@
   const detailTtl = config.pokemonDetailCacheTtlMs || 90 * 24 * 60 * 60 * 1000;
   const apiBase = config.pokeApiBaseUrl || "https://pokeapi.co/api/v2";
 
-  const fetchList = async () => {
+  // The 1025 species plus config.regionalForms, each form placed right
+  // after its regular version (dexNumber = the base species' number).
+  const regionalForms = (config.regionalForms || []).map(([id, dexNumber, name]) => ({ id, dexNumber, name }));
+  const withRegionalForms = (list) =>
+    [...list, ...regionalForms].sort((a, b) => (a.dexNumber || a.id) - (b.dexNumber || b.id) || a.id - b.id);
+
+  const fetchList = async () => withRegionalForms(await fetchSpeciesList());
+
+  const fetchSpeciesList = async () => {
     const cached = readCache("pokedex:list:v1", listTtl);
     if (cached) return cached;
     const response = await fetch(`${apiBase}/pokemon?limit=1025`, { cache: "no-store" });
@@ -411,7 +419,7 @@
       .map(
         (entry) => `
           <article class="card poke-card" data-id="${entry.id}" data-name="${escapeHtml(entry.name)}">
-            <span class="poke-card-number">#${String(entry.id).padStart(4, "0")}</span>
+            <span class="poke-card-number">#${String(entry.dexNumber || entry.id).padStart(4, "0")}</span>
             <img class="poke-sprite" alt="${escapeHtml(entry.name)}" loading="lazy" />
             <span class="poke-card-name">${escapeHtml(entry.name)}</span>
             <div class="poke-card-types"></div>

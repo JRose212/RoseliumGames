@@ -17,6 +17,7 @@
     <script src="pokemon-dex.js" defer></script>
     <script src="pokemon-admin-toggle.js" defer></script>
     <script src="pokemon-chat.js" defer></script>
+    <script src="pokemon-coach-vote.js" defer></script>
   </head>
   <body data-page="pokemon-dex">
   <div class="app-shell">
@@ -91,6 +92,14 @@
           <option value="steel">Steel</option>
           <option value="fairy">Fairy</option>
         </select>
+        <span id="dex-sort-wrap" hidden>
+          <label for="dex-sort">Sort</label>
+          <select id="dex-sort">
+            <option value="">Pokédex #</option>
+            <option value="bst-desc">BST (high to low)</option>
+            <option value="bst-asc">BST (low to high)</option>
+          </select>
+        </span>
       </section>
 
       <p class="status" id="dex-status">Loading Pokédex…</p>

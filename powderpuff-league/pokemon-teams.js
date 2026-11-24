@@ -289,11 +289,21 @@
       .filter((m) => m.status === "scheduled" && (m.homeUid === uid || m.awayUid === uid) && m.date)
       .sort((a, b) => a.date.toMillis() - b.date.toMillis())[0] || null;
 
+  // Training counts toward a game until its result is entered: a game
+  // still "scheduled" has no cutoff yet, and a final one cuts off when the
+  // result first went in (finalizedAt). Games finalized before that field
+  // existed fall back to their stored date (start of game-day Sunday).
+  const trainingCutoffMs = (m) => {
+    if (m.status !== "final") return Infinity;
+    if (m.finalizedAt) return m.finalizedAt.toMillis();
+    return m.date ? m.date.toMillis() : Infinity;
+  };
+
   const trainingSinceLastGame = (uid, currentMatchup) => {
     if (!currentMatchup || !currentMatchup.date) return [];
     const prev = previousMatchupFor(uid, currentMatchup);
-    const startMs = prev && prev.date ? prev.date.toMillis() : null;
-    const endMs = currentMatchup.date.toMillis();
+    const startMs = prev ? trainingCutoffMs(prev) : null;
+    const endMs = trainingCutoffMs(currentMatchup);
     return trainingLog
       .filter((log) => log.uid === uid)
       .filter((log) => {

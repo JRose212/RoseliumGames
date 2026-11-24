@@ -93,7 +93,15 @@
   const apiBase = config.pokeApiBaseUrl || "https://pokeapi.co/api/v2";
   const legendaryIds = new Set(config.legendaryPokemonIds || []);
 
-  const fetchList = async () => {
+  // The 1025 species plus config.regionalForms, each form placed right
+  // after its regular version (same as the Pokedex page).
+  const regionalForms = (config.regionalForms || []).map(([id, dexNumber, name]) => ({ id, dexNumber, name }));
+  const withRegionalForms = (list) =>
+    [...list, ...regionalForms].sort((a, b) => (a.dexNumber || a.id) - (b.dexNumber || b.id) || a.id - b.id);
+
+  const fetchList = async () => withRegionalForms(await fetchSpeciesList());
+
+  const fetchSpeciesList = async () => {
     const cached = readCache("pokedex:list:v1", listTtl);
     if (cached) return cached;
     const response = await fetch(`${apiBase}/pokemon?limit=1025`, { cache: "no-store" });
@@ -353,9 +361,9 @@
 
   // --- Training ---
 
-  // A team's "week" of training runs from its previous game to its next
-  // one (every game is on Sunday here, so that's normally Monday through
-  // Saturday, plus Sunday itself before the matchup's stored time).
+  // A team's "week" of training runs from when its previous game's result
+  // went in to when this game's result goes in - so game-day Sunday
+  // training counts toward that day's game until the admin posts it.
   const previousMatchupFor = (uid, currentMatchup) => {
     if (!currentMatchup.date) return null;
     return (
@@ -367,11 +375,21 @@
     );
   };
 
+  // Training counts toward a game until its result is entered: a game
+  // still "scheduled" has no cutoff yet, and a final one cuts off when the
+  // result first went in (finalizedAt). Games finalized before that field
+  // existed fall back to their stored date (start of game-day Sunday).
+  const trainingCutoffMs = (m) => {
+    if (m.status !== "final") return Infinity;
+    if (m.finalizedAt) return m.finalizedAt.toMillis();
+    return m.date ? m.date.toMillis() : Infinity;
+  };
+
   const trainingSinceLastGame = (uid, currentMatchup) => {
     if (!currentMatchup.date) return [];
     const prev = previousMatchupFor(uid, currentMatchup);
-    const startMs = prev && prev.date ? prev.date.toMillis() : null;
-    const endMs = currentMatchup.date.toMillis();
+    const startMs = prev ? trainingCutoffMs(prev) : null;
+    const endMs = trainingCutoffMs(currentMatchup);
     return trainingLog
       .filter((log) => log.uid === uid)
       .filter((log) => {

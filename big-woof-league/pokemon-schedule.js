@@ -96,6 +96,12 @@
   const swapMatchupBEl = document.getElementById("swap-matchup-b");
   const swapMatchupDaysBtnEl = document.getElementById("swap-matchup-days-btn");
   const swapMatchupDaysMessageEl = document.getElementById("swap-matchup-days-message");
+  const moveMatchupCardEl = document.getElementById("move-matchup-card");
+  const moveMatchupWeekEl = document.getElementById("move-matchup-week");
+  const moveMatchupGameEl = document.getElementById("move-matchup-game");
+  const moveMatchupSlotEl = document.getElementById("move-matchup-slot");
+  const moveMatchupBtnEl = document.getElementById("move-matchup-btn");
+  const moveMatchupMessageEl = document.getElementById("move-matchup-message");
   const swapTeamsCardEl = document.getElementById("swap-teams-card");
   const swapTeamsWeekEl = document.getElementById("swap-teams-week");
   const swapTeamsAEl = document.getElementById("swap-teams-a");
@@ -600,6 +606,92 @@
   }
 
   if (swapMatchupDaysBtnEl) swapMatchupDaysBtnEl.addEventListener("click", swapMatchupDays);
+
+  // --- Move one game to a new day/time slot within its week (admin-only)
+  // - unlike the swap above, nothing else in the week moves. ---
+
+  const renderMoveMatchupOptions = () => {
+    if (!moveMatchupWeekEl || !moveMatchupGameEl) return;
+    if (!matchups.length) {
+      moveMatchupWeekEl.innerHTML = "";
+      moveMatchupGameEl.innerHTML = "";
+      return;
+    }
+    const weeks = [...new Set(matchups.map((m) => m.week))].sort((a, b) => a - b);
+    const prevWeek = moveMatchupWeekEl.value ? Number(moveMatchupWeekEl.value) : null;
+    moveMatchupWeekEl.innerHTML = weeks.map((week) => `<option value="${week}">Week ${week}</option>`).join("");
+    // Default to the first week that still has an unplayed game.
+    const firstOpenWeek = weeks.find((week) => matchups.some((m) => m.week === week && m.status !== "final"));
+    const selectedWeek = weeks.includes(prevWeek) ? prevWeek : firstOpenWeek ?? weeks[0];
+    moveMatchupWeekEl.value = selectedWeek;
+
+    const weekMatchups = matchups.filter((m) => m.week === selectedWeek);
+    const prevGame = moveMatchupGameEl.value;
+    moveMatchupGameEl.innerHTML = weekMatchups
+      .slice()
+      .sort(
+        (a, b) =>
+          (dayOrder[a.day] ?? 99) - (dayOrder[b.day] ?? 99) ||
+          (timeOrder[matchupTime(a, weekMatchups)] ?? 99) - (timeOrder[matchupTime(b, weekMatchups)] ?? 99)
+      )
+      .map(
+        (m) =>
+          `<option value="${m.id}">${escapeHtml(dayLabel[m.day] || m.day)} ${escapeHtml(matchupTime(m, weekMatchups))} - ${escapeHtml(teamName(m.homeUid))} vs ${escapeHtml(teamName(m.awayUid))}${m.status === "final" ? " (Final)" : ""}</option>`
+      )
+      .join("");
+    if (weekMatchups.some((m) => m.id === prevGame)) moveMatchupGameEl.value = prevGame;
+  };
+
+  if (moveMatchupWeekEl) {
+    moveMatchupWeekEl.addEventListener("change", () => {
+      moveMatchupGameEl.value = "";
+      renderMoveMatchupOptions();
+    });
+  }
+
+  async function moveMatchup() {
+    const showMessage = (text, isError) => {
+      moveMatchupMessageEl.hidden = false;
+      moveMatchupMessageEl.className = `status${isError ? " error" : ""}`;
+      moveMatchupMessageEl.textContent = text;
+    };
+
+    const m = matchups.find((x) => x.id === moveMatchupGameEl.value);
+    if (!m) {
+      showMessage("Pick a game to move.", true);
+      return;
+    }
+    if (!seasonState || !seasonState.startDate) {
+      showMessage("Season start date isn't set.", true);
+      return;
+    }
+    const [day, time] = moveMatchupSlotEl.value.split("|");
+    const weekMatchups = matchups.filter((x) => x.week === m.week);
+    if (m.day === day && matchupTime(m, weekMatchups) === time) {
+      showMessage("That game is already in that slot.", true);
+      return;
+    }
+    const label = `${teamName(m.homeUid)} vs ${teamName(m.awayUid)}`;
+    if (!window.confirm(`Move ${label} (Week ${m.week}) to ${dayLabel[day]} ${time}?`)) return;
+
+    try {
+      const date = firebase.firestore.Timestamp.fromDate(dateForDay(seasonState.startDate.toDate(), m.week, day));
+      const batch = db.batch();
+      batch.update(db.collection("matchups").doc(m.id), { day, date, time });
+      // Older games have no stored time - it's derived from their position
+      // among the week's Sunday games, which this move can change. Pin each
+      // one's current time first so only the moved game actually moves.
+      weekMatchups
+        .filter((x) => x.id !== m.id && !x.time)
+        .forEach((x) => batch.update(db.collection("matchups").doc(x.id), { time: matchupTime(x, weekMatchups) }));
+      await batch.commit();
+      showMessage(`Moved ${label} to ${dayLabel[day]} ${time}.`, false);
+    } catch (error) {
+      showMessage(error.message, true);
+    }
+  }
+
+  if (moveMatchupBtnEl) moveMatchupBtnEl.addEventListener("click", moveMatchup);
 
   // --- Swap two teams within one week ---
   // Every matchup in the chosen week that has Team A gets Team B in that
@@ -1978,6 +2070,7 @@
     renderBracket();
     if (isAdmin()) {
       renderSwapMatchupOptions();
+      renderMoveMatchupOptions();
       renderSwapTeamsOptions();
     }
   };
@@ -1996,6 +2089,7 @@
       resetSeasonCardEl.hidden = true;
       resetTrainingCardEl.hidden = true;
       swapMatchupDaysCardEl.hidden = true;
+      if (moveMatchupCardEl) moveMatchupCardEl.hidden = true;
       if (swapTeamsCardEl) swapTeamsCardEl.hidden = true;
       standingsCardEl.hidden = true;
       playoffAdminCardEl.hidden = true;
@@ -2007,6 +2101,7 @@
     statusEl.hidden = true;
     resetTrainingCardEl.hidden = !isAdmin();
     swapMatchupDaysCardEl.hidden = !isAdmin();
+    if (moveMatchupCardEl) moveMatchupCardEl.hidden = !isAdmin();
     if (swapTeamsCardEl) swapTeamsCardEl.hidden = !isAdmin();
     if (isAdmin() && trainingCutoffEl && !trainingCutoffEl.value) {
       const now = new Date();

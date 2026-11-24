@@ -17,6 +17,7 @@
     <script src="pokemon-stats.js" defer></script>
     <script src="pokemon-admin-toggle.js" defer></script>
     <script src="pokemon-chat.js" defer></script>
+    <script src="pokemon-coach-vote.js" defer></script>
   </head>
   <body data-page="pokemon-stats">
   <div class="app-shell">
@@ -72,6 +73,7 @@
       <section class="card" id="player-stats-card" hidden>
         <h2>Player Stats</h2>
         <p>Click a column to sort. A dash means that stat wasn't recorded yet.</p>
+        <p><button type="button" class="btn btn-secondary" id="export-all-stats-btn">Export All Stats (CSV)</button></p>
         <div class="player-stats-tabs" id="player-stats-tabs"></div>
         <div class="player-stats-filters">
           <label>Search

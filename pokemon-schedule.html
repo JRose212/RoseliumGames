@@ -19,6 +19,7 @@
     <script src="pokemon-schedule.js" defer></script>
     <script src="pokemon-admin-toggle.js" defer></script>
     <script src="pokemon-chat.js" defer></script>
+    <script src="pokemon-coach-vote.js" defer></script>
   </head>
   <body data-page="pokemon-schedule">
   <div class="app-shell">
@@ -114,6 +115,27 @@
           <button type="button" class="btn btn-secondary" id="swap-matchup-days-btn">Swap Days</button>
         </form>
         <p class="status" id="swap-matchup-days-message" hidden></p>
+      </section>
+
+      <section class="card" id="move-matchup-card" hidden>
+        <h2>Move a Game</h2>
+        <p>Move one game to a different day/time slot in the same week (Thursday 8pm / Sunday 1pm, 4pm, 8pm / Monday 8pm). Only that game moves - nothing else in the week changes. Training counts toward a game up to noon on its game day, so moving it to an earlier day closes its training window sooner.</p>
+        <form class="auth-form" id="move-matchup-form">
+          <label for="move-matchup-week">Week</label>
+          <select id="move-matchup-week"></select>
+          <label for="move-matchup-game">Game</label>
+          <select id="move-matchup-game"></select>
+          <label for="move-matchup-slot">New slot</label>
+          <select id="move-matchup-slot">
+            <option value="thu|8:00 PM">Thursday 8:00 PM</option>
+            <option value="sun|1:00 PM">Sunday 1:00 PM</option>
+            <option value="sun|4:00 PM">Sunday 4:00 PM</option>
+            <option value="sun|8:00 PM">Sunday 8:00 PM</option>
+            <option value="mon|8:00 PM">Monday 8:00 PM</option>
+          </select>
+          <button type="button" class="btn btn-secondary" id="move-matchup-btn">Move Game</button>
+        </form>
+        <p class="status" id="move-matchup-message" hidden></p>
       </section>
 
       <section class="card" id="swap-teams-card" hidden>

@@ -12,6 +12,7 @@
   const playerStatsScopeEl = document.getElementById("player-stats-scope");
   const playerStatsTableEl = document.getElementById("player-stats-table");
   const playerStatsEmptyEl = document.getElementById("player-stats-empty");
+  const exportAllStatsBtnEl = document.getElementById("export-all-stats-btn");
 
   if (!leaderboardsAreaEl) return;
 
@@ -414,8 +415,7 @@
   // past positions still show up instead of being overwritten or hidden.
   // Oldest game first just keeps each row's team/slot showing its latest
   // game within that position's stint (e.g. after a trade).
-  const buildPlayerRows = (table) => {
-    const scope = playerStatsScopeEl.value;
+  const buildPlayerRows = (table, scope = playerStatsScopeEl.value) => {
     const rows = new Map();
     [...matchups]
       .sort((a, b) => matchupMillis(a) - matchupMillis(b) || a.id.localeCompare(b.id))
@@ -557,6 +557,59 @@
     renderLeaderboards();
     renderPlayerStats();
   };
+
+  // --- Export All Stats: every Player Stats table (all games, ignoring
+  // the on-screen filters) in one CSV, one section per category, each
+  // sorted by that table's default stat. Headers use each column's full
+  // name, since short labels repeat within a table (Defense has two YDS). ---
+
+  const csvField = (value) => {
+    const str = String(value ?? "");
+    return /[",\r\n]/.test(str) ? `"${str.replace(/"/g, '""')}"` : str;
+  };
+  const csvRow = (values) => values.map(csvField).join(",") + "\r\n";
+
+  const exportAllStats = () => {
+    let csv = "";
+    playerStatTables.forEach((table, index) => {
+      const sortColumn = table.columns.find((column) => column.key === table.defaultSort);
+      const rows = buildPlayerRows(table, "").sort((a, b) => {
+        const left = sortColumn.value(a);
+        const right = sortColumn.value(b);
+        if (left === null && right === null) return a.name.localeCompare(b.name);
+        if (left === null) return 1;
+        if (right === null) return -1;
+        return right - left || a.name.localeCompare(b.name);
+      });
+      if (index > 0) csv += "\r\n";
+      csv += csvRow([table.label]);
+      csv += csvRow(table.columns.map((column) => (column.text ? column.label : column.title || column.label)));
+      rows.forEach((row) => {
+        csv += csvRow(
+          table.columns.map((column) => {
+            const value = column.value(row);
+            if (column.text) return value;
+            return value === null || value === undefined ? "" : column.digits ? value.toFixed(column.digits) : value;
+          })
+        );
+      });
+    });
+
+    // BOM so Excel reads accented names (Flabébé) correctly.
+    const blob = new Blob(["﻿" + csv], { type: "text/csv;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    const today = new Date();
+    const pad = (n) => String(n).padStart(2, "0");
+    link.href = url;
+    link.download = `pokeball-stats-${today.getFullYear()}-${pad(today.getMonth() + 1)}-${pad(today.getDate())}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
+  };
+
+  if (exportAllStatsBtnEl) exportAllStatsBtnEl.addEventListener("click", exportAllStats);
 
   playerStatsTabsEl.innerHTML = playerStatTables
     .map(

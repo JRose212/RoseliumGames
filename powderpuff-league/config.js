@@ -87,6 +87,44 @@ window.siteConfig = {
     799, 800, 801, 802, 803, 804, 805, 806, 807, 808, 809,
     888, 889, 890, 893, 894, 895, 896, 897, 898,
     1001, 1002, 1003, 1004, 1007, 1008, 1014, 1015, 1016, 1017, 1024, 1025,
+    // Galarian Articuno, Zapdos, Moltres (regional forms - see below)
+    10169, 10170, 10171,
+  ],
+
+  // Regional forms (Alolan, Galarian, Hisuian, Paldean), added to the
+  // Pokedex and roster picks alongside the 1025 species. PokeAPI files
+  // these as separate Pokemon with ids 10000+ rather than new species, so
+  // the plain 1-1025 list never includes them. Each entry is
+  // [PokeAPI id, base species' Pokedex number, name]. The Pokedex number
+  // keeps each form next to its regular version and is what its card
+  // shows. Left out on purpose: battle/costume-only entries (Totem
+  // Raticate, Alola-cap Pikachu, Galarian Darmanitan's Zen Mode).
+  regionalForms: [
+    // Alolan
+    [10091, 19, "alolan-rattata"], [10092, 20, "alolan-raticate"], [10100, 26, "alolan-raichu"],
+    [10101, 27, "alolan-sandshrew"], [10102, 28, "alolan-sandslash"], [10103, 37, "alolan-vulpix"],
+    [10104, 38, "alolan-ninetales"], [10105, 50, "alolan-diglett"], [10106, 51, "alolan-dugtrio"],
+    [10107, 52, "alolan-meowth"], [10108, 53, "alolan-persian"], [10109, 74, "alolan-geodude"],
+    [10110, 75, "alolan-graveler"], [10111, 76, "alolan-golem"], [10112, 88, "alolan-grimer"],
+    [10113, 89, "alolan-muk"], [10114, 103, "alolan-exeggutor"], [10115, 105, "alolan-marowak"],
+    // Galarian
+    [10161, 52, "galarian-meowth"], [10162, 77, "galarian-ponyta"], [10163, 78, "galarian-rapidash"],
+    [10164, 79, "galarian-slowpoke"], [10165, 80, "galarian-slowbro"], [10166, 83, "galarian-farfetchd"],
+    [10167, 110, "galarian-weezing"], [10168, 122, "galarian-mr-mime"], [10169, 144, "galarian-articuno"],
+    [10170, 145, "galarian-zapdos"], [10171, 146, "galarian-moltres"], [10172, 199, "galarian-slowking"],
+    [10173, 222, "galarian-corsola"], [10174, 263, "galarian-zigzagoon"], [10175, 264, "galarian-linoone"],
+    [10176, 554, "galarian-darumaka"], [10177, 555, "galarian-darmanitan"], [10179, 562, "galarian-yamask"],
+    [10180, 618, "galarian-stunfisk"],
+    // Hisuian
+    [10229, 58, "hisuian-growlithe"], [10230, 59, "hisuian-arcanine"], [10231, 100, "hisuian-voltorb"],
+    [10232, 101, "hisuian-electrode"], [10233, 157, "hisuian-typhlosion"], [10234, 211, "hisuian-qwilfish"],
+    [10235, 215, "hisuian-sneasel"], [10236, 503, "hisuian-samurott"], [10237, 549, "hisuian-lilligant"],
+    [10238, 570, "hisuian-zorua"], [10239, 571, "hisuian-zoroark"], [10240, 628, "hisuian-braviary"],
+    [10241, 705, "hisuian-sliggoo"], [10242, 706, "hisuian-goodra"], [10243, 713, "hisuian-avalugg"],
+    [10244, 724, "hisuian-decidueye"],
+    // Paldean
+    [10250, 128, "paldean-tauros-combat"], [10251, 128, "paldean-tauros-blaze"],
+    [10252, 128, "paldean-tauros-aqua"], [10253, 194, "paldean-wooper"],
   ],
 
   // Daily team training (My Team page). Same mechanics as the other

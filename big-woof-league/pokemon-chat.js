@@ -93,7 +93,21 @@
     return timestamp.toDate().toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
   };
 
+  // Current manager names, keyed by uid, from teams/{uid}.managerName.
+  // Messages store the sender's name as it was when they were sent; this
+  // lets a rename show on every message, old ones included. The name's
+  // source of truth is users/{uid}.displayName, but users docs hold emails
+  // and are owner/admin-only, so each manager's own page copies their name
+  // onto their (public) team doc - see syncMyManagerName below.
+  let managerNames = {};
+  // Current team names, keyed by uid, shown in parentheses after the
+  // sender's name - live from teams/{uid}.teamName, so a renamed team
+  // updates on every message.
+  let teamNames = {};
+  let lastMessages = [];
+
   const renderMessages = (messages) => {
+    lastMessages = messages;
     if (clearSystemBtn) clearSystemBtn.hidden = !isAdmin();
     if (!messages.length) {
       messagesEl.innerHTML = `<p class="status">No messages yet - say hello.</p>`;
@@ -113,7 +127,9 @@
         return `
           <div class="chat-message">
             <div class="chat-message-meta">
-              <span class="chat-message-name">${escapeHtml(m.displayName || "Unknown")}</span>
+              <span class="chat-message-name">${escapeHtml(managerNames[m.uid] || m.displayName || "Unknown")}${
+                teamNames[m.uid] ? ` <span class="chat-message-team">(${escapeHtml(teamNames[m.uid])})</span>` : ""
+              }</span>
               <span class="chat-message-time">${formatTime(m.createdAt)}</span>
               ${isAdmin() ? `<button type="button" class="chat-delete-btn" data-id="${m.id}" title="Delete message">✕</button>` : ""}
             </div>
@@ -157,12 +173,39 @@
   if (clearSystemBtn) clearSystemBtn.addEventListener("click", clearSystemMessages);
 
   let unsubscribe = null;
+  let unsubscribeNames = null;
+
+  // Copy my users/{uid}.displayName onto my team doc (as managerName) and
+  // my login profile, so a name changed in the database shows up in chat
+  // the next time I load any page. Best-effort: a brand-new sign-up's team
+  // doc may not exist yet, in which case the next page load catches it.
+  const syncMyManagerName = async (user) => {
+    try {
+      const userSnap = await db.collection("users").doc(user.uid).get();
+      const name = userSnap.exists && String(userSnap.data().displayName || "").trim();
+      if (!name) return;
+      const teamRef = db.collection("teams").doc(user.uid);
+      const teamSnap = await teamRef.get();
+      if (teamSnap.exists && teamSnap.data().managerName !== name) {
+        await teamRef.update({ managerName: name });
+      }
+      if (user.displayName !== name) await user.updateProfile({ displayName: name });
+    } catch (error) {
+      // Non-fatal - chat falls back to the name stored on each message.
+    }
+  };
 
   const subscribe = () => {
     if (unsubscribe) {
       unsubscribe();
       unsubscribe = null;
     }
+    if (unsubscribeNames) {
+      unsubscribeNames();
+      unsubscribeNames = null;
+    }
+    managerNames = {};
+    teamNames = {};
 
     if (!auth.currentUser) {
       inputEl.disabled = true;
@@ -190,6 +233,24 @@
         updateUnreadGlow();
       })
       .catch(() => {});
+
+    syncMyManagerName(auth.currentUser);
+
+    unsubscribeNames = db.collection("teams").onSnapshot(
+      (snapshot) => {
+        const names = {};
+        const teams = {};
+        snapshot.docs.forEach((doc) => {
+          const data = doc.data();
+          if (data.managerName) names[doc.id] = data.managerName;
+          if (data.teamName) teams[doc.id] = data.teamName;
+        });
+        managerNames = names;
+        teamNames = teams;
+        if (lastMessages.length) renderMessages(lastMessages);
+      },
+      () => {}
+    );
 
     unsubscribe = db
       .collection("chatMessages")

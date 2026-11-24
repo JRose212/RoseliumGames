@@ -517,11 +517,21 @@
     );
   };
 
+  // Training counts toward a game until its result is entered: a game
+  // still "scheduled" has no cutoff yet, and a final one cuts off when the
+  // result first went in (finalizedAt). Games finalized before that field
+  // existed fall back to their stored date (start of game-day Sunday).
+  const trainingCutoffMs = (m) => {
+    if (m.status !== "final") return Infinity;
+    if (m.finalizedAt) return m.finalizedAt.toMillis();
+    return m.date ? m.date.toMillis() : Infinity;
+  };
+
   const trainingSinceLastGame = (uid, currentMatchup) => {
     if (!currentMatchup.date) return [];
     const prev = previousMatchupFor(uid, currentMatchup);
-    const startMs = prev && prev.date ? prev.date.toMillis() : null;
-    const endMs = currentMatchup.date.toMillis();
+    const startMs = prev ? trainingCutoffMs(prev) : null;
+    const endMs = trainingCutoffMs(currentMatchup);
     return trainingLog
       .filter((log) => log.uid === uid)
       .filter((log) => {
@@ -1277,6 +1287,12 @@
     // Rosters change week to week here, so the first time a result is
     // posted, both teams' lineups are saved onto the game - that's what
     // Player of the Week and the export use for this game from then on.
+    // When the result first went in - the cutoff between this game's
+    // training and the next game's (see trainingCutoffMs).
+    if (isFirstDeclaration || !matchup.finalizedAt) {
+      matchupFields.finalizedAt = firebase.firestore.FieldValue.serverTimestamp();
+    }
+
     if (!matchup.homeLineup) matchupFields.homeLineup = (teamsByUid.get(matchup.homeUid) || {}).slots || {};
     if (!matchup.awayLineup) matchupFields.awayLineup = (teamsByUid.get(matchup.awayUid) || {}).slots || {};
 
