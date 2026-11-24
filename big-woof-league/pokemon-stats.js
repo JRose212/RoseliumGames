@@ -404,8 +404,16 @@
 
   const matchupMillis = (matchup) => (matchup.date && matchup.date.toMillis ? matchup.date.toMillis() : 0);
 
-  // Oldest game first, so each row ends up with the team and position from
-  // that Pokemon's latest game, even after a trade or a position change.
+  // One row per Pokemon PER BROAD POSITION (QB, RB, WR, ...), not one row
+  // per Pokemon overall - a QB who moves to WR mid-season would otherwise
+  // blend passing-era and receiving-era games into a single row labeled
+  // with whichever position it played most recently, which misattributes
+  // the stats to a position that didn't actually produce them. Splitting
+  // by positionLabel(entry.slot) keeps each position stint as its own
+  // row (WR1/WR2 still merge, since they're the same broad position), so
+  // past positions still show up instead of being overwritten or hidden.
+  // Oldest game first just keeps each row's team/slot showing its latest
+  // game within that position's stint (e.g. after a trade).
   const buildPlayerRows = (table) => {
     const scope = playerStatsScopeEl.value;
     const rows = new Map();
@@ -422,8 +430,9 @@
         ].forEach(({ side, uid }) => {
           (side || []).forEach((entry) => {
             if (!table.slots.includes(entry.slot)) return;
-            const { key: rowKey, name } = statsPokemonName(entry.pokemonName);
-            if (!rowKey) return;
+            const { key: nameKey, name } = statsPokemonName(entry.pokemonName);
+            if (!nameKey) return;
+            const rowKey = `${nameKey}|${positionLabel(entry.slot)}`;
             const stats = entry.stats || {};
             const row = rows.get(rowKey) || { name, games: [], primary: false, active: false };
             row.uid = uid;
