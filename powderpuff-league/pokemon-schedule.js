@@ -1207,7 +1207,10 @@
     const matchup = matchups.find((m) => m.id === matchupId);
     if (!matchup) return;
     pendingMatchupId = matchupId;
-    resultTitleEl.textContent = `${teamName(matchup.homeUid)} @ ${teamName(matchup.awayUid)}`;
+    // Standard sports "@" order (away @ home) - see the root league's
+    // same fix for why this one title reads backwards from the rest of
+    // the site's homeUid-first convention.
+    resultTitleEl.textContent = `${teamName(matchup.awayUid)} @ ${teamName(matchup.homeUid)}`;
     resultHomeLabelEl.textContent = `${teamName(matchup.homeUid)} score`;
     resultAwayLabelEl.textContent = `${teamName(matchup.awayUid)} score`;
     resultHomeScoreEl.value = matchup.homeScore ?? "";

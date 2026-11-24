@@ -1556,7 +1556,13 @@
     const matchup = matchups.find((m) => m.id === matchupId);
     if (!matchup) return;
     pendingMatchupId = matchupId;
-    resultTitleEl.textContent = `${teamName(matchup.homeUid)} @ ${teamName(matchup.awayUid)}`;
+    // Standard sports "@" order (away @ home) - the opposite order from
+    // the Schedule page's own matchup cards, which deliberately stay
+    // homeUid-first (see matchupLabel). This title is what admins and
+    // whatever generates box score JSON actually read to decide which
+    // lineup goes in "home" vs "away", so it's the one place where
+    // reading "@" the normal way needs to give the right answer.
+    resultTitleEl.textContent = `${teamName(matchup.awayUid)} @ ${teamName(matchup.homeUid)}`;
     resultHomeLabelEl.textContent = `${teamName(matchup.homeUid)} score`;
     resultAwayLabelEl.textContent = `${teamName(matchup.awayUid)} score`;
     resultHomeScoreEl.value = matchup.homeScore ?? "";
