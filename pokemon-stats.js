@@ -405,16 +405,16 @@
 
   const matchupMillis = (matchup) => (matchup.date && matchup.date.toMillis ? matchup.date.toMillis() : 0);
 
-  // One row per Pokemon PER BROAD POSITION (QB, RB, WR, ...), not one row
-  // per Pokemon overall - a QB who moves to WR mid-season would otherwise
-  // blend passing-era and receiving-era games into a single row labeled
-  // with whichever position it played most recently, which misattributes
-  // the stats to a position that didn't actually produce them. Splitting
-  // by positionLabel(entry.slot) keeps each position stint as its own
-  // row (WR1/WR2 still merge, since they're the same broad position), so
-  // past positions still show up instead of being overwritten or hidden.
-  // Oldest game first just keeps each row's team/slot showing its latest
-  // game within that position's stint (e.g. after a trade).
+  // One row per Pokemon, per TEAM, per BROAD POSITION (QB, RB, WR, ...) -
+  // not one row per Pokemon overall. Splitting by position alone still
+  // blended a traded Pokemon's games across both teams into one row
+  // labeled with only its most recent team, crediting that team (or that
+  // team's radio show) with stats the Pokemon actually earned somewhere
+  // else. Keying by team too (uid) gives a traded player a separate row
+  // per team, same as the position split already does for a position
+  // change. WR1/WR2 still merge, since they're the same broad position.
+  // Oldest game first just keeps each row's slot showing its latest game
+  // within that position-and-team stint.
   const buildPlayerRows = (table, scope = playerStatsScopeEl.value) => {
     const rows = new Map();
     [...matchups]
@@ -432,10 +432,9 @@
             if (!table.slots.includes(entry.slot)) return;
             const { key: nameKey, name } = statsPokemonName(entry.pokemonName);
             if (!nameKey) return;
-            const rowKey = `${nameKey}|${positionLabel(entry.slot)}`;
+            const rowKey = `${nameKey}|${positionLabel(entry.slot)}|${uid}`;
             const stats = entry.stats || {};
-            const row = rows.get(rowKey) || { name, games: [], primary: false, active: false };
-            row.uid = uid;
+            const row = rows.get(rowKey) || { name, uid, games: [], primary: false, active: false };
             row.slot = entry.slot;
             row.primary = row.primary || table.primarySlots.includes(entry.slot);
             row.active = row.active || table.statKeys.some((key) => Number(stats[key]) > 0);
