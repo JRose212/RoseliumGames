@@ -86,6 +86,9 @@
   const resetSeasonCardEl = document.getElementById("reset-season-card");
   const resetSeasonBtnEl = document.getElementById("reset-season-btn");
   const resetSeasonMessageEl = document.getElementById("reset-season-message");
+  const exportBoxScoresCardEl = document.getElementById("export-box-scores-card");
+  const exportBoxScoresBtnEl = document.getElementById("export-box-scores-btn");
+  const exportBoxScoresMessageEl = document.getElementById("export-box-scores-message");
   const resetTrainingCardEl = document.getElementById("reset-training-card");
   const trainingCutoffEl = document.getElementById("training-cutoff-date");
   const resetTrainingBtnEl = document.getElementById("reset-training-btn");
@@ -1080,6 +1083,56 @@
     link.remove();
     URL.revokeObjectURL(url);
   };
+
+  // --- Admin "Export All Box Scores": every matchup, every week, in one
+  // JSON file - same {home, away} shape you'd paste into a single game's
+  // box score box, so this round-trips cleanly (back into this site, or
+  // into anything else that reads that same format). Games with no box
+  // score yet still get a row (boxScore: null), so it's also a quick way
+  // to see what's missing. ---
+
+  const exportAllBoxScoresJson = () => {
+    const matchupMillis = (m) => (m.date && m.date.toMillis ? m.date.toMillis() : 0);
+    const data = [...matchups]
+      .sort((a, b) => a.week - b.week || matchupMillis(a) - matchupMillis(b) || a.id.localeCompare(b.id))
+      .map((m) => {
+        const box = boxScoresByMatchupId.get(m.id);
+        return {
+          week: m.week,
+          round: m.round,
+          matchupId: m.id,
+          status: m.status,
+          awayTeam: teamName(m.awayUid),
+          homeTeam: teamName(m.homeUid),
+          awayUid: m.awayUid,
+          homeUid: m.homeUid,
+          awayScore: m.awayScore ?? null,
+          homeScore: m.homeScore ?? null,
+          boxScore: box ? { home: box.home || [], away: box.away || [] } : null,
+        };
+      });
+
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    const today = new Date();
+    const pad = (n) => String(n).padStart(2, "0");
+    link.href = url;
+    link.download = `bigwoof-box-scores-${today.getFullYear()}-${pad(today.getMonth() + 1)}-${pad(today.getDate())}.json`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
+  };
+
+  if (exportBoxScoresBtnEl) {
+    exportBoxScoresBtnEl.addEventListener("click", () => {
+      exportAllBoxScoresJson();
+      exportBoxScoresMessageEl.hidden = false;
+      exportBoxScoresMessageEl.className = "status";
+      exportBoxScoresMessageEl.textContent = "Exported.";
+    });
+  }
 
   // --- Player of the Week ---
   // One pick per week, stored on seasonState/current as
@@ -2093,6 +2146,7 @@
       statusEl.innerHTML = `Sign in on the <a href="pokemon-league.html">League Home</a> page to view the schedule.`;
       generateCardEl.hidden = true;
       resetSeasonCardEl.hidden = true;
+      exportBoxScoresCardEl.hidden = true;
       resetTrainingCardEl.hidden = true;
       swapMatchupDaysCardEl.hidden = true;
       if (moveMatchupCardEl) moveMatchupCardEl.hidden = true;
@@ -2105,6 +2159,7 @@
     }
 
     statusEl.hidden = true;
+    exportBoxScoresCardEl.hidden = !isAdmin();
     resetTrainingCardEl.hidden = !isAdmin();
     swapMatchupDaysCardEl.hidden = !isAdmin();
     if (moveMatchupCardEl) moveMatchupCardEl.hidden = !isAdmin();
