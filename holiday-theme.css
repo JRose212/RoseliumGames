@@ -1,0 +1,104 @@
+/* Holiday themes - layered on top of each league's own theme (see
+   holiday-theme.js). Everything here only applies while <html> carries
+   data-holiday, and uses the --holiday-a/b/c colors that script sets. */
+
+/* A striped accent under the site header. */
+.holiday-stripe {
+  height: 5px;
+  background: repeating-linear-gradient(
+    90deg,
+    var(--holiday-a) 0 28px,
+    var(--holiday-b) 28px 56px,
+    var(--holiday-c) 56px 84px
+  );
+}
+
+/* Greeting banner just below the header (scrolls away with the page). */
+.holiday-banner {
+  display: flex;
+  justify-content: center;
+  padding: 0.45rem 1rem;
+  background: linear-gradient(90deg, var(--holiday-a), var(--holiday-b), var(--holiday-c));
+  text-align: center;
+}
+
+/* The greeting sits on its own dark pill so it reads on any holiday's
+   colors, light or dark. */
+.holiday-banner-text {
+  padding: 0.2rem 0.85rem;
+  border-radius: 999px;
+  background: rgba(20, 14, 24, 0.72);
+  color: #fff;
+  font-size: 0.85rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+/* Small emoji tucked onto the league badge in the nav. */
+.holiday-badge-mark {
+  margin-left: 0.35rem;
+  font-size: 0.95em;
+  line-height: 1;
+  display: inline-block;
+  animation: holiday-bob 2.8s ease-in-out infinite;
+}
+
+/* Section headings pick up a faint holiday underline. */
+[data-holiday] .page-intro h1 {
+  text-decoration: underline;
+  text-decoration-color: var(--holiday-a);
+  text-decoration-thickness: 3px;
+  text-underline-offset: 0.3em;
+}
+
+/* A few emoji drifting down behind the content. */
+.holiday-drift {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  /* Behind all page content (cards cover it; it shows in the gaps), so
+     the existing stacking of the header, chat and modals is untouched. */
+  z-index: -1;
+}
+
+.holiday-drift-piece {
+  position: absolute;
+  top: -2rem;
+  opacity: 0.35;
+  animation-name: holiday-fall;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+  will-change: transform;
+}
+
+@keyframes holiday-fall {
+  0% {
+    transform: translate3d(0, 0, 0) rotate(0deg);
+  }
+  50% {
+    transform: translate3d(1.5rem, 55vh, 0) rotate(160deg);
+  }
+  100% {
+    transform: translate3d(-1rem, 110vh, 0) rotate(320deg);
+  }
+}
+
+@keyframes holiday-bob {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-2px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .holiday-drift {
+    display: none;
+  }
+  .holiday-badge-mark {
+    animation: none;
+  }
+}

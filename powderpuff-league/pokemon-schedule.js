@@ -89,6 +89,14 @@
   const swapTeamsBEl = document.getElementById("swap-teams-b");
   const swapTeamsBtnEl = document.getElementById("swap-teams-btn");
   const swapTeamsMessageEl = document.getElementById("swap-teams-message");
+  const thanksgivingCardEl = document.getElementById("thanksgiving-card");
+  const thanksgivingWeekEl = document.getElementById("thanksgiving-week");
+  const thanksgivingDateEl = document.getElementById("thanksgiving-date");
+  const thanksgivingTeamEls = ["g1-home", "g1-away", "g2-home", "g2-away"].map((key) =>
+    document.getElementById(`thanksgiving-${key}`)
+  );
+  const thanksgivingBtnEl = document.getElementById("thanksgiving-btn");
+  const thanksgivingMessageEl = document.getElementById("thanksgiving-message");
   const potwModalEl = document.getElementById("potw-modal");
   const potwModalTitleEl = document.getElementById("potw-modal-title");
   const potwSearchEl = document.getElementById("potw-search");
@@ -368,6 +376,121 @@
   }
 
   if (swapTeamsBtnEl) swapTeamsBtnEl.addEventListener("click", swapTeamsInWeek);
+
+  // --- Thanksgiving specials ---
+  // Two extra regular-season games in one week, on top of its Sunday
+  // games (matchup ids wNN-tg1 / wNN-tg2, special: "thanksgiving"). They
+  // count in the standings like any other game and get a themed card.
+
+  const isThanksgivingSpecial = (m) => m.special === "thanksgiving";
+
+  // Fourth Thursday of November, as YYYY-MM-DD.
+  const thanksgivingDateFor = (year) => {
+    const firstDay = new Date(year, 10, 1).getDay();
+    const day = 1 + ((4 - firstDay + 7) % 7) + 21;
+    return `${year}-11-${String(day).padStart(2, "0")}`;
+  };
+
+  const renderThanksgivingOptions = () => {
+    if (!thanksgivingWeekEl || thanksgivingTeamEls.some((el) => !el)) return;
+    const existing = matchups.filter(isThanksgivingSpecial).sort((a, b) => a.id.localeCompare(b.id));
+    const weeks = [...new Set(matchups.filter((m) => m.round === "regular").map((m) => m.week))].sort((a, b) => a - b);
+    const prevWeek = thanksgivingWeekEl.value ? Number(thanksgivingWeekEl.value) : existing[0]?.week ?? 2;
+    thanksgivingWeekEl.innerHTML = weeks.map((week) => `<option value="${week}">Week ${week}</option>`).join("");
+    if (weeks.includes(prevWeek)) thanksgivingWeekEl.value = prevWeek;
+
+    if (!thanksgivingDateEl.value) {
+      if (existing[0]?.date) {
+        const d = existing[0].date.toDate();
+        const pad = (n) => String(n).padStart(2, "0");
+        thanksgivingDateEl.value = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+      } else {
+        thanksgivingDateEl.value = thanksgivingDateFor(new Date().getFullYear());
+      }
+    }
+
+    const teamOptions = [...teamsByUid.entries()]
+      .filter(([, team]) => !team.hidden)
+      .sort(([, a], [, b]) => (a.teamName || "").localeCompare(b.teamName || ""))
+      .map(([uid, team]) => `<option value="${escapeHtml(uid)}">${escapeHtml(team.teamName || "Unknown team")}</option>`)
+      .join("");
+    const savedUids = existing.flatMap((m) => [m.homeUid, m.awayUid]);
+    thanksgivingTeamEls.forEach((el, i) => {
+      const prev = el.value || savedUids[i] || "";
+      el.innerHTML = `<option value="">Pick a team</option>${teamOptions}`;
+      if (teamsByUid.has(prev)) el.value = prev;
+    });
+  };
+
+  async function saveThanksgivingSpecials() {
+    const showMessage = (text, isError) => {
+      thanksgivingMessageEl.hidden = false;
+      thanksgivingMessageEl.className = `status${isError ? " error" : ""}`;
+      thanksgivingMessageEl.textContent = text;
+    };
+
+    const week = Number(thanksgivingWeekEl.value);
+    const dateValue = thanksgivingDateEl.value;
+    const uids = thanksgivingTeamEls.map((el) => el.value);
+    if (!week || !dateValue) {
+      showMessage("Pick a week and a game day.", true);
+      return;
+    }
+    if (uids.some((uid) => !uid)) {
+      showMessage("Pick a home and away team for both games.", true);
+      return;
+    }
+    if (new Set(uids).size !== uids.length) {
+      showMessage("Each team can only appear once across the two Thanksgiving games.", true);
+      return;
+    }
+
+    const existing = matchups.filter(isThanksgivingSpecial);
+    if (existing.some((m) => m.status === "final")) {
+      showMessage("A Thanksgiving special is already final, so the specials can't be changed.", true);
+      return;
+    }
+
+    const gameDate = new Date(`${dateValue}T00:00:00`);
+    const games = [
+      [uids[0], uids[1]],
+      [uids[2], uids[3]],
+    ];
+    const summary = games.map(([home, away]) => `${teamName(home)} @ ${teamName(away)}`).join("\n");
+    if (!window.confirm(`Week ${week} Thanksgiving specials (${formatMatchupDate(firebase.firestore.Timestamp.fromDate(gameDate))}):\n\n${summary}\n\nSave?`)) {
+      return;
+    }
+
+    try {
+      const batch = db.batch();
+      const newIds = games.map((_, i) => `w${String(week).padStart(2, "0")}-tg${i + 1}`);
+      // Drop any earlier specials saved under a different week.
+      existing.filter((m) => !newIds.includes(m.id)).forEach((m) => batch.delete(db.collection("matchups").doc(m.id)));
+      games.forEach(([homeUid, awayUid], i) => {
+        batch.set(db.collection("matchups").doc(newIds[i]), {
+          week,
+          round: "regular",
+          day: "thanksgiving",
+          special: "thanksgiving",
+          date: firebase.firestore.Timestamp.fromDate(gameDate),
+          homeUid,
+          awayUid,
+          homeScore: null,
+          awayScore: null,
+          winnerUid: null,
+          driveSummary: "",
+          shortSummary: "",
+          status: "scheduled",
+        });
+      });
+      await batch.commit();
+      showMessage(`Saved: ${summary.replace(/\n/g, "; ")}`, false);
+    } catch (error) {
+      showMessage(error.message, true);
+    }
+  }
+
+  if (thanksgivingBtnEl) thanksgivingBtnEl.addEventListener("click", saveThanksgivingSpecials);
 
   async function generateSchedule() {
     const dateValue = startDateEl.value;
@@ -1119,7 +1242,10 @@
 
     weeksEl.innerHTML = weeks
       .map((week) => {
-        const weekMatchups = byWeek.get(week).slice().sort((a, b) => a.id.localeCompare(b.id));
+        const weekMatchups = byWeek
+          .get(week)
+          .slice()
+          .sort((a, b) => (a.date && b.date ? a.date.toMillis() - b.date.toMillis() : 0) || a.id.localeCompare(b.id));
         const first = weekMatchups[0];
         const heading = first.round === "regular" ? `Week ${week}` : `${playoffRoundName(first.playoffRound)} (Week ${week})`;
         const cards = weekMatchups
@@ -1142,7 +1268,10 @@
                 </details>
               `
                 : "";
-            return `<div class="card matchup-card">
+            const special = isThanksgivingSpecial(m);
+            const specialBadge = special ? `<span class="matchup-special-badge">🦃 Thanksgiving Special</span>` : "";
+            return `<div class="card matchup-card${special ? " matchup-card--thanksgiving" : ""}">
+                      ${specialBadge}
                       <span class="matchup-day">${formatMatchupDate(m.date)}</span>
                       <span class="matchup-teams">${matchupLabel(m)}</span>
                       <span class="matchup-score">${scoreText}</span>
@@ -1347,6 +1476,7 @@
     renderPlayoffAdmin();
     renderBracket();
     if (isAdmin()) renderSwapTeamsOptions();
+    if (isAdmin()) renderThanksgivingOptions();
   };
 
   const subscribe = () => {
@@ -1361,6 +1491,7 @@
       resetSeasonCardEl.hidden = true;
       resetTrainingCardEl.hidden = true;
       swapTeamsCardEl.hidden = true;
+      if (thanksgivingCardEl) thanksgivingCardEl.hidden = true;
       standingsCardEl.hidden = true;
       playoffAdminCardEl.hidden = true;
       bracketCardEl.hidden = true;
@@ -1371,6 +1502,7 @@
     statusEl.hidden = true;
     resetTrainingCardEl.hidden = !isAdmin();
     swapTeamsCardEl.hidden = !isAdmin();
+    if (thanksgivingCardEl) thanksgivingCardEl.hidden = !isAdmin();
     if (isAdmin() && trainingCutoffEl && !trainingCutoffEl.value) {
       const now = new Date();
       const pad = (n) => String(n).padStart(2, "0");

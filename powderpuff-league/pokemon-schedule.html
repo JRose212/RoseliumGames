@@ -11,6 +11,8 @@
     <link rel="stylesheet" href="../style.css" />
     <link rel="stylesheet" href="../pokemon.css" />
     <link rel="stylesheet" href="powderpuff.css" />
+    <link rel="stylesheet" href="../holiday-theme.css" />
+    <script src="../holiday-theme.js"></script>
     <script src="config.js"></script>
     <script src="broadcasts.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
@@ -114,6 +116,27 @@
           <button type="button" class="btn btn-secondary" id="swap-teams-btn">Swap Teams</button>
         </form>
         <p class="status" id="swap-teams-message" hidden></p>
+      </section>
+
+      <section class="card" id="thanksgiving-card" hidden>
+        <h2>🦃 Thanksgiving Specials</h2>
+        <p>Adds two extra games to the week you pick, on the date you pick (Thanksgiving Day by default), on top of that week's Sunday games. They count in the standings like any regular-season game and show with a Thanksgiving border on the schedule. Saving again replaces both specials, as long as neither is final yet.</p>
+        <form class="auth-form" id="thanksgiving-form">
+          <label for="thanksgiving-week">Week</label>
+          <select id="thanksgiving-week"></select>
+          <label for="thanksgiving-date">Game day</label>
+          <input type="date" id="thanksgiving-date" />
+          <label for="thanksgiving-g1-home">Game 1 - Home</label>
+          <select id="thanksgiving-g1-home"></select>
+          <label for="thanksgiving-g1-away">Game 1 - Away</label>
+          <select id="thanksgiving-g1-away"></select>
+          <label for="thanksgiving-g2-home">Game 2 - Home</label>
+          <select id="thanksgiving-g2-home"></select>
+          <label for="thanksgiving-g2-away">Game 2 - Away</label>
+          <select id="thanksgiving-g2-away"></select>
+          <button type="button" class="btn btn-secondary" id="thanksgiving-btn">Save Thanksgiving Specials</button>
+        </form>
+        <p class="status" id="thanksgiving-message" hidden></p>
       </section>
 
       <section class="card" id="standings-card" hidden>
