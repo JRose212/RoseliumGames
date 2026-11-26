@@ -563,7 +563,11 @@
 
     unsubscribeMatchups = db.collection("matchups").onSnapshot(
       (snapshot) => {
-        matchups = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+        // Exhibitions (Thanksgiving specials) are just for fun - never a
+        // team's next game or a training cutoff here.
+        matchups = snapshot.docs
+          .map((doc) => ({ id: doc.id, ...doc.data() }))
+          .filter((m) => m.round !== "exhibition" && m.special !== "thanksgiving");
         render();
       },
       () => {}

@@ -211,7 +211,7 @@
 
   // Any already-played game locks the schedule in - regenerating would
   // wipe its recorded result. Before that point it's a safe preview.
-  const hasFinalRegularGame = () => matchups.some((m) => m.round === "regular" && m.status === "final");
+  const hasFinalRegularGame = () => matchups.some((m) => m.round === "regular" && !isExhibition(m) && m.status === "final");
 
   const updateGenerateCardVisibility = () => {
     const locked = hasFinalRegularGame();
@@ -378,11 +378,15 @@
   if (swapTeamsBtnEl) swapTeamsBtnEl.addEventListener("click", swapTeamsInWeek);
 
   // --- Thanksgiving specials ---
-  // Two extra regular-season games in one week, on top of its Sunday
-  // games (matchup ids wNN-tg1 / wNN-tg2, special: "thanksgiving"). They
-  // count in the standings like any other game and get a themed card.
+  // Two exhibition games in one week, on top of its Sunday games (matchup
+  // ids wNN-tg1 / wNN-tg2, round "exhibition", special: "thanksgiving").
+  // Purely for fun: they never count toward standings, Player of the Week
+  // or the playoffs, never bank or clear bonus training sessions, and
+  // aren't a cutoff for anyone's training window - training keeps
+  // counting toward the team's next real game. They just get a themed card.
 
   const isThanksgivingSpecial = (m) => m.special === "thanksgiving";
+  const isExhibition = (m) => m.round === "exhibition" || isThanksgivingSpecial(m);
 
   // Fourth Thursday of November, as YYYY-MM-DD.
   const thanksgivingDateFor = (year) => {
@@ -469,7 +473,7 @@
       games.forEach(([homeUid, awayUid], i) => {
         batch.set(db.collection("matchups").doc(newIds[i]), {
           week,
-          round: "regular",
+          round: "exhibition",
           day: "thanksgiving",
           special: "thanksgiving",
           date: firebase.firestore.Timestamp.fromDate(gameDate),
@@ -575,7 +579,7 @@
         .map(([uid, team]) => [uid, { uid, teamName: team.teamName, wins: 0, losses: 0, ties: 0, pointsFor: 0, pointsAgainst: 0 }])
     );
     matchups
-      .filter((m) => m.round === "regular" && m.status === "final")
+      .filter((m) => m.round === "regular" && !isExhibition(m) && m.status === "final")
       .forEach((m) => {
         const home = stats.get(m.homeUid);
         const away = stats.get(m.awayUid);
@@ -634,7 +638,11 @@
     return (
       matchups
         .filter(
-          (m) => (m.homeUid === uid || m.awayUid === uid) && m.date && m.date.toMillis() < currentMatchup.date.toMillis()
+          (m) =>
+            !isExhibition(m) &&
+            (m.homeUid === uid || m.awayUid === uid) &&
+            m.date &&
+            m.date.toMillis() < currentMatchup.date.toMillis()
         )
         .sort((a, b) => b.date.toMillis() - a.date.toMillis())[0] || null
     );
@@ -681,7 +689,7 @@
     <span class="matchup-team${won ? " winner" : ""}">
       ${teamAvatarHtml(teamsByUid.get(uid), "team-avatar--sm")}
       <span class="matchup-team-name">${escapeHtml(teamName(uid))}</span>
-      ${trainingSpriteRow(uid, currentMatchup)}
+      ${isExhibition(currentMatchup) ? "" : trainingSpriteRow(uid, currentMatchup)}
     </span>
   `;
 
@@ -769,7 +777,7 @@
   };
 
   const regularSeasonComplete = () => {
-    const regular = matchups.filter((m) => m.round === "regular");
+    const regular = matchups.filter((m) => m.round === "regular" && !isExhibition(m));
     return regular.length > 0 && regular.every((m) => m.status === "final");
   };
 
@@ -1010,7 +1018,7 @@
   const potwCandidates = (week) => {
     const byKey = new Map();
     matchups
-      .filter((m) => m.week === week)
+      .filter((m) => m.week === week && !isExhibition(m))
       .forEach((m) => {
         ["home", "away"].forEach((side) => {
           const uid = side === "home" ? m.homeUid : m.awayUid;
@@ -1221,9 +1229,10 @@
   // The week that starts expanded: the earliest week with a game not yet
   // final, or the last week once everything's been played.
   const currentWeekForDisplay = () => {
-    const unplayed = matchups.filter((m) => m.status !== "final");
+    const real = matchups.filter((m) => !isExhibition(m));
+    const unplayed = real.filter((m) => m.status !== "final");
     if (unplayed.length) return Math.min(...unplayed.map((m) => m.week));
-    const allWeeks = matchups.map((m) => m.week);
+    const allWeeks = real.map((m) => m.week);
     return allWeeks.length ? Math.max(...allWeeks) : null;
   };
 
@@ -1246,8 +1255,8 @@
           .get(week)
           .slice()
           .sort((a, b) => (a.date && b.date ? a.date.toMillis() - b.date.toMillis() : 0) || a.id.localeCompare(b.id));
-        const first = weekMatchups[0];
-        const heading = first.round === "regular" ? `Week ${week}` : `${playoffRoundName(first.playoffRound)} (Week ${week})`;
+        const firstPlayoff = weekMatchups.find((m) => m.round === "playoff");
+        const heading = firstPlayoff ? `${playoffRoundName(firstPlayoff.playoffRound)} (Week ${week})` : `Week ${week}`;
         const cards = weekMatchups
           .map((m) => {
             const scoreText = m.status === "final" ? `${m.homeScore} – ${m.awayScore}` : "";
@@ -1269,7 +1278,7 @@
               `
                 : "";
             const special = isThanksgivingSpecial(m);
-            const specialBadge = special ? `<span class="matchup-special-badge">🦃 Thanksgiving Special</span>` : "";
+            const specialBadge = special ? `<span class="matchup-special-badge">🦃 Thanksgiving Exhibition</span>` : "";
             return `<div class="card matchup-card${special ? " matchup-card--thanksgiving" : ""}">
                       ${specialBadge}
                       <span class="matchup-day">${formatMatchupDate(m.date)}</span>
@@ -1373,7 +1382,7 @@
       return;
     }
     // A playoff tie would leave the next round with no team to advance.
-    if (matchup.round !== "regular" && homeScore === awayScore) {
+    if (matchup.round === "playoff" && homeScore === awayScore) {
       showResultMessage("Playoff games can't end in a tie - enter the final score after overtime.", true);
       return;
     }
@@ -1396,7 +1405,22 @@
     // outcome is undone first - the sessions a winner lost are kept on the
     // matchup so the undo can restore them.
     const matchupFields = {};
-    if (winnerChanged) {
+    const exhibition = isExhibition(matchup);
+    if (exhibition) {
+      // Exhibitions never touch bonus sessions. A Thanksgiving special
+      // saved before they were exhibitions (round "regular") may already
+      // have banked/cleared sessions - undo that once, then mark it.
+      if (matchup.round !== "exhibition" && previousWinnerUid) {
+        const previousLoserUid = previousWinnerUid === matchup.homeUid ? matchup.awayUid : matchup.homeUid;
+        const bonusOf = (uid) => teamsByUid.get(uid)?.training?.bonusSessionsAvailable || 0;
+        mergeTeamUpdate(previousWinnerUid, {
+          "training.bonusSessionsAvailable": bonusOf(previousWinnerUid) + (matchup.bonusClearedFromWinner || 0),
+        });
+        mergeTeamUpdate(previousLoserUid, { "training.bonusSessionsAvailable": Math.max(0, bonusOf(previousLoserUid) - 1) });
+      }
+      matchupFields.round = "exhibition";
+      matchupFields.bonusClearedFromWinner = 0;
+    } else if (winnerChanged) {
       const opponentOf = (uid) => (uid === matchup.homeUid ? matchup.awayUid : matchup.homeUid);
       const bonus = new Map(
         [matchup.homeUid, matchup.awayUid].map((uid) => [uid, teamsByUid.get(uid)?.training?.bonusSessionsAvailable || 0])
@@ -1428,9 +1452,10 @@
     if (!matchup.homeLineup) matchupFields.homeLineup = (teamsByUid.get(matchup.homeUid) || {}).slots || {};
     if (!matchup.awayLineup) matchupFields.awayLineup = (teamsByUid.get(matchup.awayUid) || {}).slots || {};
 
+    const gameLabel = exhibition ? `Thanksgiving Exhibition, Week ${matchup.week}` : `Week ${matchup.week}`;
     const resultText = winnerUid
-      ? `${teamName(winnerUid)} defeated ${teamName(winnerUid === matchup.homeUid ? matchup.awayUid : matchup.homeUid)} ${Math.max(homeScore, awayScore)}-${Math.min(homeScore, awayScore)} (Week ${matchup.week})`
-      : `${teamName(matchup.homeUid)} and ${teamName(matchup.awayUid)} tied ${homeScore}-${awayScore} (Week ${matchup.week})`;
+      ? `${teamName(winnerUid)} defeated ${teamName(winnerUid === matchup.homeUid ? matchup.awayUid : matchup.homeUid)} ${Math.max(homeScore, awayScore)}-${Math.min(homeScore, awayScore)} (${gameLabel})`
+      : `${teamName(matchup.homeUid)} and ${teamName(matchup.awayUid)} tied ${homeScore}-${awayScore} (${gameLabel})`;
     // Editing only the summaries of a final game stays quiet.
     const announceText = isFirstDeclaration ? resultText : scoreChanged ? `Score updated: ${resultText}` : null;
 
