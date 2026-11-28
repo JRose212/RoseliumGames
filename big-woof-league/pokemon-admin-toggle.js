@@ -30,8 +30,17 @@
     }
 
     const isOn = localStorage.getItem(storageKey(user.uid)) !== "user";
+    // Gamecast has no link in the regular jump nav on purpose (it's hidden
+    // from the league until it launches), so the admin gets one here
+    // instead - only with Admin Mode on, and only in leagues that have the
+    // page (config.hasGamecast).
+    const onGamecast = document.body.dataset.page === "pokemon-gamecast";
+    const gamecastLink = isOn && config.hasGamecast
+      ? `<a href="pokemon-gamecast.html"${onGamecast ? ' class="active"' : ""}>📺 Gamecast</a>`
+      : "";
     wrapEl.hidden = false;
     wrapEl.innerHTML = `
+      ${gamecastLink}
       <label class="admin-mode-toggle" title="Show or hide admin-only controls on every page - a local display preference, not a security setting.">
         <input type="checkbox" id="admin-mode-checkbox" ${isOn ? "checked" : ""} />
         <span>Admin Mode</span>

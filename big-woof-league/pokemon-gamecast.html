@@ -16,6 +16,7 @@
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-storage-compat.js"></script>
     <script src="pokemon-gamecast-validator.js" defer></script>
     <script src="pokemon-gamecast.js" defer></script>
     <script src="pokemon-admin-toggle.js" defer></script>
@@ -86,10 +87,26 @@
         </div>
       </section>
 
+      <section class="card" id="gamecast-audio-admin" hidden>
+        <h2>Admin: Gamecast Audio</h2>
+        <p>Upload voice clips for this game - they play for anyone who clicks <strong>Listen live</strong>, each one as its play appears. Name each file for its spot: <code>play-12.mp3</code> for Tara's call on plays[12] (counting from 0), or <code>pregame</code> / <code>endQ1</code> / <code>halftime</code> / <code>endQ3</code> / <code>postgame</code> for the studio segments. Add <code>-2</code>, <code>-3</code>… to play several clips back to back in one spot. Pick them all at once; uploading a name again replaces it.</p>
+        <p class="status" id="gamecast-audio-summary"></p>
+        <input type="file" id="gamecast-audio-files" accept="audio/*" multiple />
+        <p class="status" id="gamecast-audio-message" hidden style="white-space: pre-line;"></p>
+        <div style="display:flex; gap:0.5rem; margin-top: 0.75rem; flex-wrap: wrap;">
+          <button type="button" class="btn btn-secondary" id="gamecast-audio-upload-btn">Upload Clips</button>
+          <button type="button" class="btn btn-secondary" id="gamecast-audio-clear-btn">Remove All Clips</button>
+        </div>
+      </section>
+
       <p class="status" id="gamecast-status">Loading…</p>
 
       <section class="card" id="gamecast-card" hidden>
         <div class="gamecast-scorebug" id="gamecast-scorebug"></div>
+        <div class="gamecast-audio-bar" id="gamecast-audio-bar" hidden>
+          <button type="button" class="btn btn-secondary" id="gamecast-audio-btn">🔊 Listen live</button>
+          <span class="gamecast-audio-status" id="gamecast-audio-status"></span>
+        </div>
         <div class="gamecast-feed" id="gamecast-feed"></div>
       </section>
     </main>

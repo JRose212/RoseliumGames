@@ -27,6 +27,15 @@
   const testSecondsPerPlayEl = document.getElementById("gamecast-test-seconds-per-play");
   const testMessageEl = document.getElementById("gamecast-test-message");
   const testPublishBtnEl = document.getElementById("gamecast-test-publish-btn");
+  const audioBarEl = document.getElementById("gamecast-audio-bar");
+  const audioBtnEl = document.getElementById("gamecast-audio-btn");
+  const audioStatusEl = document.getElementById("gamecast-audio-status");
+  const audioAdminCardEl = document.getElementById("gamecast-audio-admin");
+  const audioFilesEl = document.getElementById("gamecast-audio-files");
+  const audioUploadBtnEl = document.getElementById("gamecast-audio-upload-btn");
+  const audioClearBtnEl = document.getElementById("gamecast-audio-clear-btn");
+  const audioMessageEl = document.getElementById("gamecast-audio-message");
+  const audioSummaryEl = document.getElementById("gamecast-audio-summary");
 
   if (!cardEl) return;
 
@@ -50,6 +59,7 @@
   if (!firebase.apps.length) firebase.initializeApp(config.firebaseConfig);
   const auth = firebase.auth();
   const db = firebase.firestore();
+  const storage = firebase.storage ? firebase.storage() : null;
 
   let currentUser = null;
   let gameDoc = null;
@@ -107,6 +117,56 @@
         </div>
         ${resultText ? `<p class="gamecast-play-result">${escapeHtml(resultText)}</p>` : ""}
         <p class="gamecast-play-desc">${escapeHtml(play.desc || "")}</p>
+        ${linesHtml(play.call)}
+      </div>
+    `;
+  };
+
+  // --- Commentary: Tara's play calls (play.call) and the Walt & Marcus
+  // studio segments (payload.breaks) - shown as text in the feed, and
+  // played as audio clips when the admin has uploaded them. ---
+
+  const speakerNames = { tara: "Tara", walt: "Walt", marcus: "Marcus" };
+  const lineText = (line) => (line && (line.text || line.line)) || "";
+
+  const linesHtml = (lines) =>
+    (lines || [])
+      .filter((line) => lineText(line))
+      .map(
+        (line) => `
+          <p class="gamecast-line">
+            <span class="gamecast-line-speaker">${escapeHtml(speakerNames[line.speaker] || line.speaker || "")}:</span>
+            ${escapeHtml(lineText(line))}
+          </p>
+        `
+      )
+      .join("");
+
+  const breakTitles = {
+    pregame: "Pregame",
+    endQ1: "End of the 1st Quarter",
+    halftime: "Halftime",
+    endQ3: "End of the 3rd Quarter",
+    postgame: "Postgame",
+  };
+
+  // Which studio segment (if any) comes right before plays[i] - pregame
+  // before the first play, then one at each quarter change. Overtime
+  // quarters get no segment.
+  const breakKeyBefore = (i) => {
+    if (i === 0) return "pregame";
+    const prevQ = gameDoc.plays[i - 1].q;
+    if (gameDoc.plays[i].q === prevQ) return null;
+    return { 1: "endQ1", 2: "halftime", 3: "endQ3" }[prevQ] || null;
+  };
+
+  const breakCardHtml = (key) => {
+    const lines = (key && gameDoc.breaks && gameDoc.breaks[key]) || [];
+    if (!lines.some((line) => lineText(line))) return "";
+    return `
+      <div class="gamecast-break">
+        <p class="gamecast-break-title">🎙️ ${escapeHtml(breakTitles[key] || key)} - In the Studio</p>
+        ${linesHtml(lines)}
       </div>
     `;
   };
@@ -147,15 +207,124 @@
     // Newest play first, so the latest action is always visible without
     // scrolling - this re-renders the whole feed on every tick, which is
     // fine at this scale (a game tops out around 150 plays).
-    feedEl.innerHTML = revealed
-      .slice()
-      .reverse()
-      .map((play, i) => playCardHtml(play, i === 0))
-      .join("");
+    // Built oldest-first (each studio segment right before the play it
+    // leads into, postgame after the last play), then flipped.
+    const items = [];
+    revealed.forEach((play, i) => {
+      items.push(breakCardHtml(breakKeyBefore(i)));
+      items.push(playCardHtml(play, i === revealed.length - 1));
+    });
+    if (isFinal) items.push(breakCardHtml("postgame"));
+    feedEl.innerHTML = items.reverse().join("");
   };
+
+  // --- Live audio ---
+  // Clips live in Storage at gamecastAudio/{matchupId}/v{N}/..., listed on
+  // the pointer doc as audio: { version, clips: { "play-12": [urls],
+  // "halftime": [urls], ... } }. Clips only count if audio.version matches
+  // the active play-list version - a resim can renumber plays, and
+  // republishing (which rewrites the pointer doc) drops the audio map
+  // anyway. Browsers block sound that starts on its own, so nothing plays
+  // until the viewer clicks Listen live; from then on each clip plays as
+  // its play is revealed, one at a time, never overlapping.
+
+  // A tiny silent clip played inside the click, so phones (iOS especially)
+  // count this audio element as started by the user and let later clips
+  // play on their own.
+  const SILENT_WAV = "data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA=";
+  const audioEl = new Audio();
+  let audioOn = false;
+  let audioQueue = [];
+  let audioBusy = false;
+  let audioHandledCount = 0;
+  let postgameQueued = false;
+
+  const audioClips = () => {
+    const audio = gameDoc && gameDoc.audio;
+    if (!audio || audio.version !== gameDoc.activeVersion || !audio.clips) return {};
+    return audio.clips;
+  };
+  const clipsFor = (key) => (key && audioClips()[key]) || [];
+  const hasAnyAudio = () => Object.keys(audioClips()).length > 0;
+
+  const playNextClip = () => {
+    if (!audioOn || audioBusy) return;
+    const url = audioQueue.shift();
+    if (!url) return;
+    audioBusy = true;
+    audioEl.src = url;
+    audioEl.play().catch(() => {
+      audioBusy = false;
+      playNextClip();
+    });
+  };
+  const finishClip = () => {
+    if (!audioBusy) return;
+    audioBusy = false;
+    playNextClip();
+  };
+  audioEl.addEventListener("ended", finishClip);
+  audioEl.addEventListener("error", finishClip);
+
+  const queueClips = (urls) => {
+    audioQueue.push(...urls);
+    playNextClip();
+  };
+
+  const queueAudioFor = (count) => {
+    if (!audioOn || !gameDoc) return;
+    if (count > audioHandledCount) {
+      // More than a few plays at once means the viewer fell behind (tab
+      // in the background, phone asleep) - jump to the newest play rather
+      // than reading out a backlog of old ones.
+      let from = audioHandledCount;
+      if (count - audioHandledCount > 3) {
+        from = count - 1;
+        audioQueue = [];
+      }
+      for (let i = from; i < count; i++) {
+        queueClips(clipsFor(breakKeyBefore(i)));
+        queueClips(clipsFor(`play-${i}`));
+      }
+      audioHandledCount = count;
+    }
+    if (count >= gameDoc.plays.length && !postgameQueued) {
+      postgameQueued = true;
+      queueClips(clipsFor("postgame"));
+    }
+  };
+
+  const renderAudioBar = () => {
+    if (!audioBarEl) return;
+    audioBarEl.hidden = !hasAnyAudio();
+    audioBtnEl.textContent = audioOn ? "🔇 Mute" : "🔊 Listen live";
+    audioStatusEl.textContent = audioOn ? "Audio on - you'll hear each call as it happens." : "";
+  };
+
+  const setAudioOn = (on) => {
+    audioOn = on;
+    audioQueue = [];
+    audioBusy = false;
+    audioEl.pause();
+    if (on) {
+      audioEl.src = SILENT_WAV;
+      audioEl.play().catch(() => {});
+      const count = revealCount();
+      const isFinal = gameDoc && count >= gameDoc.plays.length;
+      // Live game: start with the play that's on screen now. Finished
+      // game: just the postgame segment.
+      audioHandledCount = isFinal ? count : Math.max(0, count - 1);
+      postgameQueued = false;
+      queueAudioFor(count);
+    }
+    renderAudioBar();
+  };
+
+  if (audioBtnEl) audioBtnEl.addEventListener("click", () => setAudioOn(!audioOn));
 
   const tick = () => {
     render();
+    queueAudioFor(revealCount());
     if (gameDoc && revealCount() >= gameDoc.plays.length) {
       clearInterval(tickTimer);
       tickTimer = null;
@@ -253,6 +422,124 @@
 
   if (testPublishBtnEl) testPublishBtnEl.addEventListener("click", publishTestGamecast);
 
+  // --- Admin: audio clip upload ---
+  // Clips are matched to plays by file name, so a whole game's worth can
+  // be picked in one go:
+  //   play-12.mp3       Tara's call for plays[12] (counting from 0, the
+  //                     same numbering the validator's messages use)
+  //   pregame.mp3, endQ1.mp3, halftime.mp3, endQ3.mp3, postgame.mp3
+  //                     the studio segments
+  // Add -2, -3... (play-12-2.mp3, halftime-2.mp3) to split one spot into
+  // several clips that play back to back. Uploading a name again
+  // replaces that spot's clips; spots not in the upload are kept.
+
+  const breakKeysByLower = { pregame: "pregame", endq1: "endQ1", halftime: "halftime", endq3: "endQ3", postgame: "postgame" };
+
+  const clipSpotFromFileName = (fileName) => {
+    const base = fileName.replace(/\.[^.]+$/, "").trim();
+    let match = base.match(/^play[-_ ]?0*(\d+)(?:[-_ ](\d+))?$/i);
+    if (match) return { key: `play-${Number(match[1])}`, part: Number(match[2] || 1), playIndex: Number(match[1]) };
+    match = base.match(/^(pregame|endq1|halftime|endq3|postgame)(?:[-_ ](\d+))?$/i);
+    if (match) return { key: breakKeysByLower[match[1].toLowerCase()], part: Number(match[2] || 1) };
+    return null;
+  };
+
+  const showAudioMessage = (text, isError) => {
+    audioMessageEl.hidden = false;
+    audioMessageEl.className = `status${isError ? " error" : ""}`;
+    audioMessageEl.textContent = text;
+  };
+
+  const renderAudioAdmin = () => {
+    if (!audioAdminCardEl) return;
+    audioAdminCardEl.hidden = !(isAdmin() && gameDoc);
+    if (audioAdminCardEl.hidden) return;
+    const clips = audioClips();
+    const keys = Object.keys(clips);
+    const playSpots = keys.filter((key) => key.startsWith("play-")).length;
+    const breakSpots = keys.length - playSpots;
+    const playsWithCalls = gameDoc.plays.filter((play) => (play.call || []).some((line) => lineText(line))).length;
+    audioSummaryEl.textContent = keys.length
+      ? `Attached: clips for ${playSpots} play(s) and ${breakSpots} studio segment(s). ${playsWithCalls} play(s) in this game have a call written.`
+      : `No clips attached yet. ${playsWithCalls} play(s) in this game have a call written.`;
+  };
+
+  async function uploadAudioClips() {
+    if (!gameDoc || !matchupId) return;
+    if (!storage) {
+      showAudioMessage("File storage didn't load on this page - refresh and try again.", true);
+      return;
+    }
+    const files = [...(audioFilesEl.files || [])];
+    if (!files.length) {
+      showAudioMessage("Choose the clip files first.", true);
+      return;
+    }
+
+    const problems = [];
+    const parsed = files.map((file) => {
+      const spot = clipSpotFromFileName(file.name);
+      if (!spot) problems.push(`${file.name}: name doesn't match play-N or pregame/endQ1/halftime/endQ3/postgame.`);
+      else if (spot.playIndex !== undefined && spot.playIndex >= gameDoc.plays.length)
+        problems.push(`${file.name}: this game only has plays 0-${gameDoc.plays.length - 1}.`);
+      else if (!(file.type || "").startsWith("audio/")) problems.push(`${file.name}: not an audio file.`);
+      return { file, spot };
+    });
+    if (problems.length) {
+      showAudioMessage(`Nothing uploaded - fix these first:\n${problems.slice(0, 10).join("\n")}`, true);
+      return;
+    }
+
+    const version = gameDoc.activeVersion;
+    audioUploadBtnEl.disabled = true;
+    try {
+      const uploaded = {};
+      for (let i = 0; i < parsed.length; i++) {
+        const { file, spot } = parsed[i];
+        showAudioMessage(`Uploading ${i + 1} of ${parsed.length}: ${file.name}…`, false);
+        const ref = storage.ref(`gamecastAudio/${matchupId}/v${version}/${file.name}`);
+        await ref.put(file, { contentType: file.type });
+        const url = await ref.getDownloadURL();
+        (uploaded[spot.key] = uploaded[spot.key] || []).push({ part: spot.part, url });
+      }
+
+      // Re-read the pointer right before writing, so this merges onto
+      // whatever is attached now rather than what was loaded earlier.
+      const pointerDoc = await db.collection("gamePlays").doc(matchupId).get();
+      const pointer = pointerDoc.data() || {};
+      const activeVersion = pointer.segments && pointer.segments.full && pointer.segments.full.activeVersion;
+      if (activeVersion !== version) {
+        showAudioMessage("This game was republished while uploading - the play numbering may have changed. Upload the clips again.", true);
+        return;
+      }
+      const clips = { ...((pointer.audio && pointer.audio.version === version && pointer.audio.clips) || {}) };
+      Object.entries(uploaded).forEach(([key, entries]) => {
+        clips[key] = entries.sort((a, b) => a.part - b.part).map((entry) => entry.url);
+      });
+      await db.collection("gamePlays").doc(matchupId).update({ audio: { version, clips } });
+      audioFilesEl.value = "";
+      showAudioMessage(`Uploaded ${parsed.length} clip(s) across ${Object.keys(uploaded).length} spot(s).`, false);
+    } catch (error) {
+      showAudioMessage(error.message, true);
+    } finally {
+      audioUploadBtnEl.disabled = false;
+    }
+  }
+
+  async function clearAudioClips() {
+    if (!gameDoc || !matchupId) return;
+    if (!window.confirm("Remove every audio clip from this game? (The files stay in storage; the game just stops playing them.)")) return;
+    try {
+      await db.collection("gamePlays").doc(matchupId).update({ audio: firebase.firestore.FieldValue.delete() });
+      showAudioMessage("All clips removed from this game.", false);
+    } catch (error) {
+      showAudioMessage(error.message, true);
+    }
+  }
+
+  if (audioUploadBtnEl) audioUploadBtnEl.addEventListener("click", uploadAudioClips);
+  if (audioClearBtnEl) audioClearBtnEl.addEventListener("click", clearAudioClips);
+
   // --- Live data ---
 
   let unsubscribeGamePlays = null;
@@ -270,6 +557,7 @@
     if (!isAdmin()) {
       cardEl.hidden = true;
       testCardEl.hidden = true;
+      if (audioAdminCardEl) audioAdminCardEl.hidden = true;
       statusEl.hidden = false;
       statusEl.className = "status";
       statusEl.textContent = "Gamecast isn't available yet - check back during a live game.";
@@ -341,7 +629,15 @@
                 secondsPerPlay: segment.secondsPerPlay,
                 plays: version.plays,
                 game: version.game,
+                breaks: version.breaks || null,
+                activeVersion: segment.activeVersion,
+                audio: pointer.audio || null,
               };
+              // Reloads happen mid-game (e.g. the admin uploading clips) -
+              // carry on from what's on screen rather than replaying it.
+              if (audioOn) audioHandledCount = revealCount();
+              renderAudioBar();
+              renderAudioAdmin();
               startTicking();
             })
             .catch((error) => {
