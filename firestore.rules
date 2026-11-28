@@ -205,27 +205,6 @@ service cloud.firestore {
       allow delete: if isAdmin();
     }
 
-    // Full play-by-play for the Gamecast reveal-on-a-timer view (keyed by
-    // matchupId) - same shape of admin-entered per-game record as
-    // boxScores above, which is in fact derived from this collection's
-    // plays rather than pasted in separately.
-    match /gamePlays/{matchupId} {
-      allow read: if isSignedIn();
-      allow create, update: if isAdmin();
-      allow delete: if isAdmin();
-
-      // Each publish writes a new version doc instead of overwriting the
-      // last one - a resim never silently rewrites what's already been
-      // revealed to anyone watching. Versions are append-only: created by
-      // admin, never updated, since "fixing" one means publishing a new
-      // version and pointing the parent doc at it, not editing in place.
-      match /versions/{versionId} {
-        allow read: if isSignedIn();
-        allow create: if isAdmin();
-        allow delete: if isAdmin();
-      }
-    }
-
     // Broadcast episodes uploaded straight from the K&J Show page - the
     // admin's fallback for posting an episode without VS Code/git access.
     // The hand-maintained broadcasts.js file is still the primary method;

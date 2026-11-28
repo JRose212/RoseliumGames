@@ -76,10 +76,6 @@
   const boxScoreInputEl = document.getElementById("box-score-input");
   const boxScoreMessageEl = document.getElementById("box-score-message");
   const boxScoreSaveBtnEl = document.getElementById("box-score-save-btn");
-  const gamecastInputEl = document.getElementById("gamecast-input");
-  const gamecastSecondsPerPlayEl = document.getElementById("gamecast-seconds-per-play");
-  const gamecastMessageEl = document.getElementById("gamecast-message");
-  const gamecastSaveBtnEl = document.getElementById("gamecast-save-btn");
   const resultMessageEl = document.getElementById("result-message");
   const resultSubmitBtnEl = document.getElementById("result-submit-btn");
   const resultCancelBtnEl = document.getElementById("result-cancel-btn");
@@ -171,7 +167,6 @@
   let seasonState = null;
   let trainingLog = [];
   let boxScoresByMatchupId = new Map();
-  let gamePlayMatchupIds = new Set();
 
   const isRealAdmin = () =>
     Boolean(currentUser && config.adminUid && config.adminUid !== "YOUR_ADMIN_UID" && currentUser.uid === config.adminUid);
@@ -227,102 +222,6 @@
       </div>
     `;
   };
-
-  // --- Gamecast (play-by-play) ---
-
-  // Schema v1, agreed with the desktop project: { schemaVersion, game:
-  // {week, home, away}, plays: [{q, clock, poss, down, dist, ballOn,
-  // type, result, yards, kickDist, desc, highlight, penalty, scoreAfter,
-  // stats: [{team, slot, pokemonName, stats}]}] }. "home"/"away" in the
-  // play's own fields are just tags - this page is the one that knows
-  // which uid they map to for the current matchup. No timestamps in the
-  // schema on purpose - pacing (secondsPerPlay below) is a site decision,
-  // not a simulation one.
-  //
-  // Real validation (continuity, clock direction, score reconciliation,
-  // stat-key whitelisting, speaker whitelisting) lives in
-  // pokemon-gamecast-validator.js, loaded on this page - see that file for
-  // the full rule list.
-
-  // The box score becomes a derived view of the plays instead of a
-  // separately-pasted document - the two can no longer disagree, because
-  // there's only one source of truth now. Kicker stats are a special
-  // case: fgMade/fgAtt/long/xpMade are tallied from each fg/xp play's own
-  // type/result/kickDist (same reasoning the desktop project gave for why
-  // "long" specifically can't be a per-play stat - it's a running
-  // derivation, not something to sum), attributed to whichever Pokemon
-  // currently holds that team's K slot rather than needing the play's
-  // stats array to name a kicker at all.
-  const deriveBoxScoreFromPlays = (plays, homeTeam, awayTeam) => {
-    const accum = { home: new Map(), away: new Map() };
-    const addStat = (teamKey, slot, pokemonName, deltas) => {
-      if (!accum[teamKey].has(slot)) accum[teamKey].set(slot, { pokemonName, stats: {} });
-      const entry = accum[teamKey].get(slot);
-      entry.pokemonName = pokemonName;
-      Object.entries(deltas || {}).forEach(([key, value]) => {
-        entry.stats[key] = (entry.stats[key] || 0) + (Number(value) || 0);
-      });
-    };
-
-    const kicking = {
-      home: { fgAtt: 0, fgMade: 0, long: 0, xpMade: 0 },
-      away: { fgAtt: 0, fgMade: 0, long: 0, xpMade: 0 },
-    };
-
-    plays.forEach((play) => {
-      (play.stats || []).forEach((entry) => addStat(entry.team, entry.slot, entry.pokemonName, entry.stats));
-
-      const kickingTeam = play.poss === "home" ? "home" : "away";
-      if (play.type === "fg") {
-        kicking[kickingTeam].fgAtt += 1;
-        if (play.result === "fg_good") {
-          kicking[kickingTeam].fgMade += 1;
-          kicking[kickingTeam].long = Math.max(kicking[kickingTeam].long, Number(play.kickDist) || 0);
-        }
-      } else if (play.type === "xp" && play.result === "xp_good") {
-        kicking[kickingTeam].xpMade += 1;
-      }
-    });
-
-    [
-      ["home", homeTeam],
-      ["away", awayTeam],
-    ].forEach(([teamKey, team]) => {
-      const kicker = team && team.slots && team.slots.K;
-      if (kicker) addStat(teamKey, "K", kicker.pokemonName, kicking[teamKey]);
-    });
-
-    const toArray = (map) =>
-      Array.from(map.entries()).map(([slot, entry]) => ({ slot, pokemonName: entry.pokemonName, stats: entry.stats }));
-    return { home: toArray(accum.home), away: toArray(accum.away) };
-  };
-
-  // Storage: gamePlays/{matchupId} is a lightweight pointer doc
-  // (segments.full.activeVersion/revealStart/secondsPerPlay); the heavy
-  // play list lives in gamePlays/{matchupId}/versions/full_v{N}. A resim
-  // writes a new version doc and repoints the pointer rather than
-  // overwriting the old version, so anyone already watching never has
-  // what they're mid-reveal of silently rewritten underneath them. Only
-  // the "full" segment exists for now - h1/h2 segments are a later build
-  // stage (see GAMECAST_SPEC.md).
-  const loadActiveGamecastVersion = (matchupId) =>
-    db
-      .collection("gamePlays")
-      .doc(matchupId)
-      .get()
-      .then((pointerDoc) => {
-        if (!pointerDoc.exists) return null;
-        const pointer = pointerDoc.data();
-        const activeVersion = pointer.segments && pointer.segments.full && pointer.segments.full.activeVersion;
-        if (!activeVersion) return null;
-        return db
-          .collection("gamePlays")
-          .doc(matchupId)
-          .collection("versions")
-          .doc(`full_v${activeVersion}`)
-          .get()
-          .then((versionDoc) => (versionDoc.exists ? { pointer, version: versionDoc.data() } : null));
-      });
 
   // --- Round-robin schedule generation ---
 
@@ -1508,12 +1407,6 @@
               `
               : "";
 
-            // Admin-only for now - the Gamecast feature is being saved for
-            // the PokéBowl, not turned on for regular users yet.
-            const gamecastLink = isAdmin() && gamePlayMatchupIds.has(m.id)
-              ? `<a class="btn btn-secondary" href="pokemon-gamecast.html?matchup=${m.id}">Watch Gamecast</a>`
-              : "";
-
             const box = m.status === "final" ? boxScoresByMatchupId.get(m.id) : null;
             const boxScoreHtml = box
               ? `
@@ -1532,7 +1425,6 @@
                       <span class="matchup-score">${scoreText}</span>
                       ${declareBtn}
                       ${exportBtn}
-                      ${gamecastLink}
                       ${summaryLine}
                       ${driveSummaryHtml}
                       ${boxScoreHtml}
@@ -1643,30 +1535,6 @@
         if (pendingMatchupId !== matchupId) return;
         boxScoreInputEl.disabled = false;
         boxScoreInputEl.value = "";
-      });
-
-    gamecastMessageEl.hidden = true;
-    gamecastInputEl.value = "Loading existing play-by-play (if any)…";
-    gamecastInputEl.disabled = true;
-    loadActiveGamecastVersion(matchupId)
-      .then((result) => {
-        if (pendingMatchupId !== matchupId) return;
-        gamecastInputEl.disabled = false;
-        if (result) {
-          gamecastInputEl.value = JSON.stringify(
-            { schemaVersion: result.version.schemaVersion, game: result.version.game, plays: result.version.plays },
-            null,
-            2
-          );
-          gamecastSecondsPerPlayEl.value = (result.pointer.segments.full && result.pointer.segments.full.secondsPerPlay) || 20;
-        } else {
-          gamecastInputEl.value = "";
-        }
-      })
-      .catch(() => {
-        if (pendingMatchupId !== matchupId) return;
-        gamecastInputEl.disabled = false;
-        gamecastInputEl.value = "";
       });
   };
 
@@ -1844,111 +1712,6 @@
 
   if (boxScoreSaveBtnEl) boxScoreSaveBtnEl.addEventListener("click", saveBoxScore);
 
-  const showGamecastMessage = (text, isError) => {
-    gamecastMessageEl.hidden = false;
-    gamecastMessageEl.className = `status${isError ? " error" : ""}`;
-    gamecastMessageEl.textContent = text;
-  };
-
-  async function savePlays() {
-    if (!pendingMatchupId) return;
-    const matchup = matchups.find((m) => m.id === pendingMatchupId);
-    if (!matchup) return;
-
-    const raw = gamecastInputEl.value.trim();
-    if (!raw) {
-      showGamecastMessage("Paste the play-by-play JSON first.", true);
-      return;
-    }
-    let parsed;
-    try {
-      parsed = JSON.parse(raw);
-    } catch (error) {
-      showGamecastMessage(`Invalid JSON: ${error.message}`, true);
-      return;
-    }
-
-    const errors = [
-      ...window.validateGamecastPlays(parsed.plays, {
-        expectedGame: { week: matchup.week, home: teamName(matchup.homeUid), away: teamName(matchup.awayUid) },
-        payloadGame: parsed.game,
-      }),
-      ...window.validateGamecastBreaks(parsed.breaks),
-    ];
-    if (errors.length) {
-      const shown = errors.slice(0, 10).join("\n");
-      const more = errors.length > 10 ? `\n...and ${errors.length - 10} more.` : "";
-      showGamecastMessage(`${errors.length} issue(s) found:\n${shown}${more}`, true);
-      return;
-    }
-
-    const secondsPerPlay = Number(gamecastSecondsPerPlayEl.value) || 20;
-
-    try {
-      const pointerDoc = await db.collection("gamePlays").doc(pendingMatchupId).get();
-      const pointer = pointerDoc.exists ? pointerDoc.data() : null;
-      const currentSegment = pointer && pointer.segments && pointer.segments.full;
-      const currentVersion = (currentSegment && currentSegment.activeVersion) || 0;
-
-      // Resim lock: once reveal would already be underway (or over) for
-      // anyone watching, republishing silently would rewrite what they've
-      // already seen or are mid-watching. Not a hard block - games get
-      // corrected after the fact - just a confirmation instead of a quiet
-      // overwrite.
-      if (currentVersion > 0 && currentSegment.revealStart && currentSegment.revealStart.toMillis() <= Date.now()) {
-        const confirmed = window.confirm(
-          "This game's Gamecast has already started revealing (or finished). Publishing a new version restarts the reveal from the top for anyone watching. Continue?"
-        );
-        if (!confirmed) {
-          showGamecastMessage("Publish cancelled.", true);
-          return;
-        }
-      }
-
-      const nextVersion = currentVersion + 1;
-      const homeTeam = teamsByUid.get(matchup.homeUid);
-      const awayTeam = teamsByUid.get(matchup.awayUid);
-      const derivedBoxScore = deriveBoxScoreFromPlays(parsed.plays, homeTeam, awayTeam);
-
-      const batch = db.batch();
-      batch.set(db.collection("gamePlays").doc(pendingMatchupId).collection("versions").doc(`full_v${nextVersion}`), {
-        schemaVersion: parsed.schemaVersion || 1,
-        game: parsed.game || null,
-        plays: parsed.plays,
-        breaks: parsed.breaks || null,
-        createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-        enteredBy: auth.currentUser.uid,
-      });
-      batch.set(db.collection("gamePlays").doc(pendingMatchupId), {
-        homeUid: matchup.homeUid,
-        awayUid: matchup.awayUid,
-        segments: {
-          full: {
-            activeVersion: nextVersion,
-            revealStart: matchup.date,
-            secondsPerPlay,
-          },
-        },
-        enteredAt: firebase.firestore.FieldValue.serverTimestamp(),
-        enteredBy: auth.currentUser.uid,
-      });
-      batch.set(db.collection("boxScores").doc(pendingMatchupId), {
-        home: derivedBoxScore.home,
-        away: derivedBoxScore.away,
-        enteredAt: firebase.firestore.FieldValue.serverTimestamp(),
-        enteredBy: auth.currentUser.uid,
-      });
-      await batch.commit();
-
-      boxScoreInputEl.value = JSON.stringify(derivedBoxScore, null, 2);
-      showGamecastMessage(`Gamecast published as version ${nextVersion} - box score recomputed from the plays.`, false);
-    } catch (error) {
-      showGamecastMessage(error.message, true);
-    }
-  }
-
-  if (gamecastSaveBtnEl) gamecastSaveBtnEl.addEventListener("click", savePlays);
-
   // --- Playoffs ---
 
   const allFinal = (round) => {
@@ -2120,7 +1883,6 @@
   let unsubscribeSeason = null;
   let unsubscribeTrainingLog = null;
   let unsubscribeBoxScores = null;
-  let unsubscribeGamePlays = null;
 
   const renderAll = () => {
     renderStandings();
@@ -2135,10 +1897,10 @@
   };
 
   const subscribe = () => {
-    [unsubscribeTeams, unsubscribeMatchups, unsubscribeSeason, unsubscribeTrainingLog, unsubscribeBoxScores, unsubscribeGamePlays].forEach(
+    [unsubscribeTeams, unsubscribeMatchups, unsubscribeSeason, unsubscribeTrainingLog, unsubscribeBoxScores].forEach(
       (unsubscribe) => unsubscribe && unsubscribe()
     );
-    unsubscribeTeams = unsubscribeMatchups = unsubscribeSeason = unsubscribeTrainingLog = unsubscribeBoxScores = unsubscribeGamePlays = null;
+    unsubscribeTeams = unsubscribeMatchups = unsubscribeSeason = unsubscribeTrainingLog = unsubscribeBoxScores = null;
 
     if (!currentUser) {
       statusEl.hidden = false;
@@ -2198,16 +1960,6 @@
     unsubscribeBoxScores = db.collection("boxScores").onSnapshot(
       (snapshot) => {
         boxScoresByMatchupId = new Map(snapshot.docs.map((doc) => [doc.id, doc.data()]));
-        renderAll();
-      },
-      () => {}
-    );
-
-    // Just which matchups have a Gamecast published - the full play list
-    // is loaded by the Gamecast page itself, not needed here.
-    unsubscribeGamePlays = db.collection("gamePlays").onSnapshot(
-      (snapshot) => {
-        gamePlayMatchupIds = new Set(snapshot.docs.map((doc) => doc.id));
         renderAll();
       },
       () => {}

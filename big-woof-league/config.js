@@ -196,10 +196,6 @@ window.siteConfig = {
   // back their UID - the "!== YOUR_ADMIN_UID" guards already throughout
   // the app treat this literal string as "not configured yet".
   adminUid: "ASJjIqPQ2FOW0ks8F5mpMO87gr83",
-  // Shows the admin-only Gamecast link next to the Admin Mode toggle
-  // (pokemon-admin-toggle.js). Powderpuff has no Gamecast page, so its
-  // config leaves this out.
-  hasGamecast: true,
   autodraftTimeoutMs: 20 * 1000, // 20 seconds - live draft night
   regularSeasonWeeks: 13,
 

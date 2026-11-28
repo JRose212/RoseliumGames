@@ -41,12 +41,6 @@
   let teamsByUid = new Map();
   let matchups = [];
   let boxScoresByMatchupId = new Map();
-  // Only count a box score once its game is declared final. Publishing a
-  // Gamecast saves its box score right away (before kickoff, possibly),
-  // so counting every saved box score would put a game's stats on the
-  // leaderboards before the game has played out.
-  const finalBoxScore = (matchup) =>
-    matchup.status === "final" ? boxScoresByMatchupId.get(matchup.id) : undefined;
 
   const teamName = (uid) => teamsByUid.get(uid)?.teamName || "Unknown team";
 
@@ -138,7 +132,7 @@
     leaderboardCategories.forEach((cat) => (totals[cat.key] = new Map()));
 
     matchups.forEach((matchup) => {
-      const box = finalBoxScore(matchup);
+      const box = boxScoresByMatchupId.get(matchup.id);
       if (!box) return;
       [
         { side: box.home, uid: matchup.homeUid },
@@ -426,7 +420,7 @@
     [...matchups]
       .sort((a, b) => matchupMillis(a) - matchupMillis(b) || a.id.localeCompare(b.id))
       .forEach((matchup) => {
-        const box = finalBoxScore(matchup);
+        const box = boxScoresByMatchupId.get(matchup.id);
         if (!box) return;
         if (scope === "regular" && matchup.round !== "regular") return;
         if (scope === "playoffs" && matchup.round === "regular") return;
@@ -496,7 +490,7 @@
 
   const renderPlayerStats = () => {
     const table = activePlayerTable();
-    const hasBoxScores = matchups.some((matchup) => Boolean(finalBoxScore(matchup)));
+    const hasBoxScores = matchups.some((matchup) => boxScoresByMatchupId.has(matchup.id));
     playerStatsCardEl.hidden = !hasBoxScores;
     if (!hasBoxScores) return;
 

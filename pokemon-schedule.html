@@ -17,7 +17,6 @@
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
-    <script src="pokemon-gamecast-validator.js" defer></script>
     <script src="pokemon-schedule.js" defer></script>
     <script src="pokemon-admin-toggle.js" defer></script>
     <script src="pokemon-chat.js" defer></script>
@@ -221,18 +220,6 @@
         <p class="status" id="box-score-message" hidden></p>
         <div style="display:flex; gap:0.5rem; margin-top: 0.75rem;">
           <button type="button" class="btn btn-secondary" id="box-score-save-btn">Save Box Score</button>
-        </div>
-
-        <h3 style="margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid var(--border);">Gamecast (Play-by-Play)</h3>
-        <p>Paste the full play-by-play JSON for this game. Publishing recomputes the Box Score above from these plays and overwrites whatever's there, so the two can't disagree.</p>
-        <textarea id="gamecast-input" rows="8" style="width: 100%; padding:0.6rem 0.8rem;border-radius:2px;border:1px solid var(--border);background:var(--surface-strong);color:var(--text);font:inherit;font-family:monospace;font-size:0.8rem;"></textarea>
-        <label style="display:flex; align-items:center; gap:0.4rem; margin-top:0.6rem; font-size:0.85rem;">
-          Seconds revealed per play on the Gamecast page
-          <input type="number" id="gamecast-seconds-per-play" value="20" min="1" style="width:70px; padding:0.3rem 0.5rem; border-radius:2px; border:1px solid var(--border); background:var(--surface-strong); color:var(--text); font:inherit;" />
-        </label>
-        <p class="status" id="gamecast-message" hidden></p>
-        <div style="display:flex; gap:0.5rem; margin-top: 0.75rem;">
-          <button type="button" class="btn btn-secondary" id="gamecast-save-btn">Publish Gamecast</button>
         </div>
       </div>
     </div>
